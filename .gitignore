@@ -1,0 +1,5 @@
+.env
+.DS_Store
+
+# Local HTML backups — use git history instead of committing duplicates
+*.backup*.html

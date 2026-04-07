@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Monthly history — Financial Plan</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/financial-plan.css">
+</head>
+<body class="history-page">
+
+<header class="site-header no-print">
+  <nav class="site-nav" aria-label="Site">
+    <a class="site-nav__tab" href="financial-plan-v3-aggressive.html">💰 Financial Plan</a>
+    <a class="site-nav__tab" href="real-estate-plan.html">🏠 Real Estate</a>
+    <a class="site-nav__tab site-nav__tab--active" href="history.html" aria-current="page">📅 History</a>
+  </nav>
+  <div class="site-header__settings">
+    <button
+      type="button"
+      class="site-settings-btn"
+      id="btn-site-settings"
+      aria-expanded="false"
+      aria-haspopup="true"
+      aria-controls="site-settings-menu"
+    >
+      <span class="site-settings-btn__icon" aria-hidden="true">⚙</span>
+      <span class="site-settings-btn__label">Settings</span>
+    </button>
+    <ul class="site-settings-menu" id="site-settings-menu" aria-label="Site settings">
+      <li>
+        <div class="site-settings-menu-section">
+          <span class="site-settings-menu-label">Display</span>
+          <button type="button" class="site-settings-item site-settings-item--muted" id="btn-toggle-theme" aria-pressed="false">Dark mode</button>
+        </div>
+      </li>
+      <li>
+        <div class="site-settings-menu-section">
+          <span class="site-settings-menu-label">Page</span>
+          <button type="button" class="site-settings-item" id="btn-print">Print</button>
+        </div>
+      </li>
+      <li>
+        <div class="site-settings-menu-section">
+          <span class="site-settings-menu-label">Sample data</span>
+          <label class="site-settings-demo-toggle">
+            <input type="checkbox" id="demo-mode-toggle" />
+            <span>Use sample data (demo)</span>
+          </label>
+        </div>
+      </li>
+    </ul>
+  </div>
+</header>
+
+<div class="history-hero">
+  <div class="history-eyebrow">Activity</div>
+  <h1 class="history-title">Monthly history</h1>
+  <p class="history-lead">
+    Compare any two calendar months using payments and deposits you log in Goal 2 &amp; Goal 3, plus check-ins from the main plan.
+    Balances shown elsewhere are always “today”; this page is only about <strong>recorded activity</strong> in each month.
+  </p>
+</div>
+
+<div class="history-demo-banner" id="history-demo-banner" hidden>
+  <strong>Sample data mode</strong> — charts and totals below use mock activity so you can refine the layout. Turn off sample data in Settings (⚙) to use your saved logs.
+</div>
+
+<div class="content history-content">
+  <div class="history-controls no-print">
+    <div class="history-control">
+      <label for="hist-month-a">Month A</label>
+      <input type="month" id="hist-month-a" autocomplete="off">
+    </div>
+    <button type="button" class="history-swap-btn" id="hist-swap" title="Swap months">⇄ Swap</button>
+    <div class="history-control">
+      <label for="hist-month-b">Month B</label>
+      <input type="month" id="hist-month-b" autocomplete="off">
+    </div>
+  </div>
+  <p class="history-hint" id="history-months-hint" aria-live="polite"></p>
+
+  <div id="history-insights-root"></div>
+
+  <div id="history-compare-root"></div>
+</div>
+
+<div class="footer">
+  <strong>Data stays in this browser</strong> — same saved plan and check-ins as the Financial Plan page.
+</div>
+
+<script src="assets/theme-service.js" defer></script>
+<script src="assets/site-settings.js" defer></script>
+<script src="assets/checkin-service.js" defer></script>
+<script type="module" src="assets/financial-plan/history-main.js"></script>
+
+</body>
+</html>

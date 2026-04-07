@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Load mock data — Dev</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/financial-plan.css">
+<style>
+  .seed-page { max-width: 560px; margin: 0 auto; padding: 48px 24px 80px; font-family: 'DM Sans', sans-serif; }
+  .seed-page h1 { font-size: 22px; margin-bottom: 12px; color: var(--ink); }
+  .seed-page p { color: rgba(26,26,46,0.72); line-height: 1.6; margin-bottom: 16px; font-size: 15px; }
+  .seed-page .warn { background: rgba(184,92,92,0.12); border: 1px solid rgba(184,92,92,0.35); border-radius: 12px; padding: 14px 16px; margin: 20px 0; font-size: 14px; }
+  .seed-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    padding: 14px 22px;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--gold), #a88a3a);
+    color: #1a1a2e;
+    margin-right: 12px;
+    margin-bottom: 12px;
+  }
+  .seed-btn:hover { filter: brightness(1.05); }
+  .seed-out { margin-top: 20px; padding: 14px 16px; border-radius: 12px; background: var(--paper); border: 1px solid rgba(26,26,46,0.08); font-size: 13px; white-space: pre-wrap; color: var(--sage); font-weight: 600; }
+  .seed-links { margin-top: 28px; font-size: 14px; }
+  .seed-links a { color: var(--blue); font-weight: 700; }
+</style>
+<script src="assets/theme-service.js"></script>
+</head>
+<body>
+<header class="site-header no-print">
+  <nav class="site-nav" aria-label="Site">
+    <a class="site-nav__tab" href="financial-plan-v3-aggressive.html">💰 Financial Plan</a>
+    <a class="site-nav__tab" href="real-estate-plan.html">🏠 Real Estate</a>
+    <a class="site-nav__tab" href="history.html">📅 History</a>
+  </nav>
+  <div class="site-header__settings">
+    <button
+      type="button"
+      class="site-settings-btn"
+      id="btn-site-settings"
+      aria-expanded="false"
+      aria-haspopup="true"
+      aria-controls="site-settings-menu"
+    >
+      <span class="site-settings-btn__icon" aria-hidden="true">⚙</span>
+      <span class="site-settings-btn__label">Settings</span>
+    </button>
+    <ul class="site-settings-menu" id="site-settings-menu" aria-label="Site settings">
+      <li>
+        <div class="site-settings-menu-section">
+          <span class="site-settings-menu-label">Display</span>
+          <button type="button" class="site-settings-item site-settings-item--muted" id="btn-toggle-theme" aria-pressed="false">Dark mode</button>
+        </div>
+      </li>
+      <li>
+        <div class="site-settings-menu-section">
+          <span class="site-settings-menu-label">Page</span>
+          <button type="button" class="site-settings-item" id="btn-print">Print</button>
+        </div>
+      </li>
+    </ul>
+  </div>
+</header>
+<div class="seed-page">
+  <h1>Development: mock local data</h1>
+  <p>
+    This clears <strong>Financial Plan</strong> keys in <code>localStorage</code> (saved balances, check-ins, badges, theme, history demo flag) and replaces them with <strong>rich mock data</strong>: <strong>three</strong> debts (CC, car, student) with many payment rows, <strong>six</strong> savings accounts with multiple deposits per month, about <strong>18 months</strong> of history, and <strong>27+</strong> check-ins — see <code>dev-mock-storage.js</code> for details.
+  </p>
+  <p class="warn">
+    <strong>Warning:</strong> any real data you had saved in this browser for the Financial Plan will be removed. Real Estate planner keys are not touched.
+  </p>
+  <button type="button" class="seed-btn" id="seed-run">Clear &amp; load mock data</button>
+  <div class="seed-out" id="seed-status" hidden></div>
+  <div class="seed-links">
+    After seeding, open <a href="financial-plan-v3-aggressive.html">Financial Plan</a> · <a href="history.html">History</a>
+  </div>
+</div>
+<script src="assets/site-settings.js"></script>
+<script type="module">
+  import { seedDevMockStorage, FINANCIAL_PLAN_STORAGE_KEYS } from './assets/financial-plan/dev-mock-storage.js';
+
+  function showDone() {
+    const st = document.getElementById('seed-status');
+    st.hidden = false;
+    st.textContent =
+      'Done. Loaded mock balances + check-ins. Keys reset: ' +
+      FINANCIAL_PLAN_STORAGE_KEYS.length +
+      ' (then re-written). Reload other tabs that use the plan.';
+  }
+
+  document.getElementById('seed-run').addEventListener('click', function () {
+    seedDevMockStorage();
+    showDone();
+  });
+
+  if (new URLSearchParams(location.search).get('auto') === '1') {
+    seedDevMockStorage();
+    showDone();
+  }
+</script>
+</body>
+</html>

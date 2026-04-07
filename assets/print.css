@@ -1,0 +1,43 @@
+@media print {
+  /* Hide any interactive controls and editor surfaces */
+  .no-print,
+  button,
+  input,
+  .balance-editor,
+  .goal-editor-panel {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .content {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .section {
+    margin-bottom: 28px !important;
+    break-inside: avoid;
+  }
+
+  .status-card,
+  .networth-wrap,
+  .budget-wrap,
+  .phase-card,
+  .goal-card,
+  .callout {
+    box-shadow: none !important;
+  }
+
+  .cover {
+    padding: 28px 24px 24px !important;
+  }
+
+  .footer {
+    page-break-before: avoid;
+  }
+}
+

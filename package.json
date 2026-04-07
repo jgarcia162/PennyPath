@@ -1,0 +1,11 @@
+{
+  "name": "financial-plan",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "research-server": "node server/market-research.mjs"
+  }
+}

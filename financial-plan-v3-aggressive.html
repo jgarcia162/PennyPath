@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Our Financial Plan 2026–2027</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/financial-plan.css">
+<link rel="stylesheet" href="assets/print.css">
+</head>
+<body>
+
+<header class="site-header no-print">
+  <nav class="site-nav" aria-label="Site">
+    <a class="site-nav__tab site-nav__tab--active" href="financial-plan-v3-aggressive.html" aria-current="page">💰 Financial Plan</a>
+    <a class="site-nav__tab" href="real-estate-plan.html">🏠 Real Estate</a>
+    <a class="site-nav__tab" href="history.html">📅 History</a>
+  </nav>
+  <div class="site-header__settings">
+    <button
+      type="button"
+      class="site-settings-btn"
+      id="btn-site-settings"
+      aria-expanded="false"
+      aria-haspopup="true"
+      aria-controls="site-settings-menu"
+    >
+      <span class="site-settings-btn__icon" aria-hidden="true">⚙</span>
+      <span class="site-settings-btn__label">Settings</span>
+    </button>
+    <ul class="site-settings-menu" id="site-settings-menu" aria-label="Site settings">
+      <li>
+        <div class="site-settings-menu-section">
+          <span class="site-settings-menu-label">Display</span>
+          <button type="button" class="site-settings-item site-settings-item--muted" id="btn-toggle-theme" aria-pressed="false">Dark mode</button>
+        </div>
+      </li>
+      <li>
+        <div class="site-settings-menu-section">
+          <span class="site-settings-menu-label">Page</span>
+          <button type="button" class="site-settings-item" id="btn-print">Print</button>
+        </div>
+      </li>
+      <li>
+        <div class="site-settings-menu-section">
+          <span class="site-settings-menu-label">Sample data</span>
+          <label class="site-settings-demo-toggle">
+            <input type="checkbox" id="demo-mode-toggle" />
+            <span>Use sample data (demo)</span>
+          </label>
+        </div>
+      </li>
+      <li>
+        <div class="site-settings-menu-section">
+          <span class="site-settings-menu-label">Data</span>
+          <button
+            type="button"
+            class="site-settings-item site-settings-item--danger"
+            id="btn-wipe-all-data"
+            title="Clear all saved balances, debts, savings, check-ins, and milestone progress in this browser"
+          >
+            Reset all data
+          </button>
+        </div>
+      </li>
+    </ul>
+  </div>
+</header>
+
+<div class="cover">
+  <div class="cover-label">Family Financial Plan · 2026 – 2027</div>
+  <h1>Our Plan to Get<br>Free & Save Big 💸</h1>
+  <div class="cover-sub" id="cover-sub"></div>
+  <div class="cover-stats">
+    <div class="cover-stat">
+      <div class="cover-stat-label">Take-Home Pay</div>
+      <div class="cover-stat-val" id="cover-takehome"></div>
+      <div class="cover-stat-note">per month</div>
+    </div>
+    <div class="cover-stat">
+      <div class="cover-stat-label">Debt-Free By</div>
+      <div class="cover-stat-val" id="cover-debt-free-date"></div>
+      <div class="cover-stat-note" id="cover-debt-free-note"></div>
+    </div>
+    <div class="cover-stat">
+      <div class="cover-stat-label" id="cover-hysa-goal-label"></div>
+      <div class="cover-stat-val" id="cover-hysa-by"></div>
+      <div class="cover-stat-note" id="cover-hysa-note"></div>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+
+  <div class="history-demo-banner no-print" id="financial-plan-demo-banner" hidden>
+    <strong>Sample data mode</strong> — Turn off the toggle in Settings to use your own data.
+  </div>
+
+  <!-- SECTION 01: WHERE WE STAND -->
+  <div class="section">
+    <div class="section-eyebrow">Section 01</div>
+    <div class="section-title-row">
+      <div class="section-title">Where We Stand Today</div>
+      <div class="top-actions no-print">
+        <span class="top-actions-hint">Edit debts in <strong>Goal 2</strong> and savings in <strong>Goal 3</strong> — each editor has its own Save, Undo, and Reset.</span>
+      </div>
+    </div>
+
+    <div class="status-grid">
+      <div class="status-card positive">
+        <div class="status-label">Joint Account Balance</div>
+        <div class="status-value" id="status-hysa"></div>
+        <div class="status-note" id="status-hysa-note"></div>
+      </div>
+      <div class="status-card neutral">
+        <div class="status-label">Personal Savings</div>
+        <div class="status-value" id="status-personal"></div>
+        <div class="status-note" id="status-personal-note"></div>
+      </div>
+      <div class="status-card negative">
+        <div class="status-label">Debt</div>
+        <div class="status-value" id="status-debt-rounded"></div>
+        <div class="status-note" id="status-debt-note"></div>
+      </div>
+      <div class="status-card income">
+        <div class="status-label">Monthly Take-Home</div>
+        <div class="status-value" id="status-takehome"></div>
+        <div class="status-note" id="status-takehome-note"></div>
+      </div>
+    </div>
+
+    <div class="networth-wrap">
+      <div class="networth-label">Current Net Worth (Assets vs. Debt)</div>
+      <div class="networth-bar-track">
+        <div class="networth-bar-fill" id="nw-fill-assets"></div>
+        <div class="networth-bar-fill debt" id="nw-fill-debt"></div>
+      </div>
+      <div class="networth-legend">
+        <span><span class="dot-sage"></span> <span id="nw-legend-assets"></span></span>
+        <span><span class="dot-red"></span> <span id="nw-legend-debt"></span></span>
+      </div>
+      <div class="networth-total"><span id="nw-total-line"></span> <span id="nw-total-sub"></span></div>
+    </div>
+  </div>
+
+  <!-- SECTION 02: WHERE WE WANT TO BE -->
+  <div class="section">
+    <div class="section-eyebrow">Section 02</div>
+    <div class="section-title">Where We Want to Be</div>
+
+    <div class="goals-grid">
+      <div class="goal-card primary">
+        <div class="goal-tag">Goal 1 — Primary 🏡</div>
+        <div class="goal-value" id="goal-hysa-amt"></div>
+        <div class="goal-desc">in our High Yield Savings Account — fully funded, growing, and untouched by debt.</div>
+        <div class="goal-when" id="goal-hysa-when"></div>
+      </div>
+
+      <div class="goal-card secondary-a">
+        <div class="goal-card-head" id="goal2-card-head">
+          <div class="goal-tag">Goal 2</div>
+          <button
+            type="button"
+            class="toggle-goal-editor-btn no-print"
+            id="btn-toggle-goal2-editor"
+            aria-controls="goal2-editor-panel"
+            aria-expanded="false"
+          >Edit</button>
+        </div>
+        <div class="goal-value" id="goal-debt-amt"></div>
+        <div class="goal-desc">Credit card debt — completely eliminated. No more interest eating our income.</div>
+        <div class="goal-when" id="goal-debt-when"></div>
+        <div class="progress-wrap">
+          <div class="progress-label-row debt">
+            <span id="debt-progress-left"></span>
+            <span id="debt-progress-right"></span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill-debt" id="debt-progress-fill"></div>
+          </div>
+        </div>
+        <div class="monthly-debt-goal-wrap" id="monthly-debt-goal-section">
+          <div class="monthly-debt-goal-head">
+            <span class="monthly-debt-goal-title">This month toward debt</span>
+            <span class="monthly-debt-goal-meta" id="monthly-debt-goal-meta"></span>
+          </div>
+          <div class="progress-wrap monthly-debt-goal-bar">
+            <div class="progress-label-row debt">
+              <span id="monthly-debt-paid-label"></span>
+              <span id="monthly-debt-pct-label"></span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill-debt" id="monthly-debt-progress-fill"></div>
+            </div>
+          </div>
+          <p class="monthly-debt-goal-hint" id="monthly-debt-goal-hint"></p>
+        </div>
+
+        <div class="goal-editor-panel" id="goal2-editor-panel">
+          <div class="goal-editor-inner balance-editor">
+            <div class="goal-editor-panel-header no-print" id="goal2-editor-panel-header"></div>
+            <div class="debts-editor-header">
+              <div class="debts-editor-title">Debts</div>
+            </div>
+            <div class="debts-editor-list" id="debts-editor-list"></div>
+            <div class="balance-editor-actions">
+              <div class="balance-editor-actions-primary">
+                <button type="button" class="btn-save" id="btn-save-goal2-debts">Save</button>
+                <button type="button" class="btn-undo" id="btn-undo-goal2-debts">Undo</button>
+                <button type="button" class="btn-reset" id="btn-reset-goal2-debts">Reset draft</button>
+                <span class="balance-saved-hint" id="goal2-save-status" aria-live="polite"></span>
+              </div>
+              <button type="button" class="btn-add-debt balance-editor-actions-add" id="btn-add-debt">+ Add debt</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="goal2-debts" id="goal2-debts"></div>
+      </div>
+
+      <div class="goal-card secondary-b">
+        <div class="goal-card-head" id="goal3-card-head">
+          <div class="goal-tag">Goal 3 — Emergency Fund 🚨</div>
+          <button
+            type="button"
+            class="toggle-goal-editor-btn no-print"
+            id="btn-toggle-goal3-editor"
+            aria-controls="goal3-editor-panel"
+            aria-expanded="false"
+          >Edit</button>
+        </div>
+        <div class="goal-value" id="goal-efund-amt"></div>
+        <div class="goal-desc" id="goal-efund-desc"></div>
+        <div class="goal-when" id="goal-efund-when"></div>
+
+        <div class="efund-grid">
+          <div class="efund-item">
+            <div class="efund-item-label">Target 🎯</div>
+            <div class="efund-item-val" id="efund-target-val"></div>
+            <div class="efund-item-note" id="efund-target-note"></div>
+          </div>
+          <div class="efund-item">
+            <div class="efund-item-label">We Have 🏦</div>
+            <div class="efund-item-val" id="efund-have-val"></div>
+            <div class="efund-item-note">Current personal savings</div>
+          </div>
+          <div class="efund-item">
+            <div class="efund-item-label">Gap🫸🏼 💵 🫷🏼</div>
+            <div class="efund-item-val" id="efund-gap-val"></div>
+            <div class="efund-item-note">Still needed</div>
+          </div>
+        </div>
+
+        <div class="goal-editor-panel" id="goal3-editor-panel">
+          <div class="goal-editor-inner balance-editor">
+            <div class="goal-editor-panel-header no-print" id="goal3-editor-panel-header"></div>
+            <div class="debts-editor-header">
+              <div class="debts-editor-title">Savings</div>
+            </div>
+            <div class="savings-editor-list" id="savings-editor-list"></div>
+            <div class="balance-editor-actions">
+              <div class="balance-editor-actions-primary">
+                <button type="button" class="btn-save" id="btn-save-goal3-savings">Save</button>
+                <button type="button" class="btn-undo" id="btn-undo-goal3-savings">Undo</button>
+                <button type="button" class="btn-reset" id="btn-reset-goal3-savings">Reset draft</button>
+                <span class="balance-saved-hint" id="goal3-save-status" aria-live="polite"></span>
+              </div>
+              <button type="button" class="btn-add-debt balance-editor-actions-add" id="btn-add-savings">+ Add account</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="goal3-savings" id="goal3-savings"></div>
+
+        <div class="progress-wrap">
+          <div class="progress-label-row">
+            <span id="efund-progress-left"></span>
+            <span id="efund-progress-right"></span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill-purple" id="efund-progress-fill"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout sage" id="callout-full-picture"></div>
+
+    <div class="callout purple" id="callout-why-12"></div>
+  </div>
+
+  <!-- SECTION 03: HOW WE GET THERE -->
+  <div class="section">
+    <div class="section-eyebrow">Section 03</div>
+    <div class="section-title">How We Get There</div>
+
+    <div class="plan-phases">
+      <div class="phase-card p1">
+        <div class="phase-num">Phase 1 · October 2026 - December 2026</div>
+        <div class="phase-name">Destroy the Debt</div>
+        <div class="phase-row"><span class="label">CC Payment</span><span class="val" id="phase1-cc"></span></div>
+        <div class="phase-row"><span class="label">HYSA Deposit</span><span class="val" id="phase1-hysa"></span></div>
+        <div class="phase-row"><span class="label">Duration</span><span class="val" id="phase1-dur"></span></div>
+        <div class="phase-row"><span class="label">Result</span><span class="val">Debt: $0</span></div>
+      </div>
+      <div class="phase-card p2">
+        <div class="phase-num">Phase 2 · Jan – Jun 2027</div>
+        <div class="phase-name">Build the Savings</div>
+        <div class="phase-row"><span class="label">CC Payment</span><span class="val">$0</span></div>
+        <div class="phase-row"><span class="label">HYSA Deposit</span><span class="val" id="phase2-hysa"></span></div>
+        <div class="phase-row"><span class="label">Duration</span><span class="val" id="phase2-dur"></span></div>
+        <div class="phase-row"><span class="label">Result</span><span class="val" id="phase2-result"></span></div>
+      </div>
+    </div>
+
+    <div class="section-eyebrow" style="margin-top:32px; margin-bottom:12px;">Monthly Budget Breakdown</div>
+
+    <div class="budget-wrap">
+      <div class="budget-header">
+        <span>Category</span>
+        <span>Amount</span>
+        <span>%</span>
+      </div>
+      <div class="budget-row">
+        <span>🏠 Monthly Expenses</span>
+        <span class="budget-amount" id="budget-expenses"></span>
+        <span class="budget-pct" id="budget-pct-expenses"></span>
+      </div>
+      <div class="budget-row">
+        <span>💳 Credit Card Payoff <span class="chip red">Phase 1</span></span>
+        <span class="budget-amount" style="color:var(--red)" id="budget-cc"></span>
+        <span class="budget-pct" id="budget-pct-cc"></span>
+      </div>
+      <div class="budget-row">
+        <span>💰 HYSA Savings <span class="chip green">Phase 1</span></span>
+        <span class="budget-amount" style="color:var(--sage)" id="budget-hysa"></span>
+        <span class="budget-pct" id="budget-pct-hysa"></span>
+      </div>
+      <div class="budget-row">
+        <span>🎉 Fun Budget</span>
+        <span class="budget-amount" style="color:var(--gold)" id="budget-fun"></span>
+        <span class="budget-pct" id="budget-pct-fun"></span>
+      </div>
+      <div class="budget-row">
+        <span>🛡️ Buffer <span style="font-size:12px;color:#aaa;">(rolls to savings if unused)</span></span>
+        <span class="budget-amount" id="budget-buffer"></span>
+        <span class="budget-pct" id="budget-pct-buffer"></span>
+      </div>
+      <div class="budget-row total">
+        <span>Total</span>
+        <span class="budget-amount" id="budget-total"></span>
+        <span class="budget-pct">100%</span>
+      </div>
+    </div>
+
+    <div class="callout red" id="callout-interest"></div>
+
+    <div class="callout" id="callout-phase2"></div>
+
+    <div class="callout blue" id="callout-fun"></div>
+  </div>
+
+  <!-- SECTION 04: PAYOFF TIMELINE -->
+  <div class="section" id="section-payoff-timeline">
+    <div class="section-eyebrow">Section 04</div>
+    <div class="section-title">Month-by-Month Payoff Timeline</div>
+    <p class="section-sub">A simple projection of total credit card balance + interest, plus HYSA growth and deposits. Updates automatically when you save new balances.</p>
+    <div class="timeline-wrap" id="payoff-timeline"></div>
+  </div>
+
+  <!-- SECTION 05: MONTHLY CHECK-IN LOG -->
+  <div class="section section-checkins" id="section-checkins">
+    <details class="checkin-collapsible" id="checkin-collapsible" open>
+      <summary class="checkin-collapsible__summary">
+        <span class="section-eyebrow">Section 05</span>
+        <span class="section-title checkin-collapsible__title">Monthly Check-In Log</span>
+      </summary>
+    <div class="checkin-collapsible__body">
+    <div class="checkin-wrap no-print">
+      <form class="checkin-form" id="checkin-form">
+        <div class="balance-field">
+          <label for="checkin-date">Date</label>
+          <input type="date" id="checkin-date" required>
+        </div>
+        <div class="balance-field">
+          <label for="checkin-note">Note</label>
+          <input type="text" id="checkin-note" autocomplete="off" placeholder="What went well? What needs adjusting?" required>
+        </div>
+        <div class="checkin-actions">
+          <button type="submit" class="btn-save">Add check-in</button>
+        </div>
+      </form>
+      <div class="balance-saved-hint" id="checkin-status" aria-live="polite"></div>
+    </div>
+    <div class="checkin-list checkin-log" id="checkin-list"></div>
+    <dialog class="checkin-log-dialog no-print" id="checkin-log-dialog" aria-labelledby="checkin-log-dialog-title">
+      <div class="checkin-log-dialog__chrome">
+        <div class="checkin-log-dialog__header">
+          <h2 class="checkin-log-dialog__title" id="checkin-log-dialog-title">All check-ins</h2>
+          <button type="button" class="checkin-log-dialog__close no-print" data-checkin-dialog-close aria-label="Close">×</button>
+        </div>
+        <div class="checkin-log-dialog__body" id="checkin-log-dialog-body"></div>
+      </div>
+    </dialog>
+    </div>
+    </details>
+  </div>
+
+  <!-- SECTION 06: MILESTONES -->
+  <div class="section" id="section-milestones">
+    <div class="section-eyebrow">Section 06</div>
+    <div class="section-title">Milestones</div>
+    <div class="badges-grid" id="badges-grid"></div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <strong>Phase 1: Destroy. Phase 2: Build. Phase 3: Protect.</strong>
+  <span id="footer-line"></span>
+</div>
+
+<script src="assets/theme-service.js" defer></script>
+<script src="assets/site-settings.js" defer></script>
+<script type="module" src="assets/financial-plan/payoff-projection.js"></script>
+<script src="assets/checkin-service.js" defer></script>
+<script src="assets/badges.js" defer></script>
+<script type="module" src="assets/financial-plan/main.js"></script>
+
+</body>
+</html>
