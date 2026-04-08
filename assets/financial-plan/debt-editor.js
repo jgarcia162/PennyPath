@@ -4,6 +4,7 @@
 
 import { PLAN, PLAN_DEFAULTS, DEFAULT_DEBT_APR_PCT } from './plan-data.js';
 import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils.js';
+import { appendDebtsEditorEmptyState } from './render-sections.js';
 import { normalizePaymentHistory, newPaymentId } from './persistence.js';
 
 export function readDebtsEditorIntoPlan() {
@@ -139,12 +140,17 @@ export function setDebtsDraftFromSnapshot(snap) {
 
       host.appendChild(row);
     });
+    if ((snap.debts || []).length === 0) {
+      appendDebtsEditorEmptyState(host);
+    }
   }
 }
 
 export function addDebtRowDraft(showUnsaved) {
   const host = document.getElementById('debts-editor-list');
   if (!host) return;
+  const empty = host.querySelector('.editor-empty-state');
+  if (empty) empty.remove();
   const id = 'd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
   const row = document.createElement('div');
   row.className = 'debt-row';

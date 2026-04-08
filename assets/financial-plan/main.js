@@ -16,7 +16,7 @@ import {
   initEditorSnapshots,
   wireGoal2DebtEditor,
   wireGoal3SavingsEditor,
-  wireGoalEditorToggles,
+  wireGoalEditorDialogs,
 } from './goal-editors-wire.js';
 import { wireCheckIns } from './checkin-log.js';
 import { wireBadges, renderBadges } from './features.js';
@@ -89,7 +89,7 @@ function init() {
   initEditorSnapshots();
   wireGoal2DebtEditor(render);
   wireGoal3SavingsEditor(render);
-  wireGoalEditorToggles();
+  wireGoalEditorDialogs();
   wireCheckIns();
   wireBadges();
   renderBadges();

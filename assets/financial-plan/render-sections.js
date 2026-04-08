@@ -168,11 +168,26 @@ export function renderGoal2Debts(plan, moneyExact) {
   });
 }
 
+export function appendDebtsEditorEmptyState(host) {
+  const wrap = document.createElement('div');
+  wrap.className = 'editor-empty-state';
+  wrap.setAttribute('role', 'status');
+  wrap.innerHTML =
+    '<div class="editor-empty-state__icon" aria-hidden="true">📊</div>' +
+    '<h3 class="editor-empty-state__title">No debts yet</h3>' +
+    '<p class="editor-empty-state__text">Add credit cards or loans to track balances, APR, promos, and payments. Use <strong>+ Add debt</strong> below to get started.</p>';
+  host.appendChild(wrap);
+}
+
 export function renderDebtsEditor(plan) {
   const host = document.getElementById('debts-editor-list');
   if (!host) return;
   host.innerHTML = '';
   const debts = getDebtsInEditorOrder(plan);
+  if (debts.length === 0) {
+    appendDebtsEditorEmptyState(host);
+    return;
+  }
   debts.forEach(function (debt) {
     const row = document.createElement('div');
     row.className = 'debt-row';
@@ -252,11 +267,26 @@ export function syncDebtsProgressSortSelect(plan) {
   sortSel.value = normalizeDebtsProgressSort(plan.debtsProgressSort);
 }
 
+export function appendSavingsEditorEmptyState(host) {
+  const wrap = document.createElement('div');
+  wrap.className = 'editor-empty-state editor-empty-state--savings';
+  wrap.setAttribute('role', 'status');
+  wrap.innerHTML =
+    '<div class="editor-empty-state__icon" aria-hidden="true">🏦</div>' +
+    '<h3 class="editor-empty-state__title">No savings accounts</h3>' +
+    '<p class="editor-empty-state__text">Add joint or personal accounts to track balances, APY, and deposits toward your emergency fund. Use <strong>+ Add account</strong> below.</p>';
+  host.appendChild(wrap);
+}
+
 export function renderSavingsEditor(d) {
   const host = document.getElementById('savings-editor-list');
   if (!host) return;
   host.innerHTML = '';
   const accs = d.savingsAccounts || [];
+  if (accs.length === 0) {
+    appendSavingsEditorEmptyState(host);
+    return;
+  }
   accs.forEach(function (acc) {
     const row = document.createElement('div');
     row.className = 'savings-row';

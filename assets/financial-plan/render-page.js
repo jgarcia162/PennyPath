@@ -131,6 +131,15 @@ export function render() {
     );
   }
 
+  setText(
+    'goal2-editor-dialog-totals',
+    hasDebts ? moneyExact(d.totalDebt) + ' total owed' : 'No balances yet'
+  );
+  setText(
+    'goal3-editor-dialog-totals',
+    moneyExact(d.totalAssets) + ' saved of ' + moneyExact(PLAN.goalHysa)
+  );
+
   renderGoal2Debts(PLAN, moneyExact);
   renderDebtsEditor(PLAN);
   syncDebtsEditorSortSelect(PLAN);

@@ -163,8 +163,9 @@
             type="button"
             class="toggle-goal-editor-btn no-print"
             id="btn-toggle-goal2-editor"
-            aria-controls="goal2-editor-panel"
+            aria-controls="goal2-editor-dialog"
             aria-expanded="false"
+            aria-haspopup="dialog"
           >Edit</button>
         </div>
         <div class="goal-value" id="goal-debt-amt"></div>
@@ -215,34 +216,6 @@
           <div class="goal2-debts" id="goal2-debts"></div>
         </div>
 
-        <div class="goal-editor-panel" id="goal2-editor-panel">
-          <div class="goal-editor-inner balance-editor">
-            <div class="goal-editor-panel-header no-print" id="goal2-editor-panel-header"></div>
-            <div class="debts-editor-header">
-              <div class="debts-editor-title">Debts</div>
-              <div class="debts-editor-sort">
-                <label for="debts-editor-sort" class="debts-editor-sort-label">Sort by</label>
-                <select id="debts-editor-sort" class="debts-editor-sort-select" aria-label="Sort debts">
-                  <option value="saved">Saved order</option>
-                  <option value="balance-desc">Balance (high → low)</option>
-                  <option value="balance-asc">Balance (low → high)</option>
-                  <option value="apr-desc">APR % (high → low)</option>
-                  <option value="apr-asc">APR % (low → high)</option>
-                </select>
-              </div>
-            </div>
-            <div class="debts-editor-list" id="debts-editor-list"></div>
-            <div class="balance-editor-actions">
-              <div class="balance-editor-actions-primary">
-                <button type="button" class="btn-save" id="btn-save-goal2-debts">Save</button>
-                <button type="button" class="btn-undo" id="btn-undo-goal2-debts">Undo</button>
-                <button type="button" class="btn-reset" id="btn-reset-goal2-debts">Reset draft</button>
-                <span class="balance-saved-hint" id="goal2-save-status" aria-live="polite"></span>
-              </div>
-              <button type="button" class="btn-add-debt balance-editor-actions-add" id="btn-add-debt">+ Add debt</button>
-            </div>
-          </div>
-        </div>
       </div>
 
       <div class="goal-card secondary-b">
@@ -252,8 +225,9 @@
             type="button"
             class="toggle-goal-editor-btn no-print"
             id="btn-toggle-goal3-editor"
-            aria-controls="goal3-editor-panel"
+            aria-controls="goal3-editor-dialog"
             aria-expanded="false"
+            aria-haspopup="dialog"
           >Edit</button>
         </div>
         <div class="goal-value" id="goal-efund-amt"></div>
@@ -275,25 +249,6 @@
             <div class="efund-item-label">Gap🫸🏼 💵 🫷🏼</div>
             <div class="efund-item-val" id="efund-gap-val"></div>
             <div class="efund-item-note">Still needed</div>
-          </div>
-        </div>
-
-        <div class="goal-editor-panel" id="goal3-editor-panel">
-          <div class="goal-editor-inner balance-editor">
-            <div class="goal-editor-panel-header no-print" id="goal3-editor-panel-header"></div>
-            <div class="debts-editor-header">
-              <div class="debts-editor-title">Savings</div>
-            </div>
-            <div class="savings-editor-list" id="savings-editor-list"></div>
-            <div class="balance-editor-actions">
-              <div class="balance-editor-actions-primary">
-                <button type="button" class="btn-save" id="btn-save-goal3-savings">Save</button>
-                <button type="button" class="btn-undo" id="btn-undo-goal3-savings">Undo</button>
-                <button type="button" class="btn-reset" id="btn-reset-goal3-savings">Reset draft</button>
-                <span class="balance-saved-hint" id="goal3-save-status" aria-live="polite"></span>
-              </div>
-              <button type="button" class="btn-add-debt balance-editor-actions-add" id="btn-add-savings">+ Add account</button>
-            </div>
           </div>
         </div>
 
@@ -439,6 +394,70 @@
     <div class="section-title">Milestones</div>
     <div class="badges-grid" id="badges-grid"></div>
   </div>
+
+  <dialog class="goal-editor-dialog no-print" id="goal2-editor-dialog" aria-labelledby="goal2-editor-dialog-title" aria-modal="true">
+    <div class="goal-editor-dialog__chrome">
+      <div class="goal-editor-dialog__header">
+        <div class="goal-editor-dialog__header-main">
+          <h2 class="goal-editor-dialog__title" id="goal2-editor-dialog-title">Debts</h2>
+          <span class="goal-editor-dialog__total" id="goal2-editor-dialog-totals" aria-live="polite"></span>
+        </div>
+        <button type="button" class="goal-editor-dialog__close" data-close-goal-dialog aria-label="Close dialog">×</button>
+      </div>
+      <div class="goal-editor-dialog__body">
+        <div class="goal-editor-inner balance-editor balance-editor--dialog">
+          <div class="debts-editor-header debts-editor-header--sort-only">
+            <div class="debts-editor-sort">
+              <label for="debts-editor-sort" class="debts-editor-sort-label">Sort by</label>
+              <select id="debts-editor-sort" class="debts-editor-sort-select" aria-label="Sort debts">
+                <option value="saved">Saved order</option>
+                <option value="balance-desc">Balance (high → low)</option>
+                <option value="balance-asc">Balance (low → high)</option>
+                <option value="apr-desc">APR % (high → low)</option>
+                <option value="apr-asc">APR % (low → high)</option>
+              </select>
+            </div>
+          </div>
+          <div class="debts-editor-list" id="debts-editor-list"></div>
+          <div class="balance-editor-actions">
+            <div class="balance-editor-actions-primary">
+              <button type="button" class="btn-save" id="btn-save-goal2-debts">Save</button>
+              <button type="button" class="btn-undo" id="btn-undo-goal2-debts">Undo</button>
+              <button type="button" class="btn-reset" id="btn-reset-goal2-debts">Reset draft</button>
+              <span class="balance-saved-hint" id="goal2-save-status" aria-live="polite"></span>
+            </div>
+            <button type="button" class="btn-add-debt balance-editor-actions-add" id="btn-add-debt">+ Add debt</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog class="goal-editor-dialog no-print" id="goal3-editor-dialog" aria-labelledby="goal3-editor-dialog-title" aria-modal="true">
+    <div class="goal-editor-dialog__chrome">
+      <div class="goal-editor-dialog__header">
+        <div class="goal-editor-dialog__header-main">
+          <h2 class="goal-editor-dialog__title" id="goal3-editor-dialog-title">Savings</h2>
+          <span class="goal-editor-dialog__total" id="goal3-editor-dialog-totals" aria-live="polite"></span>
+        </div>
+        <button type="button" class="goal-editor-dialog__close" data-close-goal-dialog aria-label="Close dialog">×</button>
+      </div>
+      <div class="goal-editor-dialog__body">
+        <div class="goal-editor-inner balance-editor balance-editor--dialog">
+          <div class="savings-editor-list" id="savings-editor-list"></div>
+          <div class="balance-editor-actions">
+            <div class="balance-editor-actions-primary">
+              <button type="button" class="btn-save" id="btn-save-goal3-savings">Save</button>
+              <button type="button" class="btn-undo" id="btn-undo-goal3-savings">Undo</button>
+              <button type="button" class="btn-reset" id="btn-reset-goal3-savings">Reset draft</button>
+              <span class="balance-saved-hint" id="goal3-save-status" aria-live="polite"></span>
+            </div>
+            <button type="button" class="btn-add-debt balance-editor-actions-add" id="btn-add-savings">+ Add account</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </dialog>
 
 </div>
 

@@ -14,6 +14,12 @@
   --paper: #faf7f2;
   /* Controls the speed of the goal editor open/close animation. */
   --balances-editor-transition-ms: 380ms;
+  /* Material-like elevation (dialog cards / surfaces) */
+  --md-elevation-1: 0 1px 2px rgba(60, 64, 67, 0.24), 0 1px 3px 1px rgba(60, 64, 67, 0.12);
+  --md-elevation-2: 0 2px 6px rgba(60, 64, 67, 0.2), 0 1px 2px rgba(60, 64, 67, 0.12);
+  --md-surface-tint: rgba(26, 26, 46, 0.04);
+  --md-on-surface: rgba(26, 26, 46, 0.87);
+  --md-on-surface-variant: rgba(26, 26, 46, 0.62);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body {
@@ -596,6 +602,9 @@ body.financial-plan-demo-mode #checkin-form {
   justify-content: space-between;
   gap: 10px 14px;
 }
+.debts-editor-header--sort-only {
+  justify-content: flex-end;
+}
 .debts-editor-title { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #888; font-weight: 700; }
 .debts-editor-sort {
   display: flex;
@@ -621,6 +630,10 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .debts-editor-sort-select:focus {
   outline: 2px solid rgba(107, 142, 107, 0.45);
+  outline-offset: 1px;
+}
+.goal-editor-dialog .debts-editor-sort-select:focus {
+  outline: 2px solid rgba(26, 115, 232, 0.4);
   outline-offset: 1px;
 }
 :root[data-theme="dark"] .debts-editor-sort-label { color: #aaa; }
@@ -667,6 +680,150 @@ body.financial-plan-demo-mode #checkin-form {
 .debt-row .balance-field { margin: 0; }
 .debt-row .balance-field input { font-size: 14px; padding: 9px 10px; border-radius: 10px; }
 .debt-row .balance-field input[readonly] { background: rgba(255,255,255,0.65); }
+
+/* Goal editor dialog: single surface — list is a scroll region only; cards use elevation */
+.goal-editor-dialog .debts-editor-list,
+.goal-editor-dialog .savings-editor-list {
+  border: none;
+  background: transparent;
+  padding: 4px 2px 8px;
+  gap: 12px;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: min(52vh, 520px);
+  overflow-y: auto;
+  overflow-x: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+.goal-editor-dialog .debt-row,
+.goal-editor-dialog .savings-row {
+  border: none;
+  background: var(--paper);
+  box-shadow: var(--md-elevation-1);
+  border-radius: 12px;
+  padding: 16px;
+  transition: box-shadow 0.2s ease;
+}
+.goal-editor-dialog .debt-row:hover,
+.goal-editor-dialog .savings-row:hover {
+  box-shadow: var(--md-elevation-2);
+}
+.goal-editor-dialog .debt-row .balance-field input,
+.goal-editor-dialog .savings-row .balance-field input {
+  border: none;
+  border-radius: 8px;
+  background: var(--md-surface-tint);
+  padding: 12px 14px;
+  font-size: 14px;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+.goal-editor-dialog .debt-row .balance-field input:focus,
+.goal-editor-dialog .savings-row .balance-field input:focus {
+  outline: none;
+  background: rgba(26, 26, 46, 0.06);
+  box-shadow: inset 0 0 0 2px rgba(26, 115, 232, 0.45);
+}
+.goal-editor-dialog .debts-editor-header {
+  margin-top: 0;
+  margin-bottom: 4px;
+  flex-shrink: 0;
+}
+.goal-editor-dialog .debts-editor-sort-select {
+  border: none;
+  background: var(--md-surface-tint);
+  box-shadow: none;
+  padding: 10px 32px 10px 14px;
+  border-radius: 8px;
+}
+.goal-editor-dialog .btn-remove-debt,
+.goal-editor-dialog .btn-remove-savings {
+  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  padding: 10px 16px;
+}
+.goal-editor-dialog .balance-editor-actions {
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: none;
+  flex-shrink: 0;
+}
+.goal-editor-dialog .btn-add-debt {
+  background: rgba(201, 168, 76, 0.2);
+  color: var(--ink);
+  font-weight: 700;
+}
+.goal-editor-dialog .btn-add-debt:hover {
+  background: rgba(201, 168, 76, 0.3);
+}
+:root[data-theme="dark"] .goal-editor-dialog .btn-add-debt {
+  background: rgba(201, 168, 76, 0.22);
+  color: var(--cream);
+}
+:root[data-theme="dark"] .goal-editor-dialog .btn-add-debt:hover {
+  background: rgba(201, 168, 76, 0.32);
+}
+
+/* Empty state (modal editors) */
+.editor-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 40px 28px 48px;
+  min-height: 200px;
+  max-height: min(50vh, 420px);
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(26, 115, 232, 0.06) 0%, var(--md-surface-tint) 100%);
+  border: none;
+  box-shadow: none;
+}
+.editor-empty-state--savings {
+  background: linear-gradient(180deg, rgba(107, 91, 138, 0.1) 0%, rgba(107, 91, 138, 0.04) 100%);
+}
+.editor-empty-state__icon {
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 16px;
+  opacity: 0.9;
+}
+.editor-empty-state__title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--md-on-surface);
+  margin: 0 0 10px;
+  letter-spacing: 0.01em;
+}
+.editor-empty-state__text {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--md-on-surface-variant);
+  margin: 0;
+  max-width: 400px;
+}
+.editor-empty-state__text strong {
+  color: var(--md-on-surface);
+  font-weight: 700;
+}
+:root[data-theme="dark"] .editor-empty-state {
+  background: linear-gradient(180deg, rgba(26, 115, 232, 0.12) 0%, rgba(255, 255, 255, 0.04) 100%);
+}
+:root[data-theme="dark"] .editor-empty-state--savings {
+  background: linear-gradient(180deg, rgba(107, 91, 138, 0.2) 0%, rgba(255, 255, 255, 0.04) 100%);
+}
+:root[data-theme="dark"] .editor-empty-state__title {
+  color: rgba(245, 240, 232, 0.92);
+}
+:root[data-theme="dark"] .editor-empty-state__text {
+  color: rgba(245, 240, 232, 0.65);
+}
+:root[data-theme="dark"] .editor-empty-state__text strong {
+  color: rgba(245, 240, 232, 0.9);
+}
 .btn-remove-debt {
   background: rgba(184,92,92,0.16);
   color: var(--red);
@@ -948,17 +1105,6 @@ body.financial-plan-demo-mode #checkin-form {
   margin-bottom: 0;
 }
 
-.goal-editor-panel-header {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  margin: -6px 0 14px 0;
-}
-.goal-editor-panel-header:empty {
-  display: none;
-  margin: 0;
-}
-
 .toggle-goal-editor-btn {
   font-family: 'DM Sans', sans-serif;
   font-size: 12px;
@@ -977,9 +1123,17 @@ body.financial-plan-demo-mode #checkin-form {
 .goal-editor-inner {
   padding: 0;
 }
-.goal-editor-panel .goal-editor-inner.balance-editor {
-  padding: 22px 32px 28px;
-  margin-top: 2px;
+/* Modal editors: flat shell — elevation lives on cards; flex so lists scroll like debts */
+.goal-editor-dialog .balance-editor--dialog {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 /* Shared section subtext */
@@ -1254,27 +1408,134 @@ body.financial-plan-demo-mode #checkin-form {
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
-/* Collapsible goal editors (debts / savings) */
-.goal-editor-panel {
-  overflow: hidden;
-  max-height: 0;
-  opacity: 0;
-  transform: translateY(-6px);
-  pointer-events: none;
-  margin-bottom: 0;
-  transition:
-    max-height var(--balances-editor-transition-ms) ease,
-    opacity var(--balances-editor-transition-ms) ease,
-    transform var(--balances-editor-transition-ms) ease,
-    margin-bottom var(--balances-editor-transition-ms) ease;
+/* Goal 2 / 3 editors — centered modal (`<dialog class="goal-editor-dialog">`) */
+/* Do not set `display` on the base rule: it overrides UA `dialog:not([open]) { display:none }`
+   and leaves the panel visible without `[open]`, so `close()` does nothing. */
+.goal-editor-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(960px, calc(100vw - 24px));
+  height: fit-content;
+  max-height: min(92vh, 920px);
+  margin: auto;
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: none;
 }
-.goal-editor-panel.is-open {
-  max-height: 4000px;
-  overflow: visible;
-  opacity: 1;
-  transform: translateY(0);
-  pointer-events: auto;
-  margin-bottom: 12px;
+.goal-editor-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.goal-editor-dialog::backdrop {
+  background: rgba(10, 12, 20, 0.55);
+}
+.goal-editor-dialog__chrome {
+  width: 100%;
+  max-height: min(92vh, 920px);
+  flex: 1 1 auto;
+  min-height: 0;
+  background: var(--paper);
+  border: none;
+  border-radius: 16px;
+  box-shadow:
+    0 8px 10px rgba(0, 0, 0, 0.12),
+    0 3px 14px rgba(0, 0, 0, 0.08),
+    0 24px 48px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.goal-editor-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px;
+  border-bottom: none;
+  background: var(--ink);
+  color: var(--cream);
+  flex-shrink: 0;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.goal-editor-dialog__header-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 14px;
+  min-width: 0;
+}
+.goal-editor-dialog__title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 20px;
+  font-weight: 700;
+}
+.goal-editor-dialog__total {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(245, 240, 232, 0.88);
+  letter-spacing: 0.02em;
+}
+.goal-editor-dialog__close {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cream);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.goal-editor-dialog__close:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.goal-editor-dialog__body {
+  padding: 18px 22px 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+:root[data-theme="dark"] .goal-editor-dialog__chrome {
+  box-shadow:
+    0 8px 10px rgba(0, 0, 0, 0.35),
+    0 12px 40px rgba(0, 0, 0, 0.55);
+}
+:root[data-theme="dark"] .goal-editor-dialog__header {
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+:root[data-theme="dark"] .goal-editor-dialog .debt-row,
+:root[data-theme="dark"] .goal-editor-dialog .savings-row {
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="dark"] .goal-editor-dialog .debt-row:hover,
+:root[data-theme="dark"] .goal-editor-dialog .savings-row:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+}
+:root[data-theme="dark"] .goal-editor-dialog .debt-row .balance-field input,
+:root[data-theme="dark"] .goal-editor-dialog .savings-row .balance-field input {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cream);
+}
+:root[data-theme="dark"] .goal-editor-dialog .debt-row .balance-field input:focus,
+:root[data-theme="dark"] .goal-editor-dialog .savings-row .balance-field input:focus {
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: inset 0 0 0 2px rgba(138, 180, 248, 0.55);
+}
+:root[data-theme="dark"] .goal-editor-dialog .debts-editor-sort-select {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--cream);
+  border: none;
 }
 
 /* STATUS GRID */

@@ -4,7 +4,7 @@
   button,
   input,
   .balance-editor,
-  .goal-editor-panel {
+  .goal-editor-dialog {
     display: none !important;
   }
 

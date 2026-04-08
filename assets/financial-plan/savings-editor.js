@@ -4,6 +4,7 @@
 
 import { PLAN, PLAN_DEFAULTS, DEFAULT_SAVINGS_APY_PCT } from './plan-data.js';
 import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils.js';
+import { appendSavingsEditorEmptyState } from './render-sections.js';
 import { normalizeDepositHistory, newDepositId } from './persistence.js';
 
 export function readSavingsEditorIntoPlan() {
@@ -111,11 +112,16 @@ export function setSavingsDraftFromSnapshot(snap) {
     if (apyEl) apyEl.value = formatMoneyInput(numOr(a.apyPct, DEFAULT_SAVINGS_APY_PCT));
     host.appendChild(row);
   });
+  if (snap.savingsAccounts.length === 0) {
+    appendSavingsEditorEmptyState(host);
+  }
 }
 
 export function addSavingsRowDraft(showUnsaved) {
   const host = document.getElementById('savings-editor-list');
   if (!host) return;
+  const empty = host.querySelector('.editor-empty-state');
+  if (empty) empty.remove();
   const id = 's_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
   const row = document.createElement('div');
   row.className = 'savings-row';

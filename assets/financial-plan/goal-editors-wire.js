@@ -2,7 +2,7 @@
  * Goal 2 (debts) and Goal 3 (savings) editors: save / undo / reset, separate last-saved snapshots.
  */
 
-import { PLAN, PLAN_DEFAULTS, TOGGLE_GOAL2_EDITOR_KEY, TOGGLE_GOAL3_EDITOR_KEY } from './plan-data.js';
+import { PLAN, PLAN_DEFAULTS } from './plan-data.js';
 import { applyPlanOverrides, savePlanOverrides } from './persistence.js';
 import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
 import {
@@ -290,57 +290,73 @@ export function wireGoal3SavingsEditor(render) {
   setSaveNeeds('btn-save-goal3-savings', false);
 }
 
-export function wireGoalEditorToggles() {
-  function bindToggle(btnId, panelId, storageKey, cardHeadId, panelHeaderId) {
+/** Body scroll lock while a goal editor dialog is open (wheel/touch on backdrop). */
+let bodyScrollLockDepth = 0;
+let bodyScrollLockY = 0;
+
+function lockBodyScrollForGoalDialog() {
+  if (bodyScrollLockDepth === 0) {
+    bodyScrollLockY = window.scrollY || window.pageYOffset || 0;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.position = 'fixed';
+    document.body.style.top = '-' + bodyScrollLockY + 'px';
+    document.body.style.left = '0';
+    document.body.style.right = '0';
+    document.body.style.width = '100%';
+  }
+  bodyScrollLockDepth++;
+}
+
+function unlockBodyScrollForGoalDialog() {
+  bodyScrollLockDepth = Math.max(0, bodyScrollLockDepth - 1);
+  if (bodyScrollLockDepth > 0) return;
+  document.documentElement.style.overflow = '';
+  document.body.style.position = '';
+  document.body.style.top = '';
+  document.body.style.left = '';
+  document.body.style.right = '';
+  document.body.style.width = '';
+  window.scrollTo(0, bodyScrollLockY);
+}
+
+/** Centered modal editors (native `<dialog>` + `showModal`). */
+export function wireGoalEditorDialogs() {
+  ['goal2-editor-dialog', 'goal3-editor-dialog'].forEach(function (id) {
+    const d = document.getElementById(id);
+    if (d && typeof d.close === 'function') d.close();
+  });
+
+  function bindDialog(dialogId, btnId) {
+    const dlg = document.getElementById(dialogId);
     const btn = document.getElementById(btnId);
-    const panel = document.getElementById(panelId);
-    const cardHead = document.getElementById(cardHeadId);
-    const panelHeader = document.getElementById(panelHeaderId);
-    if (!btn || !panel || !cardHead || !panelHeader) return;
-
-    const labelEdit = 'Edit';
-    const labelHide = 'Hide';
-
-    function apply(open) {
-      panel.classList.toggle('is-open', open);
-      btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-      if (open) {
-        panelHeader.appendChild(btn);
-        btn.textContent = labelHide;
-      } else {
-        cardHead.appendChild(btn);
-        btn.textContent = labelEdit;
-      }
-      try {
-        localStorage.setItem(storageKey, open ? '1' : '0');
-      } catch (e) {}
-    }
-
-    let startOpen = false;
-    try {
-      startOpen = localStorage.getItem(storageKey) === '1';
-    } catch (e) {}
-    apply(startOpen);
+    if (!dlg || !btn) return;
 
     btn.addEventListener('click', function () {
-      apply(!panel.classList.contains('is-open'));
+      lockBodyScrollForGoalDialog();
+      dlg.showModal();
+      btn.setAttribute('aria-expanded', 'true');
+    });
+
+    dlg.addEventListener('close', function () {
+      unlockBodyScrollForGoalDialog();
+      btn.setAttribute('aria-expanded', 'false');
+    });
+
+    dlg.addEventListener('click', function (e) {
+      if (e.target === dlg) {
+        dlg.close();
+        return;
+      }
+      const t = e.target;
+      const el = t && t.nodeType === Node.TEXT_NODE ? t.parentElement : t;
+      if (el && typeof el.closest === 'function' && el.closest('[data-close-goal-dialog]')) {
+        dlg.close();
+      }
     });
   }
 
-  bindToggle(
-    'btn-toggle-goal2-editor',
-    'goal2-editor-panel',
-    TOGGLE_GOAL2_EDITOR_KEY,
-    'goal2-card-head',
-    'goal2-editor-panel-header'
-  );
-  bindToggle(
-    'btn-toggle-goal3-editor',
-    'goal3-editor-panel',
-    TOGGLE_GOAL3_EDITOR_KEY,
-    'goal3-card-head',
-    'goal3-editor-panel-header'
-  );
+  bindDialog('goal2-editor-dialog', 'btn-toggle-goal2-editor');
+  bindDialog('goal3-editor-dialog', 'btn-toggle-goal3-editor');
 }
 
 export function initEditorSnapshots() {
