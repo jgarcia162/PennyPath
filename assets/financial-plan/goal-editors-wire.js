@@ -64,6 +64,34 @@ function showGoal3Unsaved() {
 }
 
 export function wireGoal2DebtEditor(render) {
+  const sortSel = document.getElementById('debts-editor-sort');
+  if (sortSel) {
+    sortSel.addEventListener('change', function () {
+      readDebtsEditorIntoPlan();
+      PLAN.debtsEditorSort = sortSel.value;
+      savePlanOverrides();
+      render();
+      lastSavedDebts = cloneDebtsSnapshot();
+      setSaveNeeds('btn-save-goal2-debts', false);
+      const st = document.getElementById('goal2-save-status');
+      if (st) st.textContent = '';
+    });
+  }
+
+  const progressSortSel = document.getElementById('debts-progress-sort');
+  if (progressSortSel) {
+    progressSortSel.addEventListener('change', function () {
+      readDebtsEditorIntoPlan();
+      PLAN.debtsProgressSort = progressSortSel.value;
+      savePlanOverrides();
+      render();
+      lastSavedDebts = cloneDebtsSnapshot();
+      setSaveNeeds('btn-save-goal2-debts', false);
+      const st = document.getElementById('goal2-save-status');
+      if (st) st.textContent = '';
+    });
+  }
+
   const addBtn = document.getElementById('btn-add-debt');
   if (addBtn) {
     addBtn.addEventListener('click', function () {

@@ -196,11 +196,40 @@
           <p class="monthly-debt-goal-hint" id="monthly-debt-goal-hint"></p>
         </div>
 
+        <div class="goal2-debts-wrap">
+          <div class="goal2-debts-toolbar">
+            <div class="goal2-debts-toolbar-title">Per-debt progress</div>
+            <div class="debts-progress-sort">
+              <label for="debts-progress-sort" class="debts-editor-sort-label">Sort by</label>
+              <select id="debts-progress-sort" class="debts-editor-sort-select" aria-label="Sort per-debt progress cards">
+                <option value="saved">Saved order</option>
+                <option value="balance-desc">Balance (high → low)</option>
+                <option value="balance-asc">Balance (low → high)</option>
+                <option value="apr-desc">APR % (high → low)</option>
+                <option value="apr-asc">APR % (low → high)</option>
+                <option value="paid-desc">Amount paid (high → low)</option>
+                <option value="paid-asc">Amount paid (low → high)</option>
+              </select>
+            </div>
+          </div>
+          <div class="goal2-debts" id="goal2-debts"></div>
+        </div>
+
         <div class="goal-editor-panel" id="goal2-editor-panel">
           <div class="goal-editor-inner balance-editor">
             <div class="goal-editor-panel-header no-print" id="goal2-editor-panel-header"></div>
             <div class="debts-editor-header">
               <div class="debts-editor-title">Debts</div>
+              <div class="debts-editor-sort">
+                <label for="debts-editor-sort" class="debts-editor-sort-label">Sort by</label>
+                <select id="debts-editor-sort" class="debts-editor-sort-select" aria-label="Sort debts">
+                  <option value="saved">Saved order</option>
+                  <option value="balance-desc">Balance (high → low)</option>
+                  <option value="balance-asc">Balance (low → high)</option>
+                  <option value="apr-desc">APR % (high → low)</option>
+                  <option value="apr-asc">APR % (low → high)</option>
+                </select>
+              </div>
             </div>
             <div class="debts-editor-list" id="debts-editor-list"></div>
             <div class="balance-editor-actions">
@@ -214,8 +243,6 @@
             </div>
           </div>
         </div>
-
-        <div class="goal2-debts" id="goal2-debts"></div>
       </div>
 
       <div class="goal-card secondary-b">

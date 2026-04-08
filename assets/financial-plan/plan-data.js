@@ -84,6 +84,10 @@ export const PLAN = {
     goalDebtWhen: 'By December 2026',
     monthsToCloseEfund: '4–5',
   },
+  /** Goal 2 debts editor row order (independent of progress cards). */
+  debtsEditorSort: 'saved',
+  /** Goal 2 per-debt progress cards order; includes `paid-desc` | `paid-asc` (lifetime paid toward debt). */
+  debtsProgressSort: 'saved',
 };
 
 /** Snapshot for “Reset to original defaults” — keep in sync with PLAN above. */
@@ -91,6 +95,8 @@ export const PLAN_DEFAULTS = {
   hysaBalance: 0,
   joseSavings: 0,
   sherlynaSavings: 0,
+  debtsEditorSort: 'saved',
+  debtsProgressSort: 'saved',
   savingsAccounts: [
     { id: 'hysa', name: 'Joint Savings', current: 0, apyPct: 0, depositHistory: [] },
     { id: 'jose', name: 'Jose — personal', current: 0, apyPct: 0, depositHistory: [] },

@@ -3,7 +3,7 @@
  */
 
 import { PLAN, PLAN_DEFAULTS, DEFAULT_SAVINGS_APY_PCT } from './plan-data.js';
-import { parseMoneyInput, numOr } from './utils.js';
+import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils.js';
 import { normalizeDepositHistory, newDepositId } from './persistence.js';
 
 export function readSavingsEditorIntoPlan() {
@@ -53,18 +53,19 @@ export function readSavingsEditorIntoPlan() {
 
     var hist = normalizeDepositHistory(base);
     if (deposit !== null && deposit > 0) {
-      currentBal = currentBal + deposit;
+      const dep = roundMoney(deposit);
+      currentBal = roundMoney(currentBal + dep);
       hist = hist.slice();
-      hist.push({ id: newDepositId(), amount: deposit, at: new Date().toISOString() });
-      if (curEl) curEl.value = String(currentBal);
+      hist.push({ id: newDepositId(), amount: dep, at: new Date().toISOString() });
+      if (curEl) curEl.value = formatMoneyInput(currentBal);
       if (depEl) depEl.value = '';
     }
 
     next.push({
       id: String(id),
       name: name || 'Account',
-      current: currentBal,
-      apyPct: apyPctVal,
+      current: roundMoney(currentBal),
+      apyPct: roundMoney(apyPctVal),
       depositHistory: hist,
     });
   });
@@ -77,8 +78,8 @@ export function cloneSavingsSnapshot() {
       return {
         id: String(a.id),
         name: String(a.name || 'Account'),
-        current: numOr(a.current, 0),
-        apyPct: numOr(a.apyPct, DEFAULT_SAVINGS_APY_PCT),
+        current: roundMoney(numOr(a.current, 0)),
+        apyPct: roundMoney(numOr(a.apyPct, DEFAULT_SAVINGS_APY_PCT)),
         depositHistory: normalizeDepositHistory(a),
       };
     }),
@@ -106,8 +107,8 @@ export function setSavingsDraftFromSnapshot(snap) {
     const curEl = row.querySelector('input[data-field="current"]');
     const apyEl = row.querySelector('input[data-field="apyPct"]');
     if (nameEl) nameEl.value = String(a.name || '');
-    if (curEl) curEl.value = String(numOr(a.current, 0));
-    if (apyEl) apyEl.value = String(numOr(a.apyPct, DEFAULT_SAVINGS_APY_PCT));
+    if (curEl) curEl.value = formatMoneyInput(numOr(a.current, 0));
+    if (apyEl) apyEl.value = formatMoneyInput(numOr(a.apyPct, DEFAULT_SAVINGS_APY_PCT));
     host.appendChild(row);
   });
 }
@@ -144,7 +145,7 @@ export function removeSavingsDeposit(accountId, depositId, onUnsaved, rerender) 
   const amt = Number(entry.amount);
   if (!Number.isFinite(amt) || amt <= 0) return;
   acc.depositHistory.splice(idx, 1);
-  acc.current = Math.max(0, numOr(acc.current, 0) - amt);
+  acc.current = roundMoney(Math.max(0, numOr(acc.current, 0) - amt));
   onUnsaved();
   rerender();
 }

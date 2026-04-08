@@ -13,6 +13,18 @@ import {
 import { numOr } from './utils.js';
 import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
 
+function normalizeDebtsEditorSortForStorage(sort) {
+  if (sort === 'balance') return 'balance-desc';
+  if (sort === 'apr') return 'apr-desc';
+  return sort || 'saved';
+}
+
+function normalizeDebtsProgressSortForStorage(sort) {
+  if (sort === 'balance') return 'balance-desc';
+  if (sort === 'apr') return 'apr-desc';
+  return sort || 'saved';
+}
+
 export function normalizePaymentHistory(d) {
   if (!d || !Array.isArray(d.paymentHistory)) return [];
   return d.paymentHistory
@@ -94,6 +106,8 @@ function migrateLegacySavingsFromJson(o) {
 /** Mutate plan to empty debts + zeroed default savings accounts (fresh start). */
 export function applyBlankFinancialBalances(plan) {
   plan.debts = [];
+  plan.debtsEditorSort = PLAN_DEFAULTS.debtsEditorSort || 'saved';
+  plan.debtsProgressSort = PLAN_DEFAULTS.debtsProgressSort || 'saved';
   plan.savingsAccounts = JSON.parse(JSON.stringify(PLAN_DEFAULTS.savingsAccounts));
   plan.hysaBalance = PLAN_DEFAULTS.hysaBalance;
   plan.joseSavings = PLAN_DEFAULTS.joseSavings;
@@ -118,6 +132,40 @@ export function applyPlanPayloadFromObject(plan, o) {
   ['hysaBalance', 'joseSavings', 'sherlynaSavings'].forEach(function (k) {
     if (typeof o[k] === 'number' && Number.isFinite(o[k])) plan[k] = o[k];
   });
+  if (typeof o.debtsEditorSort === 'string') {
+    const s = o.debtsEditorSort;
+    const allowed =
+      s === 'saved' ||
+      s === 'balance' ||
+      s === 'balance-desc' ||
+      s === 'balance-asc' ||
+      s === 'apr' ||
+      s === 'apr-desc' ||
+      s === 'apr-asc';
+    if (allowed) {
+      if (s === 'balance') plan.debtsEditorSort = 'balance-desc';
+      else if (s === 'apr') plan.debtsEditorSort = 'apr-desc';
+      else plan.debtsEditorSort = s;
+    }
+  }
+  if (typeof o.debtsProgressSort === 'string') {
+    const s = o.debtsProgressSort;
+    const allowed =
+      s === 'saved' ||
+      s === 'balance' ||
+      s === 'balance-desc' ||
+      s === 'balance-asc' ||
+      s === 'apr' ||
+      s === 'apr-desc' ||
+      s === 'apr-asc' ||
+      s === 'paid-desc' ||
+      s === 'paid-asc';
+    if (allowed) {
+      if (s === 'balance') plan.debtsProgressSort = 'balance-desc';
+      else if (s === 'apr') plan.debtsProgressSort = 'apr-desc';
+      else plan.debtsProgressSort = s;
+    }
+  }
   if (Array.isArray(o.debts)) {
     plan.debts = o.debts
       .filter(function (d) {
@@ -167,6 +215,8 @@ export function savePlanOverrides() {
         sherlynaSavings: PLAN.sherlynaSavings,
         savingsAccounts: PLAN.savingsAccounts,
         debts: PLAN.debts,
+        debtsEditorSort: normalizeDebtsEditorSortForStorage(PLAN.debtsEditorSort),
+        debtsProgressSort: normalizeDebtsProgressSortForStorage(PLAN.debtsProgressSort),
       })
     );
   } catch (e) {}

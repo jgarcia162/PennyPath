@@ -3,12 +3,82 @@
  */
 
 import { DEFAULT_DEBT_APR_PCT, DEFAULT_SAVINGS_APY_PCT } from './plan-data.js';
-import { numOr } from './utils.js';
-export function renderGoal2Debts(d, moneyExact) {
+import { numOr, formatMoneyInput } from './utils.js';
+
+/** Normalize legacy sort keys for UI + sorting. */
+export function normalizeDebtsEditorSort(mode) {
+  const m = mode || 'saved';
+  if (m === 'balance') return 'balance-desc';
+  if (m === 'apr') return 'apr-desc';
+  return m;
+}
+
+export function normalizeDebtsProgressSort(mode) {
+  const m = mode || 'saved';
+  if (m === 'balance') return 'balance-desc';
+  if (m === 'apr') return 'apr-desc';
+  return m;
+}
+
+function sortDebtListByMode(list, mode) {
+  if (mode === 'saved') return list;
+  if (mode === 'balance-desc' || mode === 'balance-asc') {
+    const dir = mode === 'balance-desc' ? -1 : 1;
+    list.sort(function (a, b) {
+      const diff = (numOr(a.current, 0) - numOr(b.current, 0)) * dir;
+      if (diff !== 0) return diff;
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+    return list;
+  }
+  if (mode === 'apr-desc' || mode === 'apr-asc') {
+    const dir = mode === 'apr-desc' ? -1 : 1;
+    list.sort(function (a, b) {
+      const diff =
+        (numOr(a.aprPct, DEFAULT_DEBT_APR_PCT) - numOr(b.aprPct, DEFAULT_DEBT_APR_PCT)) * dir;
+      if (diff !== 0) return diff;
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+    return list;
+  }
+  if (mode === 'paid-desc' || mode === 'paid-asc') {
+    const dir = mode === 'paid-desc' ? -1 : 1;
+    list.sort(function (a, b) {
+      const diff = (numOr(a.paidOff, 0) - numOr(b.paidOff, 0)) * dir;
+      if (diff !== 0) return diff;
+      return String(a.id || '').localeCompare(String(b.id || ''));
+    });
+    return list;
+  }
+  return list;
+}
+
+/**
+ * Debts in Goal 2 editor row order (saved array order, or balance / APR).
+ * @param {{ debts?: unknown[], debtsEditorSort?: string }} plan
+ */
+export function getDebtsInEditorOrder(plan) {
+  const list = Array.isArray(plan.debts) ? plan.debts.slice() : [];
+  const mode = normalizeDebtsEditorSort(plan.debtsEditorSort);
+  return sortDebtListByMode(list, mode);
+}
+
+/**
+ * Order for Goal 2 per-debt progress cards (`#goal2-debts`).
+ * @param {{ debts?: unknown[], debtsProgressSort?: string }} plan
+ */
+export function getDebtsInProgressOrder(plan) {
+  const list = Array.isArray(plan.debts) ? plan.debts.slice() : [];
+  const mode = normalizeDebtsProgressSort(plan.debtsProgressSort);
+  return sortDebtListByMode(list, mode);
+}
+
+export function renderGoal2Debts(plan, moneyExact) {
   const host = document.getElementById('goal2-debts');
   if (!host) return;
   host.innerHTML = '';
-  d.debts.forEach(function (debt) {
+  const debts = getDebtsInProgressOrder(plan);
+  debts.forEach(function (debt) {
     const current = Number.isFinite(debt.current) ? debt.current : 0;
     const paid = Number.isFinite(debt.paidOff) ? debt.paidOff : 0;
     const start = Math.max(0, current + paid);
@@ -98,11 +168,12 @@ export function renderGoal2Debts(d, moneyExact) {
   });
 }
 
-export function renderDebtsEditor(d) {
+export function renderDebtsEditor(plan) {
   const host = document.getElementById('debts-editor-list');
   if (!host) return;
   host.innerHTML = '';
-  d.debts.forEach(function (debt) {
+  const debts = getDebtsInEditorOrder(plan);
+  debts.forEach(function (debt) {
     const row = document.createElement('div');
     row.className = 'debt-row';
     row.setAttribute('data-debt-id', debt.id);
@@ -118,21 +189,21 @@ export function renderDebtsEditor(d) {
     curField.innerHTML =
       '<label>Current balance</label><input type="text" data-field="current" inputmode="decimal" autocomplete="off" value="">';
     const curInput = curField.querySelector('input');
-    curInput.value = String(numOr(debt.current, 0));
+    curInput.value = formatMoneyInput(numOr(debt.current, 0));
 
     const aprField = document.createElement('div');
     aprField.className = 'balance-field';
     aprField.innerHTML =
       '<label>APR %</label><input type="text" data-field="aprPct" inputmode="decimal" autocomplete="off" placeholder="0" value="">';
     const aprInput = aprField.querySelector('input');
-    aprInput.value = String(numOr(debt.aprPct, DEFAULT_DEBT_APR_PCT));
+    aprInput.value = formatMoneyInput(numOr(debt.aprPct, DEFAULT_DEBT_APR_PCT));
 
     const defField = document.createElement('div');
     defField.className = 'balance-field';
     defField.innerHTML =
       '<label>Deferred $ (0% promo)</label><input type="text" data-field="deferredAmount" inputmode="decimal" autocomplete="off" value="">';
     const defInput = defField.querySelector('input');
-    defInput.value = String(numOr(debt.deferredAmount, 0));
+    defInput.value = formatMoneyInput(numOr(debt.deferredAmount, 0));
 
     const defDateField = document.createElement('div');
     defDateField.className = 'balance-field';
@@ -169,6 +240,18 @@ export function renderDebtsEditor(d) {
   });
 }
 
+export function syncDebtsEditorSortSelect(plan) {
+  const sortSel = document.getElementById('debts-editor-sort');
+  if (!sortSel) return;
+  sortSel.value = normalizeDebtsEditorSort(plan.debtsEditorSort);
+}
+
+export function syncDebtsProgressSortSelect(plan) {
+  const sortSel = document.getElementById('debts-progress-sort');
+  if (!sortSel) return;
+  sortSel.value = normalizeDebtsProgressSort(plan.debtsProgressSort);
+}
+
 export function renderSavingsEditor(d) {
   const host = document.getElementById('savings-editor-list');
   if (!host) return;
@@ -190,14 +273,14 @@ export function renderSavingsEditor(d) {
     curField.innerHTML =
       '<label>Current balance</label><input type="text" data-field="current" inputmode="decimal" autocomplete="off" value="">';
     const curInput = curField.querySelector('input');
-    curInput.value = String(numOr(acc.current, 0));
+    curInput.value = formatMoneyInput(numOr(acc.current, 0));
 
     const apyField = document.createElement('div');
     apyField.className = 'balance-field';
     apyField.innerHTML =
       '<label>APY %</label><input type="text" data-field="apyPct" inputmode="decimal" autocomplete="off" placeholder="0" value="">';
     const apyInput = apyField.querySelector('input');
-    apyInput.value = String(numOr(acc.apyPct, DEFAULT_SAVINGS_APY_PCT));
+    apyInput.value = formatMoneyInput(numOr(acc.apyPct, DEFAULT_SAVINGS_APY_PCT));
 
     const depField = document.createElement('div');
     depField.className = 'balance-field';

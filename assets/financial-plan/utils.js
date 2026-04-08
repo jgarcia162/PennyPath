@@ -17,6 +17,18 @@ export function numOr(raw, fallback) {
   return Number.isFinite(v) ? v : fallback;
 }
 
+/** Round to nearest cent (or hundredth of a percent for rate fields). */
+export function roundMoney(n) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return 0;
+  return Math.round(v * 100) / 100;
+}
+
+/** Plain string for balance/rate inputs: always 2 decimal places, no float noise. */
+export function formatMoneyInput(n) {
+  return roundMoney(n).toFixed(2);
+}
+
 export function createMoneyFormatters() {
   const fmt = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
   const fmtExact = new Intl.NumberFormat('en-US', {

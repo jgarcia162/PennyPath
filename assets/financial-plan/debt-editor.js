@@ -3,7 +3,7 @@
  */
 
 import { PLAN, PLAN_DEFAULTS, DEFAULT_DEBT_APR_PCT } from './plan-data.js';
-import { parseMoneyInput, numOr } from './utils.js';
+import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils.js';
 import { normalizePaymentHistory, newPaymentId } from './persistence.js';
 
 export function readDebtsEditorIntoPlan() {
@@ -57,12 +57,12 @@ export function readDebtsEditorIntoPlan() {
     var hist = normalizePaymentHistory(prev || prevByIndex);
     if (payment !== null && payment > 0) {
       if (currentBal > 0) {
-        const applied = Math.min(payment, currentBal);
-        currentBal = Math.max(0, currentBal - applied);
-        paidOffVal = Math.max(0, prevPaidOff + applied);
+        const applied = roundMoney(Math.min(payment, currentBal));
+        currentBal = roundMoney(Math.max(0, currentBal - applied));
+        paidOffVal = roundMoney(Math.max(0, prevPaidOff + applied));
         hist = hist.slice();
         hist.push({ id: newPaymentId(), amount: applied, at: new Date().toISOString() });
-        if (curEl) curEl.value = String(currentBal);
+        if (curEl) curEl.value = formatMoneyInput(currentBal);
       }
       if (payEl) payEl.value = '';
     }
@@ -70,10 +70,10 @@ export function readDebtsEditorIntoPlan() {
     next.push({
       id: String(id),
       name: name || 'Debt',
-      current: currentBal,
-      paidOff: paidOffVal,
-      aprPct: aprPct == null ? DEFAULT_DEBT_APR_PCT : aprPct,
-      deferredAmount: deferredAmount == null ? 0 : deferredAmount,
+      current: roundMoney(currentBal),
+      paidOff: roundMoney(paidOffVal),
+      aprPct: roundMoney(aprPct == null ? DEFAULT_DEBT_APR_PCT : aprPct),
+      deferredAmount: roundMoney(deferredAmount == null ? 0 : deferredAmount),
       deferredExpiresOn: deferredExpiresOn,
       deferredMonthsRemaining:
         prev && Number.isFinite(prev.deferredMonthsRemaining)
@@ -93,10 +93,10 @@ export function cloneDebtsSnapshot() {
       return {
         id: String(d.id),
         name: String(d.name || 'Debt'),
-        current: numOr(d.current, 0),
-        paidOff: numOr(d.paidOff, 0),
-        aprPct: numOr(d.aprPct, DEFAULT_DEBT_APR_PCT),
-        deferredAmount: numOr(d.deferredAmount, 0),
+        current: roundMoney(numOr(d.current, 0)),
+        paidOff: roundMoney(numOr(d.paidOff, 0)),
+        aprPct: roundMoney(numOr(d.aprPct, DEFAULT_DEBT_APR_PCT)),
+        deferredAmount: roundMoney(numOr(d.deferredAmount, 0)),
         deferredExpiresOn: typeof d.deferredExpiresOn === 'string' ? d.deferredExpiresOn : '',
         deferredMonthsRemaining: Number.isFinite(d.deferredMonthsRemaining) ? Math.max(0, Math.floor(d.deferredMonthsRemaining)) : 0,
         paymentHistory: normalizePaymentHistory(d),
@@ -132,9 +132,9 @@ export function setDebtsDraftFromSnapshot(snap) {
       const defEl = row.querySelector('input[data-field="deferredAmount"]');
       const defDateEl = row.querySelector('input[data-field="deferredExpiresOn"]');
       if (nameEl) nameEl.value = String(d.name || '');
-      if (curEl) curEl.value = String(numOr(d.current, 0));
-      if (aprEl) aprEl.value = String(numOr(d.aprPct, DEFAULT_DEBT_APR_PCT));
-      if (defEl) defEl.value = String(numOr(d.deferredAmount, 0));
+      if (curEl) curEl.value = formatMoneyInput(numOr(d.current, 0));
+      if (aprEl) aprEl.value = formatMoneyInput(numOr(d.aprPct, DEFAULT_DEBT_APR_PCT));
+      if (defEl) defEl.value = formatMoneyInput(numOr(d.deferredAmount, 0));
       if (defDateEl) defDateEl.value = typeof d.deferredExpiresOn === 'string' ? d.deferredExpiresOn : '';
 
       host.appendChild(row);
@@ -176,8 +176,8 @@ export function removeDebtPayment(debtId, paymentId, onUnsaved, rerender) {
   const amt = Number(entry.amount);
   if (!Number.isFinite(amt) || amt <= 0) return;
   debt.paymentHistory.splice(idx, 1);
-  debt.current = numOr(debt.current, 0) + amt;
-  debt.paidOff = Math.max(0, numOr(debt.paidOff, 0) - amt);
+  debt.current = roundMoney(numOr(debt.current, 0) + amt);
+  debt.paidOff = roundMoney(Math.max(0, numOr(debt.paidOff, 0) - amt));
   onUnsaved();
   rerender();
 }

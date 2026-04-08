@@ -588,8 +588,47 @@ body.financial-plan-demo-mode #checkin-form {
 .balance-saved-hint { font-size: 12px; color: #888; }
 
 /* DEBTS EDITOR (inside balance editor) */
-.debts-editor-header { margin-top: 4px; }
+.debts-editor-header {
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+}
 .debts-editor-title { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #888; font-weight: 700; }
+.debts-editor-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.debts-editor-sort-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #666;
+  white-space: nowrap;
+}
+.debts-editor-sort-select {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 28px 6px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(26, 26, 46, 0.15);
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--ink);
+  cursor: pointer;
+  max-width: 100%;
+}
+.debts-editor-sort-select:focus {
+  outline: 2px solid rgba(107, 142, 107, 0.45);
+  outline-offset: 1px;
+}
+:root[data-theme="dark"] .debts-editor-sort-label { color: #aaa; }
+:root[data-theme="dark"] .debts-editor-sort-select {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--ink);
+}
 .btn-add-debt {
   background: rgba(26,26,46,0.08);
   color: var(--ink);
@@ -776,9 +815,35 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(255, 255, 255, 0.55);
 }
 
-/* GOAL 2: PER-DEBT PROGRESS */
-.goal2-debts {
+/* GOAL 2: PER-DEBT PROGRESS (independent sort: #debts-progress-sort vs editor) */
+.goal2-debts-wrap {
   margin-top: 14px;
+  margin-bottom: 14px;
+}
+.goal2-debts-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+  margin-bottom: 10px;
+}
+.goal2-debts-toolbar-title {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: #888;
+  font-weight: 700;
+}
+:root[data-theme="dark"] .goal2-debts-toolbar-title {
+  color: #aaa;
+}
+.debts-progress-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.goal2-debts {
   display: grid;
   gap: 12px;
   grid-template-columns: 1fr 1fr;

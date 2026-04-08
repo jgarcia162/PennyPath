@@ -5,7 +5,14 @@
 import { PLAN } from './plan-data.js';
 import { derived } from './plan-derived.js';
 import { createMoneyFormatters, setText, setHtml, numOr } from './utils.js';
-import { renderGoal2Debts, renderDebtsEditor, renderGoal3SavingsAccounts, renderSavingsEditor } from './render-sections.js';
+import {
+  renderGoal2Debts,
+  renderDebtsEditor,
+  syncDebtsEditorSortSelect,
+  syncDebtsProgressSortSelect,
+  renderGoal3SavingsAccounts,
+  renderSavingsEditor,
+} from './render-sections.js';
 import { renderPayoffTimeline, renderBadges } from './features.js';
 import { renderCheckIns } from './checkin-log.js';
 import {
@@ -124,8 +131,10 @@ export function render() {
     );
   }
 
-  renderGoal2Debts(d, moneyExact);
-  renderDebtsEditor(d);
+  renderGoal2Debts(PLAN, moneyExact);
+  renderDebtsEditor(PLAN);
+  syncDebtsEditorSortSelect(PLAN);
+  syncDebtsProgressSortSelect(PLAN);
   renderGoal3SavingsAccounts(d, moneyExact);
   renderSavingsEditor(d);
 
