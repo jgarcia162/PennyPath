@@ -53,7 +53,7 @@
       if (e.key === 'Escape') closeMenu(menu, trigger);
     });
 
-    ['btn-print', 'btn-wipe-all-data'].forEach(function (id) {
+    ['btn-print', 'btn-wipe-all-data', 'btn-open-appearance'].forEach(function (id) {
       var el = document.getElementById(id);
       if (!el) return;
       el.addEventListener('click', function () {
@@ -104,11 +104,96 @@
     });
   }
 
+  /** Appearance dialog: palette picker + body scroll lock while open. */
+  function initAppearanceDialog() {
+    var dlg = document.getElementById('appearance-dialog');
+    var openBtn = document.getElementById('btn-open-appearance');
+    if (!dlg || !openBtn) return;
+
+    var scrollDepth = 0;
+    var scrollY = 0;
+
+    function lockScroll() {
+      if (scrollDepth === 0) {
+        scrollY = window.scrollY || window.pageYOffset || 0;
+        document.documentElement.style.overflow = 'hidden';
+        document.body.style.position = 'fixed';
+        document.body.style.top = '-' + scrollY + 'px';
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.width = '100%';
+      }
+      scrollDepth++;
+    }
+
+    function unlockScroll() {
+      scrollDepth = Math.max(0, scrollDepth - 1);
+      if (scrollDepth > 0) return;
+      document.documentElement.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.top = '';
+      document.body.style.left = '';
+      document.body.style.right = '';
+      document.body.style.width = '';
+      window.scrollTo(0, scrollY);
+    }
+
+    function syncPaletteOptions() {
+      var current =
+        window.ColorPaletteService && window.ColorPaletteService.getPalette
+          ? window.ColorPaletteService.getPalette()
+          : 'pastel';
+      var opts = dlg.querySelectorAll('.palette-option[data-palette]');
+      for (var i = 0; i < opts.length; i++) {
+        var el = opts[i];
+        var id = el.getAttribute('data-palette');
+        var on = id === current;
+        el.setAttribute('aria-selected', on ? 'true' : 'false');
+        el.classList.toggle('palette-option--current', on);
+      }
+    }
+
+    openBtn.addEventListener('click', function () {
+      syncPaletteOptions();
+      lockScroll();
+      if (typeof dlg.showModal === 'function') dlg.showModal();
+    });
+
+    dlg.addEventListener('close', function () {
+      unlockScroll();
+    });
+
+    dlg.addEventListener('click', function (e) {
+      if (e.target === dlg) {
+        dlg.close();
+        return;
+      }
+      var t = e.target;
+      var el = t && t.nodeType === 3 ? t.parentElement : t;
+      if (el && typeof el.closest === 'function' && el.closest('[data-close-appearance-dialog]')) {
+        dlg.close();
+      }
+    });
+
+    var paletteBtns = dlg.querySelectorAll('.palette-option[data-palette]');
+    for (var k = 0; k < paletteBtns.length; k++) {
+      paletteBtns[k].addEventListener('click', function () {
+        var id = this.getAttribute('data-palette');
+        if (!id || !window.ColorPaletteService || !window.ColorPaletteService.applyPalette) return;
+        window.ColorPaletteService.applyPalette(id);
+        syncPaletteOptions();
+      });
+    }
+
+    window.addEventListener('pennypath:palettechange', syncPaletteOptions);
+  }
+
   function init() {
     initDropdown();
     initTheme();
     initPrint();
     initDemoModeToggle();
+    initAppearanceDialog();
   }
 
   if (document.readyState === 'loading') {

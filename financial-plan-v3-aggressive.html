@@ -6,6 +6,7 @@
 <title>Our Financial Plan 2026–2027</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/financial-plan.css">
+<link rel="stylesheet" href="assets/color-palettes.css">
 <link rel="stylesheet" href="assets/print.css">
 </head>
 <body>
@@ -33,6 +34,7 @@
         <div class="site-settings-menu-section">
           <span class="site-settings-menu-label">Display</span>
           <button type="button" class="site-settings-item site-settings-item--muted" id="btn-toggle-theme" aria-pressed="false">Dark mode</button>
+          <button type="button" class="site-settings-item" id="btn-open-appearance">Appearance…</button>
         </div>
       </li>
       <li>
@@ -466,7 +468,57 @@
   <span id="footer-line"></span>
 </div>
 
+<dialog class="appearance-dialog no-print" id="appearance-dialog" aria-labelledby="appearance-dialog-title" aria-modal="true">
+  <div class="appearance-dialog__chrome">
+    <div class="appearance-dialog__header">
+      <h2 class="appearance-dialog__title" id="appearance-dialog-title">Appearance</h2>
+      <button type="button" class="appearance-dialog__close" data-close-appearance-dialog aria-label="Close dialog">×</button>
+    </div>
+    <div class="appearance-dialog__body">
+      <p class="appearance-dialog__intro">Choose a color palette. Your choice is saved in this browser and applies to PennyPath pages that share this header.</p>
+      <div class="palette-options" role="listbox" aria-label="Color palettes">
+        <button type="button" class="palette-option" role="option" data-palette="pastel" id="palette-opt-pastel">
+          <span class="palette-option__preview" aria-hidden="true"></span>
+          <span class="palette-option__text">
+            <span class="palette-option__name">Pastel</span>
+            <span class="palette-option__blurb">Soft blues, warm cream</span>
+          </span>
+        </button>
+        <button type="button" class="palette-option" role="option" data-palette="classic" id="palette-opt-classic">
+          <span class="palette-option__preview" aria-hidden="true"></span>
+          <span class="palette-option__text">
+            <span class="palette-option__name">Classic</span>
+            <span class="palette-option__blurb">Navy, gold, sage</span>
+          </span>
+        </button>
+        <button type="button" class="palette-option" role="option" data-palette="ocean" id="palette-opt-ocean">
+          <span class="palette-option__preview" aria-hidden="true"></span>
+          <span class="palette-option__text">
+            <span class="palette-option__name">Ocean</span>
+            <span class="palette-option__blurb">Teal, sea glass, sand</span>
+          </span>
+        </button>
+        <button type="button" class="palette-option" role="option" data-palette="forest" id="palette-opt-forest">
+          <span class="palette-option__preview" aria-hidden="true"></span>
+          <span class="palette-option__text">
+            <span class="palette-option__name">Forest</span>
+            <span class="palette-option__blurb">Moss, bark, honey</span>
+          </span>
+        </button>
+        <button type="button" class="palette-option" role="option" data-palette="sunset" id="palette-opt-sunset">
+          <span class="palette-option__preview" aria-hidden="true"></span>
+          <span class="palette-option__text">
+            <span class="palette-option__name">Sunset</span>
+            <span class="palette-option__blurb">Rose, peach, amber</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
 <script src="assets/theme-service.js" defer></script>
+<script src="assets/color-palette-service.js" defer></script>
 <script src="assets/site-settings.js" defer></script>
 <script type="module" src="assets/financial-plan/payoff-projection.js"></script>
 <script src="assets/checkin-service.js" defer></script>

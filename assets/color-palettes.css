@@ -1,0 +1,176 @@
+/**
+ * Alternate color palettes (light + dark). Base tokens live in financial-plan.css (`:root`).
+ * Pastel is the default: no `data-color-palette` attribute. Other palettes set `data-color-palette="<id>"`.
+ */
+
+/* —— Classic — original navy / gold / sage —— */
+:root[data-color-palette='classic'] {
+  --text: #222830;
+  --ink: #1a1a2e;
+  --cream: #f5f0e8;
+  --gold: #c9a84c;
+  --gold-light: #e8d5a3;
+  --sage: #5a7a6a;
+  --sage-light: #d4e8dd;
+  --red: #b85c5c;
+  --red-light: #f2dada;
+  --blue: #3a5f8a;
+  --blue-light: #d0dfee;
+  --purple: #6b5b8a;
+  --purple-light: #e4dff2;
+  --paper: #faf7f2;
+  --md-elevation-1: 0 1px 2px rgba(26, 26, 46, 0.2), 0 1px 3px 1px rgba(26, 26, 46, 0.12);
+  --md-elevation-2: 0 2px 6px rgba(26, 26, 46, 0.16), 0 1px 2px rgba(26, 26, 46, 0.1);
+  --md-surface-tint: rgba(26, 26, 46, 0.05);
+  --md-on-surface: rgba(26, 26, 46, 0.88);
+  --md-on-surface-variant: rgba(26, 26, 46, 0.58);
+}
+
+:root[data-theme='dark'][data-color-palette='classic'] {
+  --text: #e8eaf2;
+  --ink: #c8ccd8;
+  --cream: #0c0e14;
+  --paper: #12151e;
+  --gold: #d4b056;
+  --gold-light: #352a14;
+  --sage: #7fb79b;
+  --sage-light: rgba(127, 183, 155, 0.16);
+  --red: #e08888;
+  --red-light: rgba(224, 136, 136, 0.14);
+  --blue: #7a9fd4;
+  --blue-light: rgba(122, 159, 212, 0.18);
+  --purple: #b8a8d4;
+  --purple-light: rgba(184, 168, 212, 0.16);
+  --md-surface-tint: rgba(232, 234, 242, 0.06);
+  --md-on-surface: rgba(232, 234, 242, 0.9);
+  --md-on-surface-variant: rgba(232, 234, 242, 0.64);
+}
+
+/* —— Ocean — teal / sand —— */
+:root[data-color-palette='ocean'] {
+  --text: #2a4556;
+  --ink: #3d6d86;
+  --cream: #f0f7fa;
+  --gold: #c9a575;
+  --gold-light: #e2dfd0;
+  --sage: #5a9b8a;
+  --sage-light: #d4ebe4;
+  --red: #c97a7a;
+  --red-light: #f0e0e0;
+  --blue: #4a8fb8;
+  --blue-light: #d4e8f4;
+  --purple: #7a88b8;
+  --purple-light: #e4e6f4;
+  --paper: #fbfdff;
+  --md-elevation-1: 0 1px 2px rgba(45, 85, 110, 0.12), 0 1px 3px 1px rgba(45, 85, 110, 0.08);
+  --md-elevation-2: 0 2px 6px rgba(45, 85, 110, 0.1), 0 1px 2px rgba(45, 85, 110, 0.06);
+  --md-surface-tint: rgba(42, 69, 86, 0.05);
+  --md-on-surface: rgba(35, 55, 68, 0.88);
+  --md-on-surface-variant: rgba(35, 55, 68, 0.58);
+}
+
+:root[data-theme='dark'][data-color-palette='ocean'] {
+  --text: #e2eef4;
+  --ink: #b8d4e4;
+  --cream: #0f161c;
+  --paper: #141c24;
+  --gold: #d4b882;
+  --gold-light: #2a2820;
+  --sage: #7ec4b0;
+  --sage-light: rgba(126, 196, 176, 0.14);
+  --red: #e0a0a0;
+  --red-light: rgba(224, 160, 160, 0.12);
+  --blue: #8ab8e0;
+  --blue-light: rgba(138, 184, 224, 0.16);
+  --purple: #a8b0d8;
+  --purple-light: rgba(168, 176, 216, 0.14);
+  --md-surface-tint: rgba(226, 238, 244, 0.06);
+  --md-on-surface: rgba(226, 238, 244, 0.9);
+  --md-on-surface-variant: rgba(226, 238, 244, 0.64);
+}
+
+/* —— Forest — moss / honey —— */
+:root[data-color-palette='forest'] {
+  --text: #2c382f;
+  --ink: #3d5a45;
+  --cream: #f4f6f2;
+  --gold: #b8942d;
+  --gold-light: #e8e4d4;
+  --sage: #5f8f6a;
+  --sage-light: #dde8df;
+  --red: #b07060;
+  --red-light: #f0e0dc;
+  --blue: #4a6b78;
+  --blue-light: #dce8ec;
+  --purple: #7a6b88;
+  --purple-light: #e8e4ec;
+  --paper: #fafbf8;
+  --md-elevation-1: 0 1px 2px rgba(40, 60, 48, 0.12), 0 1px 3px 1px rgba(40, 60, 48, 0.08);
+  --md-elevation-2: 0 2px 6px rgba(40, 60, 48, 0.1), 0 1px 2px rgba(40, 60, 48, 0.06);
+  --md-surface-tint: rgba(44, 56, 47, 0.05);
+  --md-on-surface: rgba(36, 48, 40, 0.88);
+  --md-on-surface-variant: rgba(36, 48, 40, 0.58);
+}
+
+:root[data-theme='dark'][data-color-palette='forest'] {
+  --text: #e6ede8;
+  --ink: #a8c4b0;
+  --cream: #101612;
+  --paper: #161e18;
+  --gold: #d4bc60;
+  --gold-light: #2c2818;
+  --sage: #8fbc9a;
+  --sage-light: rgba(143, 188, 154, 0.14);
+  --red: #d89888;
+  --red-light: rgba(216, 152, 136, 0.12);
+  --blue: #8aa8b0;
+  --blue-light: rgba(138, 168, 176, 0.14);
+  --purple: #b0a0c0;
+  --purple-light: rgba(176, 160, 192, 0.12);
+  --md-surface-tint: rgba(230, 237, 232, 0.06);
+  --md-on-surface: rgba(230, 237, 232, 0.9);
+  --md-on-surface-variant: rgba(230, 237, 232, 0.64);
+}
+
+/* —— Sunset — rose / peach / amber —— */
+:root[data-color-palette='sunset'] {
+  --text: #4a3a40;
+  --ink: #a85d6b;
+  --cream: #fff5f2;
+  --gold: #e09050;
+  --gold-light: #f5e0d4;
+  --sage: #a89888;
+  --sage-light: #efe8e4;
+  --red: #d97a7a;
+  --red-light: #fce8e8;
+  --blue: #8fa8c9;
+  --blue-light: #e8eef8;
+  --purple: #b89fc9;
+  --purple-light: #f0eaf4;
+  --paper: #fffaf8;
+  --md-elevation-1: 0 1px 2px rgba(120, 70, 80, 0.1), 0 1px 3px 1px rgba(120, 70, 80, 0.06);
+  --md-elevation-2: 0 2px 6px rgba(120, 70, 80, 0.08), 0 1px 2px rgba(120, 70, 80, 0.05);
+  --md-surface-tint: rgba(90, 60, 68, 0.05);
+  --md-on-surface: rgba(55, 40, 48, 0.88);
+  --md-on-surface-variant: rgba(55, 40, 48, 0.58);
+}
+
+:root[data-theme='dark'][data-color-palette='sunset'] {
+  --text: #f2e8ea;
+  --ink: #e0a8b4;
+  --cream: #181214;
+  --paper: #221a1c;
+  --gold: #f0b070;
+  --gold-light: #3a2820;
+  --sage: #c8b0a8;
+  --sage-light: rgba(200, 176, 168, 0.12);
+  --red: #f0a0a0;
+  --red-light: rgba(240, 160, 160, 0.12);
+  --blue: #a8c0e0;
+  --blue-light: rgba(168, 192, 224, 0.14);
+  --purple: #d0b8e0;
+  --purple-light: rgba(208, 184, 224, 0.12);
+  --md-surface-tint: rgba(242, 232, 234, 0.06);
+  --md-on-surface: rgba(242, 232, 234, 0.9);
+  --md-on-surface-variant: rgba(242, 232, 234, 0.64);
+}

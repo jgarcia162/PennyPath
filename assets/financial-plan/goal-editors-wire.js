@@ -332,8 +332,16 @@ export function wireGoalEditorDialogs() {
     if (!dlg || !btn) return;
 
     btn.addEventListener('click', function () {
+      try {
+        if (typeof dlg.showModal !== 'function') return;
+        dlg.showModal();
+      } catch (err) {
+        if (typeof console !== 'undefined' && console.warn) {
+          console.warn('Goal editor dialog could not open:', err);
+        }
+        return;
+      }
       lockBodyScrollForGoalDialog();
-      dlg.showModal();
       btn.setAttribute('aria-expanded', 'true');
     });
 

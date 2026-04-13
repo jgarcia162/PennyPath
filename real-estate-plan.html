@@ -6,6 +6,7 @@
 <title>Real Estate — Investment Planner</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/financial-plan.css">
+<link rel="stylesheet" href="assets/color-palettes.css">
 <style>
   .re-page h1, .re-page h2, .re-page .re-hero-title, .re-page .section-title.re-heading {
     font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
@@ -29,8 +30,8 @@
     gap: 10px;
   }
   .re-pill {
-    background: rgba(201,168,76,0.12);
-    border: 1px solid rgba(201,168,76,0.28);
+    background: rgba(196,176,128,0.12);
+    border: 1px solid rgba(196,176,128,0.28);
     border-radius: 999px;
     padding: 10px 16px;
     font-size: 13px;
@@ -40,7 +41,7 @@
   .re-pill strong { color: var(--gold); font-weight: 800; }
   .re-calculator-panel {
     background: var(--paper);
-    border: 1px solid rgba(26,26,46,0.1);
+    border: 1px solid rgba(60,68,82,0.1);
     border-radius: 16px;
     padding: 24px 28px;
     margin-bottom: 20px;
@@ -61,7 +62,7 @@
     background: var(--paper);
     border-radius: 14px;
     padding: 20px 22px;
-    border: 1px solid rgba(26,26,46,0.08);
+    border: 1px solid rgba(60,68,82,0.08);
   }
   .re-path-card.fha { border-top: 3px solid var(--sage); }
   .re-path-card.llc { border-top: 3px solid var(--blue); }
@@ -69,19 +70,19 @@
     font-family: 'Cormorant Garamond', Georgia, serif;
     font-size: 22px;
     margin-bottom: 12px;
-    color: var(--ink);
+    color: var(--text);
   }
-  .re-kv { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid rgba(26,26,46,0.06); }
+  .re-kv { display: flex; justify-content: space-between; font-size: 13px; padding: 6px 0; border-bottom: 1px solid rgba(60,68,82,0.06); }
   .re-kv span:first-child { color: #666; }
   .re-cf-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 8px; }
   .re-cf-table { width: 100%; border-collapse: collapse; min-width: 640px; font-size: 13px; }
-  .re-cf-table th, .re-cf-table td { padding: 10px 12px; text-align: right; border-bottom: 1px solid rgba(26,26,46,0.08); }
+  .re-cf-table th, .re-cf-table td { padding: 10px 12px; text-align: right; border-bottom: 1px solid rgba(60,68,82,0.08); }
   .re-cf-table th:first-child, .re-cf-table td:first-child { text-align: left; }
   .re-cf-table thead th { background: var(--ink); color: var(--cream); font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; }
   .acct-pos { color: var(--sage); font-weight: 700; }
   .acct-neg { color: var(--red); font-weight: 700; }
   .re-market-table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  .re-market-table th, .re-market-table td { padding: 12px 14px; border-bottom: 1px solid rgba(26,26,46,0.08); text-align: left; }
+  .re-market-table th, .re-market-table td { padding: 12px 14px; border-bottom: 1px solid rgba(60,68,82,0.08); text-align: left; }
   .re-market-table thead th { background: var(--ink); color: var(--cream); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; }
   .re-star { color: var(--gold); font-weight: 800; }
   .re-stat-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 16px; }
@@ -89,7 +90,7 @@
     background: var(--paper);
     border-radius: 14px;
     padding: 18px 20px;
-    border: 1px solid rgba(26,26,46,0.07);
+    border: 1px solid rgba(60,68,82,0.07);
     text-align: center;
   }
   .re-stat-card .val { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 28px; font-weight: 700; color: var(--gold); margin-top: 6px; }
@@ -97,22 +98,22 @@
   .re-timeline::before {
     content: '';
     position: absolute; left: 6px; top: 0; bottom: 0; width: 2px;
-    background: rgba(201,168,76,0.35);
+    background: rgba(196,176,128,0.35);
     border-radius: 2px;
   }
   .re-milestone { position: relative; padding-bottom: 22px; padding-left: 16px; }
   .re-milestone::before {
     content: '';
     position: absolute; left: -21px; top: 4px; width: 12px; height: 12px;
-    background: var(--gold); border-radius: 50%; border: 2px solid var(--cream); box-shadow: 0 0 0 2px rgba(201,168,76,0.3);
+    background: var(--gold); border-radius: 50%; border: 2px solid var(--cream); box-shadow: 0 0 0 2px rgba(196,176,128,0.3);
   }
-  .re-milestone-title { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 18px; color: var(--ink); }
+  .re-milestone-title { font-family: 'Cormorant Garamond', Georgia, serif; font-weight: 700; font-size: 18px; color: var(--text); }
   .re-milestone-body { font-size: 14px; color: #666; margin-top: 4px; line-height: 1.5; }
   .re-footer-sub { font-size: 13px; color: rgba(245,240,232,0.5); margin-top: 8px; }
   .re-disclaimer { font-size: 11px; color: rgba(245,240,232,0.38); margin-top: 16px; max-width: 640px; margin-left: auto; margin-right: auto; line-height: 1.5; }
   :root[data-theme="dark"] .re-kv span:first-child,
   :root[data-theme="dark"] .re-milestone-body { color: rgba(233,233,246,0.72); }
-  :root[data-theme="dark"] .re-path-card h3 { color: var(--ink); }
+  :root[data-theme="dark"] .re-path-card h3 { color: var(--text); }
   @media (max-width: 900px) {
     .re-calculator-grid { grid-template-columns: 1fr 1fr; }
     .re-compare-grid { grid-template-columns: 1fr; }
@@ -138,9 +139,9 @@
     top: auto;
     margin-top: -4px;
     background: var(--paper);
-    border: 1px solid rgba(26,26,46,0.12);
+    border: 1px solid rgba(60,68,82,0.12);
     border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(26,26,46,0.12);
+    box-shadow: 0 8px 24px rgba(60,68,82,0.12);
     max-height: 220px;
     overflow-y: auto;
     z-index: 20;
@@ -154,14 +155,14 @@
     background: transparent;
     font-family: 'DM Sans', sans-serif;
     font-size: 14px;
-    color: var(--ink);
+    color: var(--text);
     cursor: pointer;
-    border-bottom: 1px solid rgba(26,26,46,0.06);
+    border-bottom: 1px solid rgba(60,68,82,0.06);
   }
-  .re-search-dropdown button:hover { background: rgba(201,168,76,0.12); }
+  .re-search-dropdown button:hover { background: rgba(196,176,128,0.12); }
   .re-search-dropdown button:last-child { border-bottom: none; }
   .re-search-status { font-size: 13px; color: #666; min-height: 1.2em; margin-top: 8px; }
-  .re-current-market { margin-top: 12px; font-size: 14px; color: var(--ink); }
+  .re-current-market { margin-top: 12px; font-size: 14px; color: var(--text); }
   .re-recent-list { list-style: none; margin-top: 10px; display: grid; gap: 8px; }
   .re-recent-list li {
     display: flex;
@@ -169,8 +170,8 @@
     align-items: center;
     gap: 10px;
     padding: 10px 12px;
-    background: rgba(26,26,46,0.03);
-    border: 1px solid rgba(26,26,46,0.08);
+    background: rgba(60,68,82,0.03);
+    border: 1px solid rgba(60,68,82,0.08);
     border-radius: 10px;
     font-size: 13px;
   }
@@ -194,12 +195,12 @@
   .re-pm-toggle {
     margin-top: 4px;
     padding: 12px 14px;
-    background: rgba(26,26,46,0.04);
-    border: 1px solid rgba(26,26,46,0.08);
+    background: rgba(60,68,82,0.04);
+    border: 1px solid rgba(60,68,82,0.08);
     border-radius: 12px;
     font-size: 14px;
     line-height: 1.45;
-    color: var(--ink);
+    color: var(--text);
   }
   .re-pm-toggle label {
     display: flex;
@@ -209,11 +210,12 @@
     font-weight: 500;
     margin: 0;
   }
-  .re-pm-toggle input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--ink); flex-shrink: 0; }
+  .re-pm-toggle input { margin-top: 3px; width: 18px; height: 18px; accent-color: var(--gold); flex-shrink: 0; }
   .re-pm-toggle .re-pm-toggle-hint { display: block; font-size: 12px; font-weight: 400; color: #666; margin-top: 6px; padding-left: 28px; }
   :root[data-theme="dark"] .re-pm-toggle .re-pm-toggle-hint { color: rgba(233,233,246,0.65); }
 </style>
 <script src="assets/theme-service.js"></script>
+<script src="assets/color-palette-service.js"></script>
 </head>
 <body class="re-page">
 
@@ -240,6 +242,7 @@
         <div class="site-settings-menu-section">
           <span class="site-settings-menu-label">Display</span>
           <button type="button" class="site-settings-item site-settings-item--muted" id="btn-toggle-theme" aria-pressed="false">Dark mode</button>
+          <button type="button" class="site-settings-item" id="btn-open-appearance">Appearance…</button>
         </div>
       </li>
       <li>
@@ -875,7 +878,7 @@
         if (rawSnip) {
           html +=
             '<details style="margin-top:10px;"><summary style="cursor:pointer;font-weight:700;">Raw API response (debug)</summary>' +
-            '<pre style="margin-top:8px;white-space:pre-wrap;font-size:11px;overflow:auto;max-height:180px;background:rgba(26,26,46,0.06);padding:10px;border-radius:8px;">' +
+            '<pre style="margin-top:8px;white-space:pre-wrap;font-size:11px;overflow:auto;max-height:180px;background:rgba(60,68,82,0.06);padding:10px;border-radius:8px;">' +
             escapeHtml(String(rawSnip).slice(0, 4000)) +
             '</pre></details>';
         } else if (pay && pay.rawBody) {
@@ -1233,6 +1236,54 @@
   render();
 })();
 </script>
+<dialog class="appearance-dialog no-print" id="appearance-dialog" aria-labelledby="appearance-dialog-title" aria-modal="true">
+  <div class="appearance-dialog__chrome">
+    <div class="appearance-dialog__header">
+      <h2 class="appearance-dialog__title" id="appearance-dialog-title">Appearance</h2>
+      <button type="button" class="appearance-dialog__close" data-close-appearance-dialog aria-label="Close dialog">×</button>
+    </div>
+    <div class="appearance-dialog__body">
+      <p class="appearance-dialog__intro">Choose a color palette. Your choice is saved in this browser and applies to PennyPath pages that share this header.</p>
+      <div class="palette-options" role="listbox" aria-label="Color palettes">
+        <button type="button" class="palette-option" role="option" data-palette="pastel" id="palette-opt-pastel">
+          <span class="palette-option__preview" aria-hidden="true"></span>
+          <span class="palette-option__text">
+            <span class="palette-option__name">Pastel</span>
+            <span class="palette-option__blurb">Soft blues, warm cream</span>
+          </span>
+        </button>
+        <button type="button" class="palette-option" role="option" data-palette="classic" id="palette-opt-classic">
+          <span class="palette-option__preview" aria-hidden="true"></span>
+          <span class="palette-option__text">
+            <span class="palette-option__name">Classic</span>
+            <span class="palette-option__blurb">Navy, gold, sage</span>
+          </span>
+        </button>
+        <button type="button" class="palette-option" role="option" data-palette="ocean" id="palette-opt-ocean">
+          <span class="palette-option__preview" aria-hidden="true"></span>
+          <span class="palette-option__text">
+            <span class="palette-option__name">Ocean</span>
+            <span class="palette-option__blurb">Teal, sea glass, sand</span>
+          </span>
+        </button>
+        <button type="button" class="palette-option" role="option" data-palette="forest" id="palette-opt-forest">
+          <span class="palette-option__preview" aria-hidden="true"></span>
+          <span class="palette-option__text">
+            <span class="palette-option__name">Forest</span>
+            <span class="palette-option__blurb">Moss, bark, honey</span>
+          </span>
+        </button>
+        <button type="button" class="palette-option" role="option" data-palette="sunset" id="palette-opt-sunset">
+          <span class="palette-option__preview" aria-hidden="true"></span>
+          <span class="palette-option__text">
+            <span class="palette-option__name">Sunset</span>
+            <span class="palette-option__blurb">Rose, peach, amber</span>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</dialog>
 <script src="assets/site-settings.js"></script>
 </body>
 </html>
