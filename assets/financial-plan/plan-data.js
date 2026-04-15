@@ -55,6 +55,11 @@ export const PLAN = {
     },
   ],
   goalHysa: 50000,
+  /**
+   * Goal 1 (HYSA) target month in YYYY-MM for editing/persistence.
+   * `hysaGoalBy` remains the human label used throughout the page.
+   */
+  hysaGoalByYm: '2027-06',
   monthlyFixedExpenses: 3000,
   efundMonths: 12,
   phase1: { ccPayment: 3500, hysaDeposit: 500 },

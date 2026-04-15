@@ -496,6 +496,246 @@ body.financial-plan-demo-mode #checkin-form {
 .content { max-width: 1040px; margin: 0 auto; padding: 56px 32px 80px; }
 .section { margin-bottom: 56px; }
 
+/* Internal tabs (Financial Plan / Dashboard) */
+.page-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(60, 68, 82, 0.10);
+  background: rgba(255, 255, 255, 0.35);
+  box-shadow: 0 1px 10px rgba(60, 68, 82, 0.06);
+  margin: 0 0 18px;
+}
+.page-tab-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(60, 68, 82, 0.75);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.page-tab-btn:hover {
+  background: rgba(196, 176, 128, 0.14);
+  color: rgba(60, 68, 82, 0.92);
+}
+.page-tab-btn[aria-selected="true"] {
+  background: rgba(196, 176, 128, 0.22);
+  border-color: rgba(196, 176, 128, 0.38);
+  color: rgba(60, 68, 82, 0.92);
+}
+::root[data-theme="dark"] .page-tabs {
+  border-color: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+}
+::root[data-theme="dark"] .page-tab-btn {
+  color: rgba(233, 233, 246, 0.72);
+}
+::root[data-theme="dark"] .page-tab-btn:hover {
+  background: rgba(225, 195, 106, 0.14);
+  color: rgba(233, 233, 246, 0.92);
+}
+::root[data-theme="dark"] .page-tab-btn[aria-selected="true"] {
+  background: rgba(225, 195, 106, 0.18);
+  border-color: rgba(225, 195, 106, 0.28);
+  color: rgba(233, 233, 246, 0.92);
+}
+
+.page-tab-panel[hidden] {
+  display: none;
+}
+
+/* Plan: inline hint where editors used to be */
+.plan-inline-hint {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px dashed rgba(60, 68, 82, 0.18);
+  background: rgba(60, 68, 82, 0.03);
+  font-size: 13px;
+  color: rgba(60, 68, 82, 0.72);
+  line-height: 1.45;
+}
+::root[data-theme="dark"] .plan-inline-hint {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(233, 233, 246, 0.72);
+}
+
+/* Plan goals editor (targets like goal amount + by month) */
+.plan-goals-editor {
+  background: var(--paper);
+  border: 1px solid rgba(60, 68, 82, 0.10);
+  border-radius: 16px;
+  padding: 18px 18px 16px;
+  margin: 0 0 14px;
+  box-shadow: 0 2px 12px rgba(60, 68, 82, 0.04);
+}
+.plan-goals-editor__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 12px;
+}
+.plan-goals-editor__title {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(60, 68, 82, 0.55);
+}
+.plan-goals-editor__hint {
+  font-size: 13px;
+  color: rgba(60, 68, 82, 0.62);
+}
+.plan-goals-editor__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 18px;
+}
+::root[data-theme="dark"] .plan-goals-editor {
+  border-color: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+}
+::root[data-theme="dark"] .plan-goals-editor__title {
+  color: rgba(233, 233, 246, 0.55);
+}
+::root[data-theme="dark"] .plan-goals-editor__hint {
+  color: rgba(233, 233, 246, 0.65);
+}
+
+/* Dashboard layout */
+.dashboard-hero {
+  margin: 6px 0 14px;
+}
+.dashboard-hero__title {
+  font-family: 'Playfair Display', serif;
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+.dashboard-hero__sub {
+  font-size: 14px;
+  color: rgba(60, 68, 82, 0.70);
+  line-height: 1.5;
+}
+::root[data-theme="dark"] .dashboard-hero__sub {
+  color: rgba(233, 233, 246, 0.65);
+}
+
+.dashboard-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(60, 68, 82, 0.10);
+  background: rgba(255, 255, 255, 0.28);
+  margin: 0 0 18px;
+}
+.dashboard-tab-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  background: transparent;
+  color: rgba(60, 68, 82, 0.75);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.dashboard-tab-btn:hover {
+  background: rgba(58, 95, 138, 0.12);
+  color: rgba(60, 68, 82, 0.92);
+}
+.dashboard-tab-btn[aria-selected="true"] {
+  background: rgba(58, 95, 138, 0.16);
+  border-color: rgba(58, 95, 138, 0.25);
+  color: rgba(60, 68, 82, 0.92);
+}
+::root[data-theme="dark"] .dashboard-tabs {
+  border-color: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+}
+::root[data-theme="dark"] .dashboard-tab-btn {
+  color: rgba(233, 233, 246, 0.72);
+}
+::root[data-theme="dark"] .dashboard-tab-btn:hover {
+  background: rgba(121, 166, 216, 0.12);
+  color: rgba(233, 233, 246, 0.92);
+}
+::root[data-theme="dark"] .dashboard-tab-btn[aria-selected="true"] {
+  background: rgba(121, 166, 216, 0.16);
+  border-color: rgba(121, 166, 216, 0.22);
+  color: rgba(233, 233, 246, 0.92);
+}
+
+.dashboard-tab-panel[hidden] {
+  display: none;
+}
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr;
+  gap: 14px;
+  align-items: start;
+}
+.dashboard-card {
+  background: var(--paper);
+  border: 1px solid rgba(60, 68, 82, 0.10);
+  border-radius: 16px;
+  padding: 18px 18px 16px;
+  box-shadow: 0 2px 12px rgba(60, 68, 82, 0.04);
+}
+.dashboard-card__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px 12px;
+  margin-bottom: 8px;
+}
+.dashboard-card__title {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(60, 68, 82, 0.55);
+}
+.dashboard-card__meta {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(60, 68, 82, 0.72);
+  font-variant-numeric: tabular-nums;
+}
+::root[data-theme="dark"] .dashboard-card {
+  border-color: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+}
+::root[data-theme="dark"] .dashboard-card__title {
+  color: rgba(233, 233, 246, 0.55);
+}
+::root[data-theme="dark"] .dashboard-card__meta {
+  color: rgba(233, 233, 246, 0.72);
+}
+
+@media(max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* BALANCE EDITOR */
 .balance-editor {
   background: var(--paper);
@@ -1717,6 +1957,7 @@ body.financial-plan-demo-mode #checkin-form {
   .goals-grid { grid-template-columns: 1fr; }
   .goal-card.primary, .goal-card.secondary-b { grid-column: 1; }
   .efund-grid { grid-template-columns: 1fr 1fr; }
+  .plan-goals-editor__grid { grid-template-columns: 1fr; }
   .balance-editor-grid { grid-template-columns: 1fr; }
   .debt-row { grid-template-columns: 1fr; }
   .savings-row { grid-template-columns: 1fr; }

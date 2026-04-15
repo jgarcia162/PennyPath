@@ -129,6 +129,21 @@ export function isFinancialPlanDemoMode() {
  */
 export function applyPlanPayloadFromObject(plan, o) {
   if (!plan || !o || typeof o !== 'object') return;
+  if (typeof o.goalHysa === 'number' && Number.isFinite(o.goalHysa)) {
+    plan.goalHysa = o.goalHysa;
+  }
+  if (typeof o.hysaGoalByYm === 'string') {
+    plan.hysaGoalByYm = o.hysaGoalByYm;
+  }
+  if (typeof o.hysaGoalBy === 'string') {
+    plan.hysaGoalBy = o.hysaGoalBy;
+  }
+  if (o.labels && typeof o.labels === 'object') {
+    if (!plan.labels) plan.labels = {};
+    ['hysaGoalByShort', 'goalHysaWhen'].forEach(function (k) {
+      if (typeof o.labels[k] === 'string') plan.labels[k] = o.labels[k];
+    });
+  }
   ['hysaBalance', 'joseSavings', 'sherlynaSavings'].forEach(function (k) {
     if (typeof o[k] === 'number' && Number.isFinite(o[k])) plan[k] = o[k];
   });
@@ -210,6 +225,13 @@ export function savePlanOverrides() {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify({
+        goalHysa: PLAN.goalHysa,
+        hysaGoalByYm: PLAN.hysaGoalByYm,
+        hysaGoalBy: PLAN.hysaGoalBy,
+        labels: {
+          hysaGoalByShort: PLAN.labels && PLAN.labels.hysaGoalByShort ? PLAN.labels.hysaGoalByShort : '',
+          goalHysaWhen: PLAN.labels && PLAN.labels.goalHysaWhen ? PLAN.labels.goalHysaWhen : '',
+        },
         hysaBalance: PLAN.hysaBalance,
         joseSavings: PLAN.joseSavings,
         sherlynaSavings: PLAN.sherlynaSavings,
