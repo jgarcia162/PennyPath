@@ -20,6 +20,8 @@ import {
   percentChange,
 } from './history-visuals.js';
 import { createMoneyFormatters, escapeHtml } from './utils.js';
+import { STORAGE_KEY } from './plan-data.js';
+import { buildMonthCsv, buildMonthCheckpointPayload } from './monthly-export.js';
 
 const { moneyExact } = createMoneyFormatters();
 
@@ -217,6 +219,157 @@ function syncDemoBanner(demo) {
   if (ban) ban.hidden = !demo;
 }
 
+function downloadTextFile(filename, content, mime) {
+  try {
+    const blob = new Blob([content], { type: mime || 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () {
+      try {
+        URL.revokeObjectURL(url);
+      } catch (e2) {}
+    }, 4000);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function wireExportImport() {
+  const exportMonthInput = document.getElementById('hist-export-month');
+  const exportCsvBtn = document.getElementById('hist-export-csv');
+  const exportJsonBtn = document.getElementById('hist-export-json');
+  const importInput = document.getElementById('hist-import-json');
+  const hint = document.getElementById('history-export-hint');
+  const demoToggle = document.getElementById('demo-mode-toggle');
+
+  if (!exportMonthInput || !exportCsvBtn || !exportJsonBtn || !importInput) return;
+
+  // Default export month to Month B when available; otherwise “this month”.
+  const monthB = document.getElementById('hist-month-b');
+  if (monthB && monthB.value && !exportMonthInput.value) exportMonthInput.value = monthB.value;
+  if (!exportMonthInput.value) {
+    const d = new Date();
+    exportMonthInput.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  }
+
+  function setHint(msg) {
+    if (hint) hint.textContent = msg || '';
+  }
+
+  function ensureNotDemoMode() {
+    if (demoToggle && demoToggle.checked) {
+      setHint('Turn off sample data in Settings (⚙) to export/import your real saved activity.');
+      return false;
+    }
+    return true;
+  }
+
+  exportCsvBtn.addEventListener('click', function () {
+    if (!ensureNotDemoMode()) return;
+    applyPlanOverrides();
+    syncLegacySavingsFromAccounts(PLAN);
+    const yyyyMm = exportMonthInput.value;
+    const checkins = loadCheckins();
+    const csv = buildMonthCsv(PLAN, checkins, yyyyMm);
+    if (!csv) {
+      setHint('Could not build CSV (invalid month).');
+      return;
+    }
+    const ok = downloadTextFile('pennypath-activity-' + String(yyyyMm) + '.csv', csv, 'text/csv;charset=utf-8');
+    setHint(ok ? 'Exported CSV for ' + String(yyyyMm) + '.' : 'CSV export failed in this browser.');
+  });
+
+  exportJsonBtn.addEventListener('click', function () {
+    if (!ensureNotDemoMode()) return;
+    applyPlanOverrides();
+    syncLegacySavingsFromAccounts(PLAN);
+    const yyyyMm = exportMonthInput.value;
+    const checkins = loadCheckins();
+    const payload = buildMonthCheckpointPayload(PLAN, checkins, yyyyMm);
+    if (!payload) {
+      setHint('Could not build backup (invalid month).');
+      return;
+    }
+    const content = JSON.stringify(payload, null, 2) + '\n';
+    const ok = downloadTextFile(
+      'pennypath-checkpoint-' + String(yyyyMm) + '.json',
+      content,
+      'application/json;charset=utf-8'
+    );
+    setHint(ok ? 'Exported backup checkpoint for ' + String(yyyyMm) + '.' : 'Backup export failed in this browser.');
+  });
+
+  importInput.addEventListener('change', function () {
+    if (!ensureNotDemoMode()) return;
+    const file = importInput.files && importInput.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function () {
+      let obj;
+      try {
+        obj = JSON.parse(String(reader.result || ''));
+      } catch (e) {
+        setHint('Import failed: file is not valid JSON.');
+        return;
+      }
+      if (!obj || obj.schema !== 'pennypath.month-checkpoint' || obj.version !== 1 || !obj.payload) {
+        setHint('Import failed: not a PennyPath month checkpoint (v1).');
+        return;
+      }
+      const planPayload = obj.payload.plan;
+      const checkins = obj.payload.checkins;
+      if (!planPayload || typeof planPayload !== 'object' || !Array.isArray(planPayload.debts)) {
+        setHint('Import failed: missing plan payload.');
+        return;
+      }
+
+      const ok = window.confirm(
+        'Import this checkpoint?\n\n' +
+          'This will REPLACE your saved Financial Plan balances/debts/savings histories and check-ins in this browser with the contents of the file.\n\n' +
+          'Tip: export a backup of your current month first if you want a safety copy.'
+      );
+      if (!ok) return;
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(planPayload));
+      } catch (e2) {
+        setHint('Import failed: could not write plan data to storage.');
+        return;
+      }
+      try {
+        const ckKey =
+          window.CheckInService && window.CheckInService.STORAGE_KEY
+            ? window.CheckInService.STORAGE_KEY
+            : 'financial-plan-v3-aggressive.checkins';
+        localStorage.setItem(ckKey, JSON.stringify(Array.isArray(checkins) ? checkins : []));
+      } catch (e3) {
+        setHint('Import failed: could not write check-ins to storage.');
+        return;
+      }
+
+      setHint('Imported checkpoint. Reloading…');
+      try {
+        location.reload();
+      } catch (e4) {}
+    };
+    reader.onerror = function () {
+      setHint('Import failed: could not read file.');
+    };
+    try {
+      reader.readAsText(file);
+    } catch (e5) {
+      setHint('Import failed: could not read file.');
+    }
+  });
+}
+
 function renderInsights(sa, sb, chartSeries, labelA, labelB) {
   const host = document.getElementById('history-insights-root');
   if (!host) return;
@@ -410,6 +563,7 @@ function wire() {
     });
   }
 
+  wireExportImport();
   render();
 }
 

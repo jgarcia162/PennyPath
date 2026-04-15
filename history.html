@@ -80,6 +80,19 @@
       <input type="month" id="hist-month-b" autocomplete="off">
     </div>
   </div>
+  <div class="history-controls no-print" style="margin-top:10px;">
+    <div class="history-control">
+      <label for="hist-export-month">Export month</label>
+      <input type="month" id="hist-export-month" autocomplete="off">
+    </div>
+    <button type="button" class="history-swap-btn" id="hist-export-csv" title="Export month as CSV">Export CSV</button>
+    <button type="button" class="history-swap-btn" id="hist-export-json" title="Export month as backup file">Export backup</button>
+    <label class="history-swap-btn" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+      Import backup
+      <input type="file" id="hist-import-json" accept=".json,application/json" style="display:none;">
+    </label>
+  </div>
+  <p class="history-hint" id="history-export-hint" aria-live="polite"></p>
   <p class="history-hint" id="history-months-hint" aria-live="polite"></p>
 
   <div id="history-insights-root"></div>
