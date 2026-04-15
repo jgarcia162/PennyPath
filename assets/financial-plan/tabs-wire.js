@@ -81,7 +81,7 @@ export function wirePlanTabs() {
     });
   }
 
-  // Buttons on Goal 2/3 now mean “open Dashboard”.
+  // Buttons with data-open-dashboard (goal cards, plan hints) open Dashboard + subtab.
   const openDashBtns = document.querySelectorAll('[data-open-dashboard]');
   if (openDashBtns && openDashBtns.length) {
     openDashBtns.forEach(function (btn) {

@@ -584,6 +584,51 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(233, 233, 246, 0.72);
 }
 
+.plan-inline-hint--cta {
+  padding: 8px 10px;
+}
+.plan-dash-nav-btn {
+  appearance: none;
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: left;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(196, 176, 128, 0.4);
+  background: rgba(196, 176, 128, 0.14);
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.plan-dash-nav-btn:hover {
+  background: rgba(196, 176, 128, 0.22);
+  border-color: rgba(196, 176, 128, 0.5);
+}
+.plan-dash-nav-btn:focus-visible {
+  outline: 2px solid rgba(196, 176, 128, 0.55);
+  outline-offset: 2px;
+}
+.plan-dash-nav-btn--inline {
+  width: auto;
+  max-width: 720px;
+  display: inline-block;
+}
+:root[data-theme="dark"] .plan-dash-nav-btn {
+  border-color: rgba(225, 195, 106, 0.28);
+  background: rgba(225, 195, 106, 0.1);
+  color: rgba(233, 233, 246, 0.92);
+}
+:root[data-theme="dark"] .plan-dash-nav-btn:hover {
+  background: rgba(225, 195, 106, 0.18);
+  border-color: rgba(225, 195, 106, 0.38);
+}
+
 /* Plan goals editor (targets like goal amount + by month) */
 .plan-goals-editor {
   background: var(--paper);

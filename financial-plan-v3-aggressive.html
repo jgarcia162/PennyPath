@@ -114,7 +114,13 @@
     <div class="section-title-row">
       <div class="section-title">Where We Stand Today</div>
       <div class="top-actions no-print">
-        <span class="top-actions-hint">This page is the outline of the plan. Use <strong>Dashboard</strong> to edit debts and savings.</span>
+        <button
+          type="button"
+          class="plan-dash-nav-btn plan-dash-nav-btn--inline"
+          data-open-dashboard="debts"
+        >
+          Click here to open the Dashboard to edit debts and savings.
+        </button>
       </div>
     </div>
 
@@ -232,8 +238,10 @@
           <p class="monthly-debt-goal-hint" id="monthly-debt-goal-hint"></p>
         </div>
 
-        <div class="plan-inline-hint no-print">
-          Want to review individual debts and log payments? Open <strong>Dashboard → Debts</strong>.
+        <div class="plan-inline-hint plan-inline-hint--cta no-print">
+          <button type="button" class="plan-dash-nav-btn" data-open-dashboard="debts">
+            Click here to review individual debts and log payments.
+          </button>
         </div>
 
       </div>
@@ -270,8 +278,10 @@
           </div>
         </div>
 
-        <div class="plan-inline-hint no-print">
-          Want to edit accounts or log deposits? Open <strong>Dashboard → Savings</strong>.
+        <div class="plan-inline-hint plan-inline-hint--cta no-print">
+          <button type="button" class="plan-dash-nav-btn" data-open-dashboard="savings">
+            Click here to edit accounts or log deposits.
+          </button>
         </div>
 
         <div class="progress-wrap">
