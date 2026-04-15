@@ -112,6 +112,7 @@
 
     var scrollDepth = 0;
     var scrollY = 0;
+    var backdropEl = null;
 
     function lockScroll() {
       if (scrollDepth === 0) {
@@ -153,25 +154,123 @@
       }
     }
 
-    openBtn.addEventListener('click', function () {
+    function openAppearanceDialog() {
+      // Always sync the UI first so the dialog opens in a correct state.
       syncPaletteOptions();
-      lockScroll();
-      if (typeof dlg.showModal === 'function') dlg.showModal();
+
+      // Prefer native <dialog>. Only lock scroll after showModal() succeeds.
+      if (typeof dlg.showModal === 'function') {
+        try {
+          dlg.showModal();
+          lockScroll();
+          return true;
+        } catch (e) {
+          // showModal can throw (e.g., not in DOM, already open). Don't lock scroll on failure.
+          try {
+            if (typeof dlg.close === 'function') dlg.close();
+          } catch (e2) {}
+          return false;
+        }
+      }
+
+      // Fallback for browsers without native <dialog> support:
+      // make the dialog visibly open and provide a backdrop that closes it.
+      try {
+        dlg.setAttribute('open', '');
+        dlg.setAttribute('aria-modal', 'true');
+        if (!dlg.getAttribute('role')) dlg.setAttribute('role', 'dialog');
+
+        // Ensure it's visible even if CSS expects showModal/backdrop behavior.
+        dlg.style.display = 'block';
+        dlg.style.position = 'fixed';
+        dlg.style.zIndex = '10000';
+        dlg.style.left = '50%';
+        dlg.style.top = '50%';
+        dlg.style.transform = 'translate(-50%, -50%)';
+        if (!dlg.style.maxWidth) dlg.style.maxWidth = 'min(92vw, 42rem)';
+        if (!dlg.style.maxHeight) dlg.style.maxHeight = 'min(85vh, 42rem)';
+        dlg.style.overflow = 'auto';
+
+        if (!backdropEl) {
+          backdropEl = document.createElement('div');
+          backdropEl.setAttribute('data-appearance-dialog-backdrop', '');
+          backdropEl.style.position = 'fixed';
+          backdropEl.style.left = '0';
+          backdropEl.style.top = '0';
+          backdropEl.style.right = '0';
+          backdropEl.style.bottom = '0';
+          backdropEl.style.background = 'rgba(0,0,0,0.4)';
+          backdropEl.style.zIndex = '9999';
+          backdropEl.addEventListener('click', function () {
+            closeAppearanceDialog();
+          });
+        }
+        if (!backdropEl.parentNode) document.body.appendChild(backdropEl);
+
+        // Move focus into the dialog for accessibility.
+        var focusTarget =
+          dlg.querySelector('[autofocus]') ||
+          dlg.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        if (focusTarget && focusTarget.focus) focusTarget.focus();
+
+        lockScroll();
+        return true;
+      } catch (e3) {
+        // Surface an explicit failure rather than silently doing nothing.
+        try {
+          console.error('Appearance dialog failed to open (no native <dialog> support).', e3);
+        } catch (e4) {}
+        return false;
+      }
+    }
+
+    function closeAppearanceDialog() {
+      if (typeof dlg.close === 'function') {
+        try {
+          dlg.close();
+          return;
+        } catch (e) {}
+      }
+
+      // Fallback close: mirror unlockScroll() behavior since <dialog> won't fire "close".
+      try {
+        dlg.removeAttribute('open');
+        dlg.style.display = '';
+        dlg.style.position = '';
+        dlg.style.zIndex = '';
+        dlg.style.left = '';
+        dlg.style.top = '';
+        dlg.style.transform = '';
+        dlg.style.maxWidth = '';
+        dlg.style.maxHeight = '';
+        dlg.style.overflow = '';
+      } catch (e2) {}
+      try {
+        if (backdropEl && backdropEl.parentNode) backdropEl.parentNode.removeChild(backdropEl);
+      } catch (e3) {}
+      unlockScroll();
+    }
+
+    openBtn.addEventListener('click', function () {
+      openAppearanceDialog();
     });
 
     dlg.addEventListener('close', function () {
       unlockScroll();
+      try {
+        if (backdropEl && backdropEl.parentNode) backdropEl.parentNode.removeChild(backdropEl);
+      } catch (e) {}
     });
 
     dlg.addEventListener('click', function (e) {
       if (e.target === dlg) {
-        dlg.close();
+        closeAppearanceDialog();
         return;
       }
       var t = e.target;
       var el = t && t.nodeType === 3 ? t.parentElement : t;
       if (el && typeof el.closest === 'function' && el.closest('[data-close-appearance-dialog]')) {
-        dlg.close();
+        closeAppearanceDialog();
       }
     });
 
