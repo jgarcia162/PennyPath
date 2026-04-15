@@ -230,7 +230,11 @@ export function renderDebtsEditor(plan) {
     const payField = document.createElement('div');
     payField.className = 'balance-field';
     payField.innerHTML =
-      '<label>Payment</label><input type="text" data-field="payment" inputmode="decimal" autocomplete="off" placeholder="0.00">';
+      '<label>Payment</label>' +
+      '<div class="field-inline-action">' +
+      '<input type="text" data-field="payment" inputmode="decimal" autocomplete="off" placeholder="0.00">' +
+      '<button type="button" class="btn-icon btn-quick-payment" data-action="quick-payment" title="Log payment now" aria-label="Log payment now">+</button>' +
+      '</div>';
 
     const actions = document.createElement('div');
     actions.style.display = 'flex';
@@ -315,7 +319,11 @@ export function renderSavingsEditor(d) {
     const depField = document.createElement('div');
     depField.className = 'balance-field';
     depField.innerHTML =
-      '<label>Deposit to log</label><input type="text" data-field="deposit" inputmode="decimal" autocomplete="off" placeholder="0.00">';
+      '<label>Deposit to log</label>' +
+      '<div class="field-inline-action">' +
+      '<input type="text" data-field="deposit" inputmode="decimal" autocomplete="off" placeholder="0.00">' +
+      '<button type="button" class="btn-icon btn-quick-deposit" data-action="quick-deposit" title="Log deposit now" aria-label="Log deposit now">+</button>' +
+      '</div>';
 
     const actions = document.createElement('div');
     actions.style.display = 'flex';

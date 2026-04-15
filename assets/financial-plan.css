@@ -685,12 +685,6 @@ body.financial-plan-demo-mode #checkin-form {
 .dashboard-tab-panel[hidden] {
   display: none;
 }
-.dashboard-grid {
-  display: grid;
-  grid-template-columns: 1.25fr 1fr;
-  gap: 14px;
-  align-items: start;
-}
 .dashboard-card {
   background: var(--paper);
   border: 1px solid rgba(60, 68, 82, 0.10);
@@ -731,11 +725,195 @@ body.financial-plan-demo-mode #checkin-form {
 }
 
 @media(max-width: 900px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
+  /* `dashboard-split` collapses to one column on mobile */
+}
+
+/* Dashboard main + overlay tool window (drawer) */
+.dashboard-split {
+  display: block;
+  position: relative;
+  min-height: 0;
+}
+.dashboard-main {
+  min-width: 0;
+}
+
+.toolwin {
+  /* Overlay drawer: does not consume layout width */
+  position: fixed;
+  right: 18px;
+  top: 118px;
+  z-index: 300;
+  width: min(560px, calc(100vw - 36px));
+  max-width: min(560px, 52vw);
+  min-width: 360px;
+  background: var(--paper);
+  border: 1px solid rgba(60, 68, 82, 0.10);
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(60, 68, 82, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: fit-content;
+  max-height: calc(100vh - 144px);
+  resize: horizontal;
+}
+.toolwin__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(60, 68, 82, 0.08);
+  background: rgba(60, 68, 82, 0.02);
+}
+.toolwin__title {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(60, 68, 82, 0.62);
+  min-width: 0;
+}
+.toolwin__meta {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: rgba(60, 68, 82, 0.70);
+  margin-left: 8px;
+  font-variant-numeric: tabular-nums;
+}
+.toolwin__btn {
+  appearance: none;
+  border: 1px solid rgba(60, 68, 82, 0.12);
+  background: rgba(255, 255, 255, 0.6);
+  color: rgba(60, 68, 82, 0.8);
+  font-weight: 900;
+  border-radius: 10px;
+  width: 40px;
+  height: 36px;
+  cursor: pointer;
+}
+.toolwin__btn:hover {
+  background: rgba(196, 176, 128, 0.16);
+  border-color: rgba(196, 176, 128, 0.28);
+}
+.toolwin__body {
+  padding: 14px 14px 16px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.toolwin__body .balance-editor {
+  box-shadow: none;
+  border: none;
+  padding: 0;
+  background: transparent;
+}
+
+.toolwin.is-collapsed {
+  width: 52px;
+  min-width: 52px;
+  max-width: 52px;
+  resize: none;
+}
+.toolwin.is-collapsed .toolwin__body,
+.toolwin.is-collapsed .toolwin__meta {
+  display: none;
+}
+.toolwin.is-collapsed .toolwin__title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+}
+.toolwin.is-collapsed .toolwin__btn {
+  transform: rotate(180deg);
+}
+
+::root[data-theme="dark"] .toolwin {
+  border-color: rgba(255, 255, 255, 0.10);
+  background: rgba(255, 255, 255, 0.04);
+}
+::root[data-theme="dark"] .toolwin__head {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+}
+::root[data-theme="dark"] .toolwin__title {
+  color: rgba(233, 233, 246, 0.62);
+}
+::root[data-theme="dark"] .toolwin__meta {
+  color: rgba(233, 233, 246, 0.72);
+}
+::root[data-theme="dark"] .toolwin__btn {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(233, 233, 246, 0.85);
+}
+::root[data-theme="dark"] .toolwin__btn:hover {
+  background: rgba(225, 195, 106, 0.14);
+  border-color: rgba(225, 195, 106, 0.22);
+}
+
+@media(max-width: 900px) {
+  .toolwin {
+    position: static;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    resize: none;
+    max-height: none;
+  }
+  .toolwin.is-collapsed {
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+  .toolwin.is-collapsed .toolwin__title {
+    writing-mode: horizontal-tb;
+    transform: none;
+  }
+  .toolwin.is-collapsed .toolwin__btn {
+    transform: none;
   }
 }
 
+/* Icon button next to inputs (quick payment log) */
+.field-inline-action {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+.btn-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(196, 176, 128, 0.35);
+  background: rgba(196, 176, 128, 0.18);
+  color: rgba(60, 68, 82, 0.9);
+  font-size: 18px;
+  font-weight: 900;
+  line-height: 1;
+  cursor: pointer;
+}
+.btn-icon:hover {
+  background: rgba(196, 176, 128, 0.26);
+}
+.btn-icon:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+::root[data-theme="dark"] .btn-icon {
+  border-color: rgba(225, 195, 106, 0.35);
+  background: rgba(225, 195, 106, 0.14);
+  color: rgba(233, 233, 246, 0.92);
+}
+::root[data-theme="dark"] .btn-icon:hover {
+  background: rgba(225, 195, 106, 0.22);
+}
 /* BALANCE EDITOR */
 .balance-editor {
   background: var(--paper);

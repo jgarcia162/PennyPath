@@ -23,6 +23,61 @@ import {
 let lastSavedDebts = null;
 let lastSavedSavings = null;
 
+function wireHoldToConfirm(rootEl, buttonSelector, opts) {
+  if (!rootEl) return;
+  const holdMs = (opts && Number.isFinite(opts.holdMs) ? opts.holdMs : 2000) || 2000;
+  const confirmMessage = (opts && opts.confirmMessage) || 'Delete this item?';
+  const onConfirm = (opts && opts.onConfirm) || function () {};
+
+  function getBtnFromEventTarget(t) {
+    if (!t || !t.closest) return null;
+    return t.closest(buttonSelector);
+  }
+
+  function clearHold(btn) {
+    if (!btn) return;
+    const timer = btn._holdDeleteTimer;
+    if (timer) clearTimeout(timer);
+    btn._holdDeleteTimer = null;
+    btn.classList.remove('is-hold-armed');
+  }
+
+  rootEl.addEventListener('pointerdown', function (e) {
+    const btn = getBtnFromEventTarget(e.target);
+    if (!btn) return;
+    // Only arm the hold for primary button / touch.
+    if (e.button != null && e.button !== 0) return;
+    clearHold(btn);
+    btn.classList.add('is-hold-armed');
+    btn._holdDeleteTimer = setTimeout(function () {
+      clearHold(btn);
+      const msg = typeof confirmMessage === 'function' ? confirmMessage(btn) : confirmMessage;
+      const ok = window.confirm(String(msg || 'Delete this item?'));
+      if (!ok) return;
+      onConfirm(btn);
+    }, holdMs);
+  });
+
+  ['pointerup', 'pointercancel', 'pointerleave', 'blur'].forEach(function (evt) {
+    rootEl.addEventListener(
+      evt,
+      function (e) {
+        const btn = getBtnFromEventTarget(e.target);
+        if (btn) clearHold(btn);
+      },
+      true
+    );
+  });
+
+  // Prevent accidental “click to delete”.
+  rootEl.addEventListener('click', function (e) {
+    const btn = getBtnFromEventTarget(e.target);
+    if (!btn) return;
+    e.preventDefault();
+    e.stopPropagation();
+  });
+}
+
 function setSaveNeeds(saveBtnId, needsSave) {
   const saveBtn = document.getElementById(saveBtnId);
   if (!saveBtn) return;
@@ -115,27 +170,49 @@ export function wireGoal2DebtEditor(render) {
       const t = e.target;
       if (!t || !t.getAttribute) return;
       const action = t.getAttribute('data-action');
-      if (action === 'remove') {
-        const row = t.closest('.debt-row');
-        if (row) row.remove();
-        showGoal2Unsaved();
+      if (action === 'quick-payment') {
+        e.preventDefault();
+        // Apply payment(s) from inputs + persist immediately (no bottom Save required).
+        readDebtsEditorIntoPlan();
+        savePlanOverrides();
+        render();
+        setSaveNeeds('btn-save-goal2-debts', false);
+        showGoal2Saved();
+        lastSavedDebts = cloneDebtsSnapshot();
         return;
       }
+    });
+
+    // Hold-to-delete debt rows (2s) then confirm.
+    wireHoldToConfirm(debtsHost, 'button[data-action="remove"]', {
+      holdMs: 2000,
+      confirmMessage: function (btn) {
+        const row = btn.closest('.debt-row');
+        const nameEl = row ? row.querySelector('input[data-field="name"]') : null;
+        const name = nameEl ? String(nameEl.value || '').trim() : '';
+        return 'Delete this debt' + (name ? ' (“' + name + '”)' : '') + '?\n\nThis removes the row from the draft. Click Save to persist.';
+      },
+      onConfirm: function (btn) {
+        const row = btn.closest('.debt-row');
+        if (row) row.remove();
+        showGoal2Unsaved();
+      },
     });
   }
 
   const goal2Host = document.getElementById('goal2-debts');
   if (goal2Host) {
-    goal2Host.addEventListener('click', function (e) {
-      const btn = e.target && e.target.closest ? e.target.closest('.goal2-remove-payment') : null;
-      if (!btn) return;
-      e.preventDefault();
-      const debtId = btn.getAttribute('data-debt-id');
-      const paymentId = btn.getAttribute('data-payment-id');
-      if (debtId == null || paymentId == null) return;
-      removeDebtPayment(debtId, paymentId, showGoal2Unsaved, render);
-      savePlanOverrides();
-      lastSavedDebts = cloneDebtsSnapshot();
+    wireHoldToConfirm(goal2Host, '.goal2-remove-payment', {
+      holdMs: 2000,
+      confirmMessage: 'Remove this payment record?\n\nThis will add the amount back to the debt balance.',
+      onConfirm: function (btn) {
+        const debtId = btn.getAttribute('data-debt-id');
+        const paymentId = btn.getAttribute('data-payment-id');
+        if (debtId == null || paymentId == null) return;
+        removeDebtPayment(debtId, paymentId, showGoal2Unsaved, render);
+        savePlanOverrides();
+        lastSavedDebts = cloneDebtsSnapshot();
+      },
     });
   }
 
@@ -208,14 +285,38 @@ export function wireGoal3SavingsEditor(render) {
     }
     savingsHost.addEventListener('input', onSavingsFieldActivity);
     savingsHost.addEventListener('change', onSavingsFieldActivity);
+
     savingsHost.addEventListener('click', function (e) {
       const t = e.target;
       if (!t || !t.getAttribute) return;
-      if (t.getAttribute('data-action') === 'remove') {
-        const row = t.closest('.savings-row');
+      const action = t.getAttribute('data-action');
+      if (action === 'quick-deposit') {
+        e.preventDefault();
+        readSavingsEditorIntoPlan();
+        syncLegacySavingsFromAccounts(PLAN);
+        savePlanOverrides();
+        render();
+        setSaveNeeds('btn-save-goal3-savings', false);
+        showGoal3Saved();
+        lastSavedSavings = cloneSavingsSnapshot();
+        return;
+      }
+    });
+
+    // Hold-to-delete savings rows (2s) then confirm.
+    wireHoldToConfirm(savingsHost, 'button[data-action="remove"]', {
+      holdMs: 2000,
+      confirmMessage: function (btn) {
+        const row = btn.closest('.savings-row');
+        const nameEl = row ? row.querySelector('input[data-field="name"]') : null;
+        const name = nameEl ? String(nameEl.value || '').trim() : '';
+        return 'Delete this savings account' + (name ? ' (“' + name + '”)' : '') + '?\n\nThis removes the row from the draft. Click Save to persist.';
+      },
+      onConfirm: function (btn) {
+        const row = btn.closest('.savings-row');
         if (row) row.remove();
         showGoal3Unsaved();
-      }
+      },
     });
   }
 
@@ -228,17 +329,18 @@ export function wireGoal3SavingsEditor(render) {
 
   const goal3Host = document.getElementById('goal3-savings');
   if (goal3Host) {
-    goal3Host.addEventListener('click', function (e) {
-      const btn = e.target && e.target.closest ? e.target.closest('.goal3-remove-deposit') : null;
-      if (!btn) return;
-      e.preventDefault();
-      const sid = btn.getAttribute('data-savings-id');
-      const depId = btn.getAttribute('data-deposit-id');
-      if (sid == null || depId == null) return;
-      removeSavingsDeposit(sid, depId, showGoal3Unsaved, render);
-      syncLegacySavingsFromAccounts(PLAN);
-      savePlanOverrides();
-      lastSavedSavings = cloneSavingsSnapshot();
+    wireHoldToConfirm(goal3Host, '.goal3-remove-deposit', {
+      holdMs: 2000,
+      confirmMessage: 'Remove this deposit record?\n\nThis will subtract the amount from the account balance.',
+      onConfirm: function (btn) {
+        const sid = btn.getAttribute('data-savings-id');
+        const depId = btn.getAttribute('data-deposit-id');
+        if (sid == null || depId == null) return;
+        removeSavingsDeposit(sid, depId, showGoal3Unsaved, render);
+        syncLegacySavingsFromAccounts(PLAN);
+        savePlanOverrides();
+        lastSavedSavings = cloneSavingsSnapshot();
+      },
     });
   }
 
