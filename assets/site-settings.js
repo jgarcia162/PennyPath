@@ -140,11 +140,15 @@
     }
 
     function syncPaletteOptions() {
-      var current =
-        window.ColorPaletteService && window.ColorPaletteService.getPalette
-          ? window.ColorPaletteService.getPalette()
-          : 'pastel';
+      var svc = window.ColorPaletteService;
+      var current = svc && svc.getPalette ? svc.getPalette() : null;
+      if (!current && svc && svc.PALETTES && svc.PALETTES.length && svc.PALETTES[0] && svc.PALETTES[0].id) {
+        current = svc.PALETTES[0].id;
+      }
       var opts = dlg.querySelectorAll('.palette-option[data-palette]');
+      if (!current && opts && opts.length && opts[0] && opts[0].getAttribute) {
+        current = opts[0].getAttribute('data-palette');
+      }
       for (var i = 0; i < opts.length; i++) {
         var el = opts[i];
         var id = el.getAttribute('data-palette');
@@ -207,6 +211,19 @@
         }
         if (!backdropEl.parentNode) document.body.appendChild(backdropEl);
 
+        // Add Escape key support (fallback mode only) and prevent listener buildup.
+        var escHandler = dlg._appearanceEscHandler;
+        if (!escHandler) {
+          escHandler = function (e) {
+            if (e && e.key === 'Escape') closeAppearanceDialog();
+          };
+          dlg._appearanceEscHandler = escHandler;
+        }
+        try {
+          document.removeEventListener('keydown', escHandler);
+          document.addEventListener('keydown', escHandler);
+        } catch (eEsc) {}
+
         // Move focus into the dialog for accessibility.
         var focusTarget =
           dlg.querySelector('[autofocus]') ||
@@ -248,6 +265,19 @@
       try {
         if (backdropEl && backdropEl.parentNode) backdropEl.parentNode.removeChild(backdropEl);
       } catch (e3) {}
+
+      // Remove fallback Escape handler and restore focus to the trigger.
+      try {
+        var escHandler = dlg._appearanceEscHandler;
+        if (escHandler) {
+          document.removeEventListener('keydown', escHandler);
+          dlg._appearanceEscHandler = null;
+        }
+      } catch (e4) {}
+      try {
+        if (openBtn && openBtn.focus) setTimeout(function () { openBtn.focus(); }, 0);
+      } catch (e5) {}
+
       unlockScroll();
     }
 
