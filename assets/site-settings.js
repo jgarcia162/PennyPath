@@ -164,15 +164,18 @@
 
       // Prefer native <dialog>. Only lock scroll after showModal() succeeds.
       if (typeof dlg.showModal === 'function') {
+        // Avoid calling showModal() if the dialog is already open.
+        // Some browsers throw in that case; also don't close an already-open dialog on failure.
+        if (dlg.open === true || (dlg.hasAttribute && dlg.hasAttribute('open'))) {
+          lockScroll();
+          return true;
+        }
         try {
           dlg.showModal();
           lockScroll();
           return true;
         } catch (e) {
-          // showModal can throw (e.g., not in DOM, already open). Don't lock scroll on failure.
-          try {
-            if (typeof dlg.close === 'function') dlg.close();
-          } catch (e2) {}
+          // showModal can throw (e.g., not in DOM). Don't lock scroll on failure.
           return false;
         }
       }
