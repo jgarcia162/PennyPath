@@ -25,9 +25,9 @@ export const PLAN = {
    * apyPct: APY as a percent (e.g. 3.25 = 3.25%), same idea as aprPct on debts.
    */
   savingsAccounts: [
-    { id: 'hysa', name: 'Joint Savings', current: 24000, apyPct: 3.25, depositHistory: [] },
-    { id: 'jose', name: 'Jose — personal', current: 4103.96, apyPct: 0, depositHistory: [] },
-    { id: 'sher', name: 'Sherlyna — personal', current: 20000, apyPct: 0, depositHistory: [] },
+    { id: 'hysa', name: 'Joint Savings', current: 24000, apyPct: 3.25, countTowardsGoal: true, depositHistory: [] },
+    { id: 'jose', name: 'Jose — personal', current: 4103.96, apyPct: 0, countTowardsGoal: false, depositHistory: [] },
+    { id: 'sher', name: 'Sherlyna — personal', current: 20000, apyPct: 0, countTowardsGoal: false, depositHistory: [] },
   ],
   /**
    * Debts list.
@@ -103,9 +103,9 @@ export const PLAN_DEFAULTS = {
   debtsEditorSort: 'saved',
   debtsProgressSort: 'saved',
   savingsAccounts: [
-    { id: 'hysa', name: 'Joint Savings', current: 0, apyPct: 0, depositHistory: [] },
-    { id: 'jose', name: 'Jose — personal', current: 0, apyPct: 0, depositHistory: [] },
-    { id: 'sher', name: 'Sherlyna — personal', current: 0, apyPct: 0, depositHistory: [] },
+    { id: 'hysa', name: 'Joint Savings', current: 0, apyPct: 0, countTowardsGoal: true, depositHistory: [] },
+    { id: 'jose', name: 'Jose — personal', current: 0, apyPct: 0, countTowardsGoal: false, depositHistory: [] },
+    { id: 'sher', name: 'Sherlyna — personal', current: 0, apyPct: 0, countTowardsGoal: false, depositHistory: [] },
   ],
   debts: [],
 };

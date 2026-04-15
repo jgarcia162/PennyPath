@@ -23,6 +23,34 @@ import {
 
 const { money, moneyExact } = createMoneyFormatters();
 
+/** Mirror Goal 2 / Goal 3 cards on the Dashboard (`id` → `dash-${id}`). */
+function setTextDash(id, text) {
+  setText(id, text);
+  const dash = document.getElementById('dash-' + id);
+  if (dash) dash.textContent = text;
+}
+
+function setHtmlDash(id, html) {
+  setHtml(id, html);
+  const dash = document.getElementById('dash-' + id);
+  if (dash) dash.innerHTML = html;
+}
+
+function setProgWidthDash(id, pct) {
+  const w = (Number.isFinite(pct) ? Math.min(100, pct).toFixed(2) : String(pct)) + '%';
+  const a = document.getElementById(id);
+  const b = document.getElementById('dash-' + id);
+  if (a) a.style.width = w;
+  if (b) b.style.width = w;
+}
+
+function setSectionHiddenDash(id, hidden) {
+  const a = document.getElementById(id);
+  const b = document.getElementById('dash-' + id);
+  if (a) a.hidden = hidden;
+  if (b) b.hidden = hidden;
+}
+
 export function render() {
   const d = derived(PLAN);
   const hasData = hasBalanceDataForProjections(PLAN);
@@ -99,33 +127,29 @@ export function render() {
   setText('goal-hysa-amt', money(PLAN.goalHysa));
   setText('goal-hysa-when', PLAN.labels.goalHysaWhen);
   if (hasDebts) {
-    setText('goal-debt-amt', money(d.debtRounded));
-    setText('goal-debt-when', PLAN.labels.goalDebtWhen);
-    setText('debt-progress-left', moneyExact(d.totalDebt) + ' remaining');
-    setHtml('debt-progress-right', '<strong>' + d.debtGoalPct.toFixed(1) + '%</strong> paid toward $0');
-    const debtFill = document.getElementById('debt-progress-fill');
-    if (debtFill) debtFill.style.width = Math.min(100, d.debtGoalPct).toFixed(2) + '%';
+    setTextDash('goal-debt-amt', money(d.debtRounded));
+    setTextDash('goal-debt-when', PLAN.labels.goalDebtWhen);
+    setTextDash('debt-progress-left', moneyExact(d.totalDebt) + ' remaining');
+    setHtmlDash('debt-progress-right', '<strong>' + d.debtGoalPct.toFixed(1) + '%</strong> paid toward $0');
+    setProgWidthDash('debt-progress-fill', d.debtGoalPct);
   } else {
-    setText('goal-debt-amt', '—');
-    setText('goal-debt-when', 'Add a debt in Goal 2');
-    setText('debt-progress-left', 'No debts on file');
-    setHtml('debt-progress-right', '<strong>—</strong>');
-    const debtFill = document.getElementById('debt-progress-fill');
-    if (debtFill) debtFill.style.width = '0%';
+    setTextDash('goal-debt-amt', '—');
+    setTextDash('goal-debt-when', 'Add a debt in Goal 2');
+    setTextDash('debt-progress-left', 'No debts on file');
+    setHtmlDash('debt-progress-right', '<strong>—</strong>');
+    setProgWidthDash('debt-progress-fill', 0);
   }
 
-  const monthlySection = document.getElementById('monthly-debt-goal-section');
-  if (monthlySection) monthlySection.hidden = !hasDebts;
+  setSectionHiddenDash('monthly-debt-goal-section', !hasDebts);
   if (hasDebts) {
-    setText('monthly-debt-goal-meta', 'Goal ' + money(d.monthlyDebtGoal) + '/mo');
-    setText('monthly-debt-paid-label', moneyExact(d.monthlyDebtPaid) + ' / ' + moneyExact(d.monthlyDebtGoal));
-    setHtml(
+    setTextDash('monthly-debt-goal-meta', 'Goal ' + money(d.monthlyDebtGoal) + '/mo');
+    setTextDash('monthly-debt-paid-label', moneyExact(d.monthlyDebtPaid) + ' / ' + moneyExact(d.monthlyDebtGoal));
+    setHtmlDash(
       'monthly-debt-pct-label',
       '<strong>' + d.monthlyDebtPct.toFixed(1) + '%</strong> of monthly target'
     );
-    const monthlyFill = document.getElementById('monthly-debt-progress-fill');
-    if (monthlyFill) monthlyFill.style.width = Math.min(100, d.monthlyDebtPct).toFixed(2) + '%';
-    setText(
+    setProgWidthDash('monthly-debt-progress-fill', d.monthlyDebtPct);
+    setTextDash(
       'monthly-debt-goal-hint',
       'Sum of payments logged this calendar month across all debts (saved from the Goal 2 editor).'
     );
@@ -137,7 +161,7 @@ export function render() {
   );
   setText(
     'goal3-editor-dialog-totals',
-    moneyExact(d.totalAssets) + ' saved of ' + moneyExact(PLAN.goalHysa)
+    moneyExact(d.goalSavingsCurrent) + ' saved of ' + moneyExact(PLAN.goalHysa)
   );
 
   renderGoal2Debts(PLAN, moneyExact);
@@ -147,9 +171,9 @@ export function render() {
   renderGoal3SavingsAccounts(d, moneyExact);
   renderSavingsEditor(d);
 
-  setText('goal-efund-amt', money(d.efundTarget));
+  setTextDash('goal-efund-amt', money(d.efundTarget));
   if (hasData) {
-    setText(
+    setTextDash(
       'goal-efund-desc',
       'A full ' +
         PLAN.efundMonths +
@@ -162,7 +186,7 @@ export function render() {
         ' more.'
     );
   } else {
-    setText(
+    setTextDash(
       'goal-efund-desc',
       'A full ' +
         PLAN.efundMonths +
@@ -171,22 +195,21 @@ export function render() {
         '/month in fixed expenses. Add personal savings in Goal 3 to track how close you are to this target.'
     );
   }
-  setText('goal-efund-when', PLAN.labels.efundBuildAfter);
+  setTextDash('goal-efund-when', PLAN.labels.efundBuildAfter);
 
-  setText('efund-target-val', money(d.efundTarget));
-  setText('efund-target-note', String(PLAN.efundMonths) + ' × ' + money(PLAN.monthlyFixedExpenses) + ' per month');
-  setText('efund-have-val', moneyExact(d.personalSavings));
-  setText('efund-gap-val', moneyExact(d.efundGap));
+  setTextDash('efund-target-val', money(d.efundTarget));
+  setTextDash('efund-target-note', String(PLAN.efundMonths) + ' × ' + money(PLAN.monthlyFixedExpenses) + ' per month');
+  setTextDash('efund-have-val', moneyExact(d.personalSavings));
+  setTextDash('efund-gap-val', moneyExact(d.efundGap));
 
   if (hasData) {
-    setText('efund-progress-left', moneyExact(d.personalSavings) + ' saved');
-    setHtml('efund-progress-right', '<strong>' + d.efundPct.toFixed(1) + '%</strong> of the way there');
+    setTextDash('efund-progress-left', moneyExact(d.personalSavings) + ' saved');
+    setHtmlDash('efund-progress-right', '<strong>' + d.efundPct.toFixed(1) + '%</strong> of the way there');
   } else {
-    setText('efund-progress-left', '$0 saved');
-    setHtml('efund-progress-right', '<strong>—</strong> add balances in Goal 3');
+    setTextDash('efund-progress-left', '$0 saved');
+    setHtmlDash('efund-progress-right', '<strong>—</strong> add balances in Goal 3');
   }
-  const ef = document.getElementById('efund-progress-fill');
-  if (ef) ef.style.width = hasData ? Math.min(100, d.efundPct).toFixed(2) + '%' : '0%';
+  setProgWidthDash('efund-progress-fill', hasData ? d.efundPct : 0);
 
   setHtml(
     'callout-full-picture',

@@ -71,6 +71,7 @@ function normalizeSavingsAccount(a) {
     name: String(a.name || 'Account'),
     current: numOr(a.current, 0),
     apyPct: apyPct,
+    countTowardsGoal: typeof a.countTowardsGoal === 'boolean' ? a.countTowardsGoal : id === 'hysa',
     depositHistory: normalizeDepositHistory(a),
   };
 }
@@ -84,6 +85,7 @@ function migrateLegacySavingsFromJson(o) {
       name: 'Joint Savings',
       current: typeof o.hysaBalance === 'number' && Number.isFinite(o.hysaBalance) ? o.hysaBalance : 0,
       apyPct: hysaApyPct,
+      countTowardsGoal: true,
       depositHistory: [],
     },
     {
@@ -91,6 +93,7 @@ function migrateLegacySavingsFromJson(o) {
       name: 'Jose — personal',
       current: typeof o.joseSavings === 'number' && Number.isFinite(o.joseSavings) ? o.joseSavings : 0,
       apyPct: 0,
+      countTowardsGoal: false,
       depositHistory: [],
     },
     {
@@ -98,6 +101,7 @@ function migrateLegacySavingsFromJson(o) {
       name: 'Sherlyna — personal',
       current: typeof o.sherlynaSavings === 'number' && Number.isFinite(o.sherlynaSavings) ? o.sherlynaSavings : 0,
       apyPct: 0,
+      countTowardsGoal: false,
       depositHistory: [],
     },
   ];

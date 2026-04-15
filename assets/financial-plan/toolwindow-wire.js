@@ -25,10 +25,15 @@ function setCollapsedInStorage(name, collapsed) {
 function setCollapsed(el, collapsed) {
   if (!el) return;
   el.classList.toggle('is-collapsed', !!collapsed);
+  el.setAttribute('data-collapsed', collapsed ? '1' : '0');
   const btn = el.querySelector('[data-toolwin-toggle]');
   if (btn) {
-    btn.textContent = collapsed ? '⟪' : '⟫';
-    btn.setAttribute('aria-label', (collapsed ? 'Expand ' : 'Collapse ') + (el.getAttribute('data-toolwin') || 'editor'));
+    const name = el.getAttribute('data-toolwin') || 'editor';
+    btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    btn.setAttribute(
+      'aria-label',
+      collapsed ? 'Expand ' + name + ' editor' : 'Collapse ' + name + ' editor'
+    );
   }
 }
 
@@ -41,12 +46,27 @@ export function wireToolWindows() {
     setCollapsed(win, isCollapsedFromStorage(name));
 
     const btn = win.querySelector('[data-toolwin-toggle]');
-    if (!btn) return;
-    btn.addEventListener('click', function () {
+    const head = win.querySelector('.toolwin__head');
+    function toggle() {
       const next = !win.classList.contains('is-collapsed');
       setCollapsed(win, next);
       setCollapsedInStorage(name, next);
-    });
+    }
+    if (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        toggle();
+      });
+    }
+    if (head) {
+      head.addEventListener('click', function (e) {
+        // Ignore clicks inside interactive controls (inputs/buttons/selects).
+        const t = e.target;
+        if (t && t.closest && t.closest('button, a, input, select, textarea, label')) return;
+        toggle();
+      });
+      head.style.cursor = 'pointer';
+    }
   });
 }
 

@@ -179,6 +179,108 @@ export function appendDebtsEditorEmptyState(host) {
   host.appendChild(wrap);
 }
 
+/** Spreadsheet-style table: one header row, data rows are `<tr class="debt-row">`. */
+export function buildDebtsEditorThead() {
+  const thead = document.createElement('thead');
+  const tr = document.createElement('tr');
+  tr.className = 'editor-table__head-row';
+  const headers = [
+    { t: 'Name', title: '' },
+    { t: 'Balance', title: 'Current balance' },
+    { t: 'APR %', title: 'Annual percentage rate' },
+    { t: 'Def $', title: 'Deferred balance (0% promo)' },
+    { t: 'Until', title: 'Deferred rate expires' },
+    { t: 'Pay', title: 'Payment to log, then +' },
+    { t: '', title: 'Remove row' },
+  ];
+  headers.forEach(function (h) {
+    const th = document.createElement('th');
+    th.scope = 'col';
+    th.textContent = h.t;
+    if (h.title) th.title = h.title;
+    if (!h.t) {
+      th.className = 'editor-table__th--action';
+      th.setAttribute('aria-label', 'Remove');
+    }
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr);
+  return thead;
+}
+
+/**
+ * @param {object} debt
+ * @returns {HTMLTableRowElement}
+ */
+export function buildDebtRowTR(debt) {
+  const row = document.createElement('tr');
+  row.className = 'debt-row';
+  row.setAttribute('data-debt-id', String(debt.id));
+
+  function tdInput(className, inner) {
+    const td = document.createElement('td');
+    if (className) td.className = className;
+    td.innerHTML = inner;
+    return td;
+  }
+
+  row.appendChild(
+    tdInput(
+      'editor-table__cell--name',
+      '<input type="text" data-field="name" autocomplete="off" value="">'
+    )
+  );
+  row.appendChild(
+    tdInput('', '<input type="text" data-field="current" inputmode="decimal" autocomplete="off" value="">')
+  );
+  row.appendChild(
+    tdInput(
+      '',
+      '<input type="text" data-field="aprPct" inputmode="decimal" autocomplete="off" placeholder="0" value="">'
+    )
+  );
+  row.appendChild(
+    tdInput(
+      '',
+      '<input type="text" data-field="deferredAmount" inputmode="decimal" autocomplete="off" value="">'
+    )
+  );
+  row.appendChild(
+    tdInput('', '<input type="date" data-field="deferredExpiresOn" autocomplete="off" value="">')
+  );
+  row.appendChild(
+    tdInput(
+      'editor-table__cell--pay',
+      '<div class="field-inline-action">' +
+        '<input type="text" data-field="payment" inputmode="decimal" autocomplete="off" placeholder="0.00">' +
+        '<button type="button" class="btn-icon btn-quick-payment" data-action="quick-payment" title="Log payment now" aria-label="Log payment now">+</button>' +
+        '</div>'
+    )
+  );
+  const rmTd = document.createElement('td');
+  rmTd.className = 'editor-table__cell--actions';
+  const rm = document.createElement('button');
+  rm.type = 'button';
+  rm.className = 'btn-remove-debt';
+  rm.setAttribute('data-action', 'remove');
+  rm.textContent = 'Remove';
+  rmTd.appendChild(rm);
+  row.appendChild(rmTd);
+
+  const nameInput = row.querySelector('input[data-field="name"]');
+  const curInput = row.querySelector('input[data-field="current"]');
+  const aprInput = row.querySelector('input[data-field="aprPct"]');
+  const defInput = row.querySelector('input[data-field="deferredAmount"]');
+  const defDateInput = row.querySelector('input[data-field="deferredExpiresOn"]');
+  if (nameInput) nameInput.value = debt.name || '';
+  if (curInput) curInput.value = formatMoneyInput(numOr(debt.current, 0));
+  if (aprInput) aprInput.value = formatMoneyInput(numOr(debt.aprPct, DEFAULT_DEBT_APR_PCT));
+  if (defInput) defInput.value = formatMoneyInput(numOr(debt.deferredAmount, 0));
+  if (defDateInput) defDateInput.value = typeof debt.deferredExpiresOn === 'string' ? debt.deferredExpiresOn : '';
+
+  return row;
+}
+
 export function renderDebtsEditor(plan) {
   const host = document.getElementById('debts-editor-list');
   if (!host) return;
@@ -188,75 +290,16 @@ export function renderDebtsEditor(plan) {
     appendDebtsEditorEmptyState(host);
     return;
   }
+  const table = document.createElement('table');
+  table.className = 'editor-table editor-table--debts';
+  table.setAttribute('role', 'grid');
+  table.appendChild(buildDebtsEditorThead());
+  const tbody = document.createElement('tbody');
   debts.forEach(function (debt) {
-    const row = document.createElement('div');
-    row.className = 'debt-row';
-    row.setAttribute('data-debt-id', debt.id);
-
-    const nameField = document.createElement('div');
-    nameField.className = 'balance-field';
-    nameField.innerHTML = '<label>Debt name</label><input type="text" data-field="name" autocomplete="off" value="">';
-    const nameInput = nameField.querySelector('input');
-    nameInput.value = debt.name || '';
-
-    const curField = document.createElement('div');
-    curField.className = 'balance-field';
-    curField.innerHTML =
-      '<label>Current balance</label><input type="text" data-field="current" inputmode="decimal" autocomplete="off" value="">';
-    const curInput = curField.querySelector('input');
-    curInput.value = formatMoneyInput(numOr(debt.current, 0));
-
-    const aprField = document.createElement('div');
-    aprField.className = 'balance-field';
-    aprField.innerHTML =
-      '<label>APR %</label><input type="text" data-field="aprPct" inputmode="decimal" autocomplete="off" placeholder="0" value="">';
-    const aprInput = aprField.querySelector('input');
-    aprInput.value = formatMoneyInput(numOr(debt.aprPct, DEFAULT_DEBT_APR_PCT));
-
-    const defField = document.createElement('div');
-    defField.className = 'balance-field';
-    defField.innerHTML =
-      '<label>Deferred $ (0% promo)</label><input type="text" data-field="deferredAmount" inputmode="decimal" autocomplete="off" value="">';
-    const defInput = defField.querySelector('input');
-    defInput.value = formatMoneyInput(numOr(debt.deferredAmount, 0));
-
-    const defDateField = document.createElement('div');
-    defDateField.className = 'balance-field';
-    defDateField.innerHTML =
-      '<label>Deferred expires</label><input type="date" data-field="deferredExpiresOn" autocomplete="off" value="">';
-    const defDateInput = defDateField.querySelector('input');
-    defDateInput.value = typeof debt.deferredExpiresOn === 'string' ? debt.deferredExpiresOn : '';
-
-    const payField = document.createElement('div');
-    payField.className = 'balance-field';
-    payField.innerHTML =
-      '<label>Payment</label>' +
-      '<div class="field-inline-action">' +
-      '<input type="text" data-field="payment" inputmode="decimal" autocomplete="off" placeholder="0.00">' +
-      '<button type="button" class="btn-icon btn-quick-payment" data-action="quick-payment" title="Log payment now" aria-label="Log payment now">+</button>' +
-      '</div>';
-
-    const actions = document.createElement('div');
-    actions.style.display = 'flex';
-    actions.style.gap = '8px';
-    actions.style.justifyContent = 'flex-end';
-
-    const rm = document.createElement('button');
-    rm.type = 'button';
-    rm.className = 'btn-remove-debt';
-    rm.setAttribute('data-action', 'remove');
-    rm.textContent = 'Remove';
-
-    row.appendChild(nameField);
-    row.appendChild(curField);
-    row.appendChild(aprField);
-    row.appendChild(defField);
-    row.appendChild(defDateField);
-    row.appendChild(payField);
-    actions.appendChild(rm);
-    row.appendChild(actions);
-    host.appendChild(row);
+    tbody.appendChild(buildDebtRowTR(debt));
   });
+  table.appendChild(tbody);
+  host.appendChild(table);
 }
 
 export function syncDebtsEditorSortSelect(plan) {
@@ -282,6 +325,99 @@ export function appendSavingsEditorEmptyState(host) {
   host.appendChild(wrap);
 }
 
+export function buildSavingsEditorThead() {
+  const thead = document.createElement('thead');
+  const tr = document.createElement('tr');
+  tr.className = 'editor-table__head-row';
+  const headers = [
+    { t: 'Name', title: '' },
+    { t: 'Balance', title: 'Current balance' },
+    { t: 'APY %', title: 'Annual percentage yield' },
+    { t: 'Deposit', title: 'Deposit to log, then +' },
+    { t: 'Goal', title: 'Balance counts toward your HYSA savings goal total' },
+    { t: '', title: 'Remove row' },
+  ];
+  headers.forEach(function (h) {
+    const th = document.createElement('th');
+    th.scope = 'col';
+    th.textContent = h.t;
+    if (h.title) th.title = h.title;
+    if (!h.t) {
+      th.className = 'editor-table__th--action';
+      th.setAttribute('aria-label', 'Remove');
+    }
+    tr.appendChild(th);
+  });
+  thead.appendChild(tr);
+  return thead;
+}
+
+/**
+ * @param {object} acc
+ * @returns {HTMLTableRowElement}
+ */
+export function buildSavingsRowTR(acc) {
+  const row = document.createElement('tr');
+  row.className = 'savings-row';
+  row.setAttribute('data-savings-id', String(acc.id));
+
+  const tdName = document.createElement('td');
+  tdName.className = 'editor-table__cell--name';
+  tdName.innerHTML = '<input type="text" data-field="name" autocomplete="off" value="">';
+
+  const tdCur = document.createElement('td');
+  tdCur.innerHTML =
+    '<input type="text" data-field="current" inputmode="decimal" autocomplete="off" value="">';
+
+  const tdApy = document.createElement('td');
+  tdApy.innerHTML =
+    '<input type="text" data-field="apyPct" inputmode="decimal" autocomplete="off" placeholder="0" value="">';
+
+  const tdDep = document.createElement('td');
+  tdDep.className = 'editor-table__cell--pay';
+  tdDep.innerHTML =
+    '<div class="field-inline-action">' +
+    '<input type="text" data-field="deposit" inputmode="decimal" autocomplete="off" placeholder="0.00">' +
+    '<button type="button" class="btn-icon btn-quick-deposit" data-action="quick-deposit" title="Log deposit now" aria-label="Log deposit now">+</button>' +
+    '</div>';
+
+  const tdGoal = document.createElement('td');
+  tdGoal.className = 'editor-table__cell--goal';
+  const cb = document.createElement('input');
+  cb.type = 'checkbox';
+  cb.setAttribute('data-field', 'countTowardsGoal');
+  cb.title = 'Count this balance toward your HYSA savings goal';
+  cb.setAttribute('aria-label', 'Count toward HYSA savings goal');
+  cb.checked =
+    typeof acc.countTowardsGoal === 'boolean' ? acc.countTowardsGoal : String(acc.id) === 'hysa';
+  tdGoal.appendChild(cb);
+
+  const rmTd = document.createElement('td');
+  rmTd.className = 'editor-table__cell--actions';
+  const rm = document.createElement('button');
+  rm.type = 'button';
+  rm.className = 'btn-remove-savings';
+  rm.setAttribute('data-action', 'remove');
+  rm.textContent = 'Remove';
+  rmTd.appendChild(rm);
+
+  row.appendChild(tdName);
+  row.appendChild(tdCur);
+  row.appendChild(tdApy);
+  row.appendChild(tdDep);
+  row.appendChild(tdGoal);
+  row.appendChild(rmTd);
+
+  const nameInput = row.querySelector('input[data-field="name"]');
+  const curInput = row.querySelector('input[data-field="current"]');
+  const apyInput = row.querySelector('input[data-field="apyPct"]');
+  if (nameInput) nameInput.value = acc.name || '';
+  if (curInput) curInput.value = formatMoneyInput(numOr(acc.current, 0));
+  if (apyInput) apyInput.value = formatMoneyInput(numOr(acc.apyPct, DEFAULT_SAVINGS_APY_PCT));
+
+  return row;
+}
+
 export function renderSavingsEditor(d) {
   const host = document.getElementById('savings-editor-list');
   if (!host) return;
@@ -291,59 +427,16 @@ export function renderSavingsEditor(d) {
     appendSavingsEditorEmptyState(host);
     return;
   }
+  const table = document.createElement('table');
+  table.className = 'editor-table editor-table--savings';
+  table.setAttribute('role', 'grid');
+  table.appendChild(buildSavingsEditorThead());
+  const tbody = document.createElement('tbody');
   accs.forEach(function (acc) {
-    const row = document.createElement('div');
-    row.className = 'savings-row';
-    row.setAttribute('data-savings-id', acc.id);
-
-    const nameField = document.createElement('div');
-    nameField.className = 'balance-field';
-    nameField.innerHTML = '<label>Account name</label><input type="text" data-field="name" autocomplete="off" value="">';
-    const nameInput = nameField.querySelector('input');
-    nameInput.value = acc.name || '';
-
-    const curField = document.createElement('div');
-    curField.className = 'balance-field';
-    curField.innerHTML =
-      '<label>Current balance</label><input type="text" data-field="current" inputmode="decimal" autocomplete="off" value="">';
-    const curInput = curField.querySelector('input');
-    curInput.value = formatMoneyInput(numOr(acc.current, 0));
-
-    const apyField = document.createElement('div');
-    apyField.className = 'balance-field';
-    apyField.innerHTML =
-      '<label>APY %</label><input type="text" data-field="apyPct" inputmode="decimal" autocomplete="off" placeholder="0" value="">';
-    const apyInput = apyField.querySelector('input');
-    apyInput.value = formatMoneyInput(numOr(acc.apyPct, DEFAULT_SAVINGS_APY_PCT));
-
-    const depField = document.createElement('div');
-    depField.className = 'balance-field';
-    depField.innerHTML =
-      '<label>Deposit to log</label>' +
-      '<div class="field-inline-action">' +
-      '<input type="text" data-field="deposit" inputmode="decimal" autocomplete="off" placeholder="0.00">' +
-      '<button type="button" class="btn-icon btn-quick-deposit" data-action="quick-deposit" title="Log deposit now" aria-label="Log deposit now">+</button>' +
-      '</div>';
-
-    const actions = document.createElement('div');
-    actions.style.display = 'flex';
-    actions.style.gap = '8px';
-    actions.style.justifyContent = 'flex-end';
-
-    const rm = document.createElement('button');
-    rm.type = 'button';
-    rm.className = 'btn-remove-savings';
-    rm.setAttribute('data-action', 'remove');
-    rm.textContent = 'Remove';
-
-    row.appendChild(nameField);
-    row.appendChild(curField);
-    row.appendChild(apyField);
-    row.appendChild(depField);
-    actions.appendChild(rm);
-    row.appendChild(actions);
-    host.appendChild(row);
+    tbody.appendChild(buildSavingsRowTR(acc));
   });
+  table.appendChild(tbody);
+  host.appendChild(table);
 }
 
 export function renderGoal3SavingsAccounts(d, moneyExact) {
@@ -370,14 +463,47 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
     meta.className = 'goal3-savings-meta';
     const apy = numOr(acc.apyPct, 0);
     meta.textContent =
-      moneyExact(current) +
-      ' · ' +
       apy.toFixed(2) +
       '% APY · ' +
       moneyExact(lifetimeDep) +
       ' logged deposits (lifetime)';
     head.appendChild(name);
     head.appendChild(meta);
+
+    const goalAmt = numOr(d.goalHysa, 0);
+    const countsToward =
+      typeof acc.countTowardsGoal === 'boolean'
+        ? acc.countTowardsGoal
+        : String(acc.id) === 'hysa';
+    let pctTowardGoal = 0;
+    let labelLeft = '';
+    let labelRight = '';
+    if (countsToward && goalAmt > 0) {
+      pctTowardGoal = Math.min(100, (current / goalAmt) * 100);
+      labelLeft = moneyExact(current) + ' toward goal';
+      labelRight = '<strong>' + pctTowardGoal.toFixed(1) + '%</strong> of ' + moneyExact(goalAmt);
+    } else if (countsToward && goalAmt <= 0) {
+      labelLeft = moneyExact(current) + ' balance';
+      labelRight = '<strong>—</strong>';
+    } else {
+      labelLeft = moneyExact(current) + ' balance';
+      labelRight = '<span class="goal3-savings-not-goal">Not in HYSA goal</span>';
+    }
+
+    const prog = document.createElement('div');
+    prog.className = 'goal3-savings-progress';
+    const labels = document.createElement('div');
+    labels.className = 'progress-label-row';
+    labels.innerHTML = '<span>' + labelLeft + '</span><span>' + labelRight + '</span>';
+    const track = document.createElement('div');
+    track.className = 'progress-track';
+    const fill = document.createElement('div');
+    fill.className = 'progress-fill-purple';
+    fill.style.width =
+      countsToward && goalAmt > 0 ? pctTowardGoal.toFixed(2) + '%' : '0%';
+    track.appendChild(fill);
+    prog.appendChild(labels);
+    prog.appendChild(track);
 
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const recent = hist.filter(function (p) {
@@ -430,6 +556,7 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
     }
 
     wrap.appendChild(head);
+    wrap.appendChild(prog);
     wrap.appendChild(details);
     host.appendChild(wrap);
   });

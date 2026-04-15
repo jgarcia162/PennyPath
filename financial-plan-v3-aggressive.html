@@ -422,6 +422,82 @@
       <div class="dashboard-hero__sub">Edit debts and savings here. Changes reflect instantly in the Financial Plan outline.</div>
     </div>
 
+    <div class="dashboard-goals no-print">
+      <div class="section-eyebrow">Goals at a glance</div>
+      <div class="goals-grid goals-grid--dashboard">
+        <div class="goal-card secondary-a">
+          <div class="goal-card-head">
+            <div class="goal-tag">Goal 2</div>
+          </div>
+          <div class="goal-value" id="dash-goal-debt-amt"></div>
+          <div class="goal-desc">Credit card debt — completely eliminated. No more interest eating our income.</div>
+          <div class="goal-when" id="dash-goal-debt-when"></div>
+          <div class="progress-wrap">
+            <div class="progress-label-row debt">
+              <span id="dash-debt-progress-left"></span>
+              <span id="dash-debt-progress-right"></span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill-debt" id="dash-debt-progress-fill"></div>
+            </div>
+          </div>
+          <div class="monthly-debt-goal-wrap" id="dash-monthly-debt-goal-section">
+            <div class="monthly-debt-goal-head">
+              <span class="monthly-debt-goal-title">This month toward debt</span>
+              <span class="monthly-debt-goal-meta" id="dash-monthly-debt-goal-meta"></span>
+            </div>
+            <div class="progress-wrap monthly-debt-goal-bar">
+              <div class="progress-label-row debt">
+                <span id="dash-monthly-debt-paid-label"></span>
+                <span id="dash-monthly-debt-pct-label"></span>
+              </div>
+              <div class="progress-track">
+                <div class="progress-fill-debt" id="dash-monthly-debt-progress-fill"></div>
+              </div>
+            </div>
+            <p class="monthly-debt-goal-hint" id="dash-monthly-debt-goal-hint"></p>
+          </div>
+        </div>
+
+        <div class="goal-card secondary-b">
+          <div class="goal-card-head">
+            <div class="goal-tag">Goal 3 — Emergency Fund 🚨</div>
+          </div>
+          <div class="goal-value" id="dash-goal-efund-amt"></div>
+          <div class="goal-desc" id="dash-goal-efund-desc"></div>
+          <div class="goal-when" id="dash-goal-efund-when"></div>
+
+          <div class="efund-grid">
+            <div class="efund-item">
+              <div class="efund-item-label">Target 🎯</div>
+              <div class="efund-item-val" id="dash-efund-target-val"></div>
+              <div class="efund-item-note" id="dash-efund-target-note"></div>
+            </div>
+            <div class="efund-item">
+              <div class="efund-item-label">We Have 🏦</div>
+              <div class="efund-item-val" id="dash-efund-have-val"></div>
+              <div class="efund-item-note">Current personal savings</div>
+            </div>
+            <div class="efund-item">
+              <div class="efund-item-label">Gap🫸🏼 💵 🫷🏼</div>
+              <div class="efund-item-val" id="dash-efund-gap-val"></div>
+              <div class="efund-item-note">Still needed</div>
+            </div>
+          </div>
+
+          <div class="progress-wrap">
+            <div class="progress-label-row">
+              <span id="dash-efund-progress-left"></span>
+              <span id="dash-efund-progress-right"></span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill-purple" id="dash-efund-progress-fill"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="dashboard-tabs no-print" role="tablist" aria-label="Dashboard tabs">
       <button type="button" class="dashboard-tab-btn" id="tab-dashboard-debts" role="tab" aria-selected="true" aria-controls="panel-dashboard-debts">
         Debts
@@ -465,7 +541,11 @@
               Debts editor <span class="toolwin__meta" id="goal2-editor-dialog-totals" aria-live="polite"></span>
             </div>
             <div class="toolwin__actions">
-              <button type="button" class="toolwin__btn" data-toolwin-toggle aria-label="Collapse debts editor">⟫</button>
+              <button type="button" class="toolwin__btn" data-toolwin-toggle aria-expanded="true" aria-label="Collapse debts editor">
+                <svg class="toolwin__btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                  <path d="M14 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
             </div>
           </div>
           <div class="toolwin__body">
@@ -516,7 +596,11 @@
               Savings editor <span class="toolwin__meta" id="goal3-editor-dialog-totals" aria-live="polite"></span>
             </div>
             <div class="toolwin__actions">
-              <button type="button" class="toolwin__btn" data-toolwin-toggle aria-label="Collapse savings editor">⟫</button>
+              <button type="button" class="toolwin__btn" data-toolwin-toggle aria-expanded="true" aria-label="Collapse savings editor">
+                <svg class="toolwin__btn-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                  <path d="M14 6l-6 6 6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
             </div>
           </div>
           <div class="toolwin__body">

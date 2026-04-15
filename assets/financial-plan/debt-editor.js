@@ -4,7 +4,7 @@
 
 import { PLAN, PLAN_DEFAULTS, DEFAULT_DEBT_APR_PCT } from './plan-data.js';
 import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils.js';
-import { appendDebtsEditorEmptyState } from './render-sections.js';
+import { appendDebtsEditorEmptyState, buildDebtsEditorThead, buildDebtRowTR } from './render-sections.js';
 import { normalizePaymentHistory, newPaymentId } from './persistence.js';
 
 export function readDebtsEditorIntoPlan() {
@@ -112,37 +112,20 @@ export function setDebtsDraftFromSnapshot(snap) {
   const host = document.getElementById('debts-editor-list');
   if (host) {
     host.innerHTML = '';
-    (snap.debts || []).forEach(function (d) {
-      const row = document.createElement('div');
-      row.className = 'debt-row';
-      row.setAttribute('data-debt-id', String(d.id));
-      row.innerHTML =
-        '<div class="balance-field"><label>Debt name</label><input type="text" data-field="name" autocomplete="off" value=""></div>' +
-        '<div class="balance-field"><label>Current balance</label><input type="text" data-field="current" inputmode="decimal" autocomplete="off" value=""></div>' +
-        '<div class="balance-field"><label>APR %</label><input type="text" data-field="aprPct" inputmode="decimal" autocomplete="off" placeholder="0" value=""></div>' +
-        '<div class="balance-field"><label>Deferred $ (0% promo)</label><input type="text" data-field="deferredAmount" inputmode="decimal" autocomplete="off" value=""></div>' +
-        '<div class="balance-field"><label>Deferred expires</label><input type="date" data-field="deferredExpiresOn" autocomplete="off" value=""></div>' +
-        '<div class="balance-field"><label>Payment</label><input type="text" data-field="payment" inputmode="decimal" autocomplete="off" placeholder="0.00"></div>' +
-        '<div style="display:flex; gap:8px; justify-content:flex-end;">' +
-        '<button type="button" class="btn-remove-debt" data-action="remove">Remove</button>' +
-        '</div>';
-
-      const nameEl = row.querySelector('input[data-field="name"]');
-      const curEl = row.querySelector('input[data-field="current"]');
-      const aprEl = row.querySelector('input[data-field="aprPct"]');
-      const defEl = row.querySelector('input[data-field="deferredAmount"]');
-      const defDateEl = row.querySelector('input[data-field="deferredExpiresOn"]');
-      if (nameEl) nameEl.value = String(d.name || '');
-      if (curEl) curEl.value = formatMoneyInput(numOr(d.current, 0));
-      if (aprEl) aprEl.value = formatMoneyInput(numOr(d.aprPct, DEFAULT_DEBT_APR_PCT));
-      if (defEl) defEl.value = formatMoneyInput(numOr(d.deferredAmount, 0));
-      if (defDateEl) defDateEl.value = typeof d.deferredExpiresOn === 'string' ? d.deferredExpiresOn : '';
-
-      host.appendChild(row);
-    });
-    if ((snap.debts || []).length === 0) {
+    if (!(snap.debts || []).length) {
       appendDebtsEditorEmptyState(host);
+      return;
     }
+    const table = document.createElement('table');
+    table.className = 'editor-table editor-table--debts';
+    table.setAttribute('role', 'grid');
+    table.appendChild(buildDebtsEditorThead());
+    const tbody = document.createElement('tbody');
+    (snap.debts || []).forEach(function (d) {
+      tbody.appendChild(buildDebtRowTR(d));
+    });
+    table.appendChild(tbody);
+    host.appendChild(table);
   }
 }
 
@@ -152,20 +135,30 @@ export function addDebtRowDraft(showUnsaved) {
   const empty = host.querySelector('.editor-empty-state');
   if (empty) empty.remove();
   const id = 'd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
-  const row = document.createElement('div');
-  row.className = 'debt-row';
-  row.setAttribute('data-debt-id', id);
-  row.innerHTML =
-    '<div class="balance-field"><label>Debt name</label><input type="text" data-field="name" autocomplete="off" placeholder="New debt"></div>' +
-    '<div class="balance-field"><label>Current balance</label><input type="text" data-field="current" inputmode="decimal" autocomplete="off" placeholder="0"></div>' +
-    '<div class="balance-field"><label>APR %</label><input type="text" data-field="aprPct" inputmode="decimal" autocomplete="off" placeholder="0"></div>' +
-    '<div class="balance-field"><label>Deferred $ (0% promo)</label><input type="text" data-field="deferredAmount" inputmode="decimal" autocomplete="off" placeholder="0"></div>' +
-    '<div class="balance-field"><label>Deferred expires</label><input type="date" data-field="deferredExpiresOn" autocomplete="off"></div>' +
-    '<div class="balance-field"><label>Payment</label><input type="text" data-field="payment" inputmode="decimal" autocomplete="off" placeholder="0.00"></div>' +
-    '<div style="display:flex; gap:8px; justify-content:flex-end;">' +
-    '<button type="button" class="btn-remove-debt" data-action="remove">Remove</button>' +
-    '</div>';
-  host.appendChild(row);
+  let tbody = host.querySelector('table.editor-table--debts tbody');
+  if (!tbody) {
+    host.innerHTML = '';
+    const table = document.createElement('table');
+    table.className = 'editor-table editor-table--debts';
+    table.setAttribute('role', 'grid');
+    table.appendChild(buildDebtsEditorThead());
+    tbody = document.createElement('tbody');
+    table.appendChild(tbody);
+    host.appendChild(table);
+  }
+  const row = buildDebtRowTR({
+    id: id,
+    name: '',
+    current: 0,
+    paidOff: 0,
+    aprPct: DEFAULT_DEBT_APR_PCT,
+    deferredAmount: 0,
+    deferredExpiresOn: '',
+    paymentHistory: [],
+  });
+  const nameEl = row.querySelector('input[data-field="name"]');
+  if (nameEl) nameEl.placeholder = 'New debt';
+  tbody.appendChild(row);
   showUnsaved();
 }
 

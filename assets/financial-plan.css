@@ -369,9 +369,24 @@ body.financial-plan-demo-mode #checkin-form {
   border-bottom-color: rgba(255,255,255,0.08);
 }
 
-:root[data-theme="dark"] .debt-row {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.10);
+:root[data-theme="dark"] .editor-table thead th {
+  background: var(--paper);
+  color: rgba(233, 233, 246, 0.62);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+:root[data-theme="dark"] .editor-table tbody tr.debt-row td,
+:root[data-theme="dark"] .editor-table tbody tr.savings-row td {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+:root[data-theme="dark"] .editor-table tbody tr.debt-row:hover,
+:root[data-theme="dark"] .editor-table tbody tr.savings-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+:root[data-theme="dark"] .editor-table td input[type="text"],
+:root[data-theme="dark"] .editor-table td input[type="date"] {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--text);
 }
 
 :root[data-theme="dark"] .debts-editor-list {
@@ -531,18 +546,18 @@ body.financial-plan-demo-mode #checkin-form {
   border-color: rgba(196, 176, 128, 0.38);
   color: rgba(60, 68, 82, 0.92);
 }
-::root[data-theme="dark"] .page-tabs {
+:root[data-theme="dark"] .page-tabs {
   border-color: rgba(255, 255, 255, 0.10);
   background: rgba(255, 255, 255, 0.04);
 }
-::root[data-theme="dark"] .page-tab-btn {
+:root[data-theme="dark"] .page-tab-btn {
   color: rgba(233, 233, 246, 0.72);
 }
-::root[data-theme="dark"] .page-tab-btn:hover {
+:root[data-theme="dark"] .page-tab-btn:hover {
   background: rgba(225, 195, 106, 0.14);
   color: rgba(233, 233, 246, 0.92);
 }
-::root[data-theme="dark"] .page-tab-btn[aria-selected="true"] {
+:root[data-theme="dark"] .page-tab-btn[aria-selected="true"] {
   background: rgba(225, 195, 106, 0.18);
   border-color: rgba(225, 195, 106, 0.28);
   color: rgba(233, 233, 246, 0.92);
@@ -563,7 +578,7 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(60, 68, 82, 0.72);
   line-height: 1.45;
 }
-::root[data-theme="dark"] .plan-inline-hint {
+:root[data-theme="dark"] .plan-inline-hint {
   border-color: rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.04);
   color: rgba(233, 233, 246, 0.72);
@@ -602,14 +617,14 @@ body.financial-plan-demo-mode #checkin-form {
   grid-template-columns: 1fr 1fr;
   gap: 14px 18px;
 }
-::root[data-theme="dark"] .plan-goals-editor {
+:root[data-theme="dark"] .plan-goals-editor {
   border-color: rgba(255, 255, 255, 0.10);
   background: rgba(255, 255, 255, 0.04);
 }
-::root[data-theme="dark"] .plan-goals-editor__title {
+:root[data-theme="dark"] .plan-goals-editor__title {
   color: rgba(233, 233, 246, 0.55);
 }
-::root[data-theme="dark"] .plan-goals-editor__hint {
+:root[data-theme="dark"] .plan-goals-editor__hint {
   color: rgba(233, 233, 246, 0.65);
 }
 
@@ -629,8 +644,27 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(60, 68, 82, 0.70);
   line-height: 1.5;
 }
-::root[data-theme="dark"] .dashboard-hero__sub {
+:root[data-theme="dark"] .dashboard-hero__sub {
   color: rgba(233, 233, 246, 0.65);
+}
+
+.dashboard-goals {
+  margin: 0 0 22px;
+}
+/* Two side-by-side goal cards; undo plan-tab full-width spanning */
+.goals-grid.goals-grid--dashboard {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  align-items: stretch;
+}
+.goals-grid--dashboard .goal-card.secondary-a,
+.goals-grid--dashboard .goal-card.secondary-b {
+  grid-column: auto;
+}
+@media (max-width: 900px) {
+  .goals-grid.goals-grid--dashboard {
+    grid-template-columns: 1fr;
+  }
 }
 
 .dashboard-tabs {
@@ -665,18 +699,18 @@ body.financial-plan-demo-mode #checkin-form {
   border-color: rgba(58, 95, 138, 0.25);
   color: rgba(60, 68, 82, 0.92);
 }
-::root[data-theme="dark"] .dashboard-tabs {
+:root[data-theme="dark"] .dashboard-tabs {
   border-color: rgba(255, 255, 255, 0.10);
   background: rgba(255, 255, 255, 0.04);
 }
-::root[data-theme="dark"] .dashboard-tab-btn {
+:root[data-theme="dark"] .dashboard-tab-btn {
   color: rgba(233, 233, 246, 0.72);
 }
-::root[data-theme="dark"] .dashboard-tab-btn:hover {
+:root[data-theme="dark"] .dashboard-tab-btn:hover {
   background: rgba(121, 166, 216, 0.12);
   color: rgba(233, 233, 246, 0.92);
 }
-::root[data-theme="dark"] .dashboard-tab-btn[aria-selected="true"] {
+:root[data-theme="dark"] .dashboard-tab-btn[aria-selected="true"] {
   background: rgba(121, 166, 216, 0.16);
   border-color: rgba(121, 166, 216, 0.22);
   color: rgba(233, 233, 246, 0.92);
@@ -713,14 +747,14 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(60, 68, 82, 0.72);
   font-variant-numeric: tabular-nums;
 }
-::root[data-theme="dark"] .dashboard-card {
+:root[data-theme="dark"] .dashboard-card {
   border-color: rgba(255, 255, 255, 0.10);
   background: rgba(255, 255, 255, 0.04);
 }
-::root[data-theme="dark"] .dashboard-card__title {
+:root[data-theme="dark"] .dashboard-card__title {
   color: rgba(233, 233, 246, 0.55);
 }
-::root[data-theme="dark"] .dashboard-card__meta {
+:root[data-theme="dark"] .dashboard-card__meta {
   color: rgba(233, 233, 246, 0.72);
 }
 
@@ -744,9 +778,11 @@ body.financial-plan-demo-mode #checkin-form {
   right: 18px;
   top: 118px;
   z-index: 300;
-  width: min(560px, calc(100vw - 36px));
-  max-width: min(560px, 52vw);
-  min-width: 360px;
+  box-sizing: border-box;
+  /* Width follows table content; max-width animates smoothly when collapsing */
+  width: fit-content;
+  max-width: min(1240px, calc(100vw - 36px));
+  min-width: 0;
   background: var(--paper);
   border: 1px solid rgba(60, 68, 82, 0.10);
   border-radius: 16px;
@@ -757,6 +793,14 @@ body.financial-plan-demo-mode #checkin-form {
   height: fit-content;
   max-height: calc(100vh - 144px);
   resize: horizontal;
+  transition:
+    width 320ms cubic-bezier(0.33, 1, 0.68, 1),
+    max-width 320ms cubic-bezier(0.33, 1, 0.68, 1),
+    min-width 320ms cubic-bezier(0.33, 1, 0.68, 1),
+    box-shadow 220ms ease,
+    transform 320ms cubic-bezier(0.33, 1, 0.68, 1),
+    border-radius 320ms cubic-bezier(0.33, 1, 0.68, 1);
+  transform: translateX(0);
 }
 .toolwin__head {
   display: flex;
@@ -765,7 +809,9 @@ body.financial-plan-demo-mode #checkin-form {
   gap: 10px;
   padding: 12px 14px;
   border-bottom: 1px solid rgba(60, 68, 82, 0.08);
-  background: rgba(60, 68, 82, 0.02);
+  background: var(--toolwin-bg, rgba(60, 68, 82, 0.02));
+  flex-shrink: 0;
+  transition: background-color 320ms ease, border-bottom-color 320ms ease;
 }
 .toolwin__title {
   font-size: 12px;
@@ -783,17 +829,27 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(60, 68, 82, 0.70);
   margin-left: 8px;
   font-variant-numeric: tabular-nums;
+  transition: opacity 260ms ease;
 }
 .toolwin__btn {
   appearance: none;
   border: 1px solid rgba(60, 68, 82, 0.12);
   background: rgba(255, 255, 255, 0.6);
-  color: rgba(60, 68, 82, 0.8);
+  color: rgba(60, 68, 82, 0.85);
   font-weight: 900;
   border-radius: 10px;
   width: 40px;
   height: 36px;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  flex-shrink: 0;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.toolwin__btn-icon {
+  display: block;
 }
 .toolwin__btn:hover {
   background: rgba(196, 176, 128, 0.16);
@@ -806,6 +862,12 @@ body.financial-plan-demo-mode #checkin-form {
   flex-direction: column;
   flex: 1 1 auto;
   min-height: 0;
+  max-height: min(72vh, 2000px);
+  transition:
+    opacity 280ms ease,
+    transform 280ms ease,
+    max-height 340ms cubic-bezier(0.33, 1, 0.68, 1),
+    padding 340ms cubic-bezier(0.33, 1, 0.68, 1);
 }
 .toolwin__body .balance-editor {
   box-shadow: none;
@@ -819,10 +881,21 @@ body.financial-plan-demo-mode #checkin-form {
   min-width: 52px;
   max-width: 52px;
   resize: none;
+  transform: translateX(0);
 }
-.toolwin.is-collapsed .toolwin__body,
+.toolwin.is-collapsed .toolwin__body {
+  opacity: 0;
+  transform: translateX(12px);
+  pointer-events: none;
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin: 0;
+  overflow: hidden;
+}
 .toolwin.is-collapsed .toolwin__meta {
-  display: none;
+  opacity: 0;
+  pointer-events: none;
 }
 .toolwin.is-collapsed .toolwin__title {
   writing-mode: vertical-rl;
@@ -830,29 +903,56 @@ body.financial-plan-demo-mode #checkin-form {
   white-space: nowrap;
 }
 .toolwin.is-collapsed .toolwin__btn {
-  transform: rotate(180deg);
+  display: none;
 }
 
-::root[data-theme="dark"] .toolwin {
+/* Palette-coordinated collapsed/expanded states */
+.toolwin[data-toolwin="debts"] { --toolwin-accent: var(--sage); --toolwin-bg: rgba(143, 176, 160, 0.12); }
+.toolwin[data-toolwin="savings"] { --toolwin-accent: var(--purple); --toolwin-bg: rgba(173, 160, 194, 0.14); }
+.toolwin[data-toolwin] {
+  border-color: rgba(60, 68, 82, 0.10);
+  box-shadow: 0 12px 36px rgba(60, 68, 82, 0.18);
+}
+.toolwin[data-toolwin] .toolwin__head {
+  border-bottom-color: rgba(60, 68, 82, 0.08);
+}
+.toolwin[data-toolwin].is-collapsed {
+  border-color: rgba(60, 68, 82, 0.12);
+}
+.toolwin[data-toolwin].is-collapsed .toolwin__head {
+  background: var(--toolwin-accent);
+  border-bottom-color: transparent;
+}
+.toolwin[data-toolwin].is-collapsed .toolwin__title,
+.toolwin[data-toolwin].is-collapsed .toolwin__meta {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+:root[data-theme="dark"] .toolwin[data-toolwin].is-collapsed .toolwin__title,
+:root[data-theme="dark"] .toolwin[data-toolwin].is-collapsed .toolwin__meta {
+  color: rgba(20, 24, 32, 0.92);
+}
+
+:root[data-theme="dark"] .toolwin {
   border-color: rgba(255, 255, 255, 0.10);
   background: rgba(255, 255, 255, 0.04);
 }
-::root[data-theme="dark"] .toolwin__head {
+:root[data-theme="dark"] .toolwin__head {
   border-bottom-color: rgba(255, 255, 255, 0.08);
   background: rgba(255, 255, 255, 0.03);
 }
-::root[data-theme="dark"] .toolwin__title {
+:root[data-theme="dark"] .toolwin__title {
   color: rgba(233, 233, 246, 0.62);
 }
-::root[data-theme="dark"] .toolwin__meta {
+:root[data-theme="dark"] .toolwin__meta {
   color: rgba(233, 233, 246, 0.72);
 }
-::root[data-theme="dark"] .toolwin__btn {
+:root[data-theme="dark"] .toolwin__btn {
   border-color: rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.05);
   color: rgba(233, 233, 246, 0.85);
 }
-::root[data-theme="dark"] .toolwin__btn:hover {
+:root[data-theme="dark"] .toolwin__btn:hover {
   background: rgba(225, 195, 106, 0.14);
   border-color: rgba(225, 195, 106, 0.22);
 }
@@ -906,13 +1006,25 @@ body.financial-plan-demo-mode #checkin-form {
   opacity: 0.45;
   cursor: default;
 }
-::root[data-theme="dark"] .btn-icon {
+:root[data-theme="dark"] .btn-icon {
   border-color: rgba(225, 195, 106, 0.35);
   background: rgba(225, 195, 106, 0.14);
   color: rgba(233, 233, 246, 0.92);
 }
-::root[data-theme="dark"] .btn-icon:hover {
+:root[data-theme="dark"] .btn-icon:hover {
   background: rgba(225, 195, 106, 0.22);
+}
+
+/* Savings goal column: checkbox only (header says "Goal") */
+.editor-table__cell--goal {
+  text-align: center;
+  vertical-align: middle;
+}
+.editor-table__cell--goal input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--purple);
+  cursor: pointer;
 }
 /* BALANCE EDITOR */
 .balance-editor {
@@ -1079,28 +1191,80 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .btn-add-debt:hover { background: rgba(60,68,82,0.12); }
 .debts-editor-list {
-  display: grid;
-  gap: 10px;
+  display: block;
   margin-top: 10px;
   min-height: 0;
   max-height: min(60vh, 560px);
+  overflow-x: auto;
   overflow-y: auto;
-  overflow-x: hidden;
   padding: 6px 10px 8px 8px;
   border-radius: 12px;
   border: 1px solid rgba(60, 68, 82, 0.08);
   background: rgba(60, 68, 82, 0.02);
   -webkit-overflow-scrolling: touch;
 }
-.debt-row {
-  background: rgba(60,68,82,0.03);
-  border: 1px solid rgba(60,68,82,0.08);
-  border-radius: 12px;
-  padding: 12px;
-  display: grid;
-  grid-template-columns: 1.2fr 1fr 0.7fr 1fr 1.1fr 1fr auto;
-  gap: 10px;
-  align-items: end;
+/* Spreadsheet-style debt editor */
+.editor-table {
+  width: max-content;
+  min-width: 0;
+  border-collapse: separate;
+  border-spacing: 0;
+  table-layout: auto;
+  font-size: 14px;
+}
+.editor-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: rgba(60, 68, 82, 0.55);
+  background: var(--paper);
+  border-bottom: 1px solid rgba(60, 68, 82, 0.12);
+  white-space: nowrap;
+}
+.editor-table .editor-table__th--action {
+  width: 1%;
+}
+.editor-table tbody tr.debt-row,
+.editor-table tbody tr.savings-row {
+  background: transparent;
+}
+.editor-table tbody tr.debt-row td,
+.editor-table tbody tr.savings-row td {
+  padding: 8px 10px;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(60, 68, 82, 0.07);
+  white-space: nowrap;
+}
+.editor-table tbody tr.debt-row:hover,
+.editor-table tbody tr.savings-row:hover {
+  background: rgba(60, 68, 82, 0.03);
+}
+.editor-table__cell--name input {
+  min-width: 12.5rem;
+}
+.editor-table td input[type="text"],
+.editor-table td input[type="date"] {
+  font-size: 14px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(60, 68, 82, 0.12);
+  background: #fff;
+  color: var(--text);
+  min-width: 5.5rem;
+}
+.editor-table td input:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(196, 176, 128, 0.2);
+}
+.editor-table__cell--pay .field-inline-action input {
+  min-width: 6rem;
 }
 .debt-row .balance-field { margin: 0; }
 .debt-row .balance-field input { font-size: 14px; padding: 9px 10px; border-radius: 10px; }
@@ -1274,28 +1438,17 @@ body.financial-plan-demo-mode #checkin-form {
 .btn-remove-debt:hover { background: rgba(184,92,92,0.22); }
 
 .savings-editor-list {
-  display: grid;
-  gap: 10px;
+  display: block;
   margin-top: 10px;
   min-height: 0;
   max-height: min(60vh, 560px);
+  overflow-x: auto;
   overflow-y: auto;
-  overflow-x: hidden;
   padding: 6px 10px 8px 8px;
   border-radius: 12px;
   border: 1px solid rgba(107, 91, 138, 0.12);
   background: rgba(107, 91, 138, 0.04);
   -webkit-overflow-scrolling: touch;
-}
-.savings-row {
-  background: rgba(60,68,82,0.03);
-  border: 1px solid rgba(60,68,82,0.08);
-  border-radius: 12px;
-  padding: 12px;
-  display: grid;
-  grid-template-columns: 1.15fr 1fr 0.65fr 1fr auto;
-  gap: 10px;
-  align-items: end;
 }
 .savings-row .balance-field { margin: 0; }
 .savings-row .balance-field input { font-size: 14px; padding: 9px 10px; border-radius: 10px; }
@@ -1345,6 +1498,14 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .goal3-savings-name { font-weight: 800; color: var(--purple); font-size: 13px; }
 .goal3-savings-meta { font-size: 12px; color: #666; }
+.goal3-savings-progress {
+  margin-top: 8px;
+}
+.goal3-savings-not-goal {
+  font-size: 12px;
+  color: #888;
+  font-weight: 600;
+}
 /* Recent deposits: match Goal 2 “Recent payments” block (summary, list, row, remove) */
 .goal3-savings-deposits { margin-top: 10px; font-size: 12px; color: #555; }
 .goal3-savings-deposits-summary {
@@ -1372,6 +1533,7 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .goal3-savings-deposit-meta { color: #444; }
 :root[data-theme="dark"] .goal3-savings-meta { color: rgba(255,255,255,0.55); }
+:root[data-theme="dark"] .goal3-savings-not-goal { color: rgba(255,255,255,0.45); }
 :root[data-theme="dark"] .goal3-savings-deposits { color: rgba(255,255,255,0.72); }
 :root[data-theme="dark"] .goal3-savings-deposits-empty { color: rgba(255,255,255,0.45); }
 :root[data-theme="dark"] .goal3-savings-deposit-meta { color: rgba(255,255,255,0.78); }
@@ -2137,8 +2299,6 @@ body.financial-plan-demo-mode #checkin-form {
   .efund-grid { grid-template-columns: 1fr 1fr; }
   .plan-goals-editor__grid { grid-template-columns: 1fr; }
   .balance-editor-grid { grid-template-columns: 1fr; }
-  .debt-row { grid-template-columns: 1fr; }
-  .savings-row { grid-template-columns: 1fr; }
   .goal2-debts { grid-template-columns: 1fr; }
   .goal3-savings { grid-template-columns: 1fr; }
   .checkin-form { grid-template-columns: 1fr; }

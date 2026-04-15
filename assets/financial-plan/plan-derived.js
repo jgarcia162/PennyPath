@@ -72,6 +72,14 @@ export function endOfPlanLiquid(plan) {
 
 export function derived(plan) {
   const accs = getSavingsAccounts(plan);
+  const goalSavingsCurrent = accs
+    .filter(function (a) {
+      if (a && typeof a.countTowardsGoal === 'boolean') return a.countTowardsGoal;
+      return String(a && a.id) === 'hysa';
+    })
+    .reduce(function (s, a) {
+      return s + numOr(a.current, 0);
+    }, 0);
   const hysaBal = accs
     .filter(function (a) {
       return String(a.id) === 'hysa';
@@ -147,7 +155,9 @@ export function derived(plan) {
     monthlyDebtGoal > 0 ? Math.min(100, (Math.max(0, monthlyDebtPaid) / monthlyDebtGoal) * 100) : 0;
 
   return {
+    goalHysa: numOr(plan.goalHysa, 0),
     personalSavings,
+    goalSavingsCurrent,
     totalAssets,
     netWorth,
     debtRounded,

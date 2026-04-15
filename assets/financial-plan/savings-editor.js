@@ -4,7 +4,7 @@
 
 import { PLAN, PLAN_DEFAULTS, DEFAULT_SAVINGS_APY_PCT } from './plan-data.js';
 import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils.js';
-import { appendSavingsEditorEmptyState } from './render-sections.js';
+import { appendSavingsEditorEmptyState, buildSavingsEditorThead, buildSavingsRowTR } from './render-sections.js';
 import { normalizeDepositHistory, newDepositId } from './persistence.js';
 
 export function readSavingsEditorIntoPlan() {
@@ -24,6 +24,7 @@ export function readSavingsEditorIntoPlan() {
     const curEl = row.querySelector('input[data-field="current"]');
     const apyEl = row.querySelector('input[data-field="apyPct"]');
     const depEl = row.querySelector('input[data-field="deposit"]');
+    const goalEl = row.querySelector('input[data-field="countTowardsGoal"]');
     const name = nameEl ? String(nameEl.value || 'Account').trim() : 'Account';
     const rawCurrent = curEl ? parseMoneyInput(curEl.value) : null;
     const rawApy = apyEl ? parseMoneyInput(apyEl.value) : null;
@@ -62,11 +63,19 @@ export function readSavingsEditorIntoPlan() {
       if (depEl) depEl.value = '';
     }
 
+    const countTowardsGoal =
+      goalEl && typeof goalEl.checked === 'boolean'
+        ? !!goalEl.checked
+        : base && typeof base.countTowardsGoal === 'boolean'
+          ? !!base.countTowardsGoal
+          : String(id) === 'hysa';
+
     next.push({
       id: String(id),
       name: name || 'Account',
       current: roundMoney(currentBal),
       apyPct: roundMoney(apyPctVal),
+      countTowardsGoal: countTowardsGoal,
       depositHistory: hist,
     });
   });
@@ -81,6 +90,7 @@ export function cloneSavingsSnapshot() {
         name: String(a.name || 'Account'),
         current: roundMoney(numOr(a.current, 0)),
         apyPct: roundMoney(numOr(a.apyPct, DEFAULT_SAVINGS_APY_PCT)),
+        countTowardsGoal: typeof a.countTowardsGoal === 'boolean' ? a.countTowardsGoal : String(a.id) === 'hysa',
         depositHistory: normalizeDepositHistory(a),
       };
     }),
@@ -92,29 +102,20 @@ export function setSavingsDraftFromSnapshot(snap) {
   const host = document.getElementById('savings-editor-list');
   if (!host) return;
   host.innerHTML = '';
-  snap.savingsAccounts.forEach(function (a) {
-    const row = document.createElement('div');
-    row.className = 'savings-row';
-    row.setAttribute('data-savings-id', String(a.id));
-    row.innerHTML =
-      '<div class="balance-field"><label>Account name</label><input type="text" data-field="name" autocomplete="off" value=""></div>' +
-      '<div class="balance-field"><label>Current balance</label><input type="text" data-field="current" inputmode="decimal" autocomplete="off" value=""></div>' +
-      '<div class="balance-field"><label>APY %</label><input type="text" data-field="apyPct" inputmode="decimal" autocomplete="off" placeholder="0" value=""></div>' +
-      '<div class="balance-field"><label>Deposit to log</label><input type="text" data-field="deposit" inputmode="decimal" autocomplete="off" placeholder="0.00"></div>' +
-      '<div style="display:flex; gap:8px; justify-content:flex-end;">' +
-      '<button type="button" class="btn-remove-savings" data-action="remove">Remove</button>' +
-      '</div>';
-    const nameEl = row.querySelector('input[data-field="name"]');
-    const curEl = row.querySelector('input[data-field="current"]');
-    const apyEl = row.querySelector('input[data-field="apyPct"]');
-    if (nameEl) nameEl.value = String(a.name || '');
-    if (curEl) curEl.value = formatMoneyInput(numOr(a.current, 0));
-    if (apyEl) apyEl.value = formatMoneyInput(numOr(a.apyPct, DEFAULT_SAVINGS_APY_PCT));
-    host.appendChild(row);
-  });
-  if (snap.savingsAccounts.length === 0) {
+  if (!snap.savingsAccounts.length) {
     appendSavingsEditorEmptyState(host);
+    return;
   }
+  const table = document.createElement('table');
+  table.className = 'editor-table editor-table--savings';
+  table.setAttribute('role', 'grid');
+  table.appendChild(buildSavingsEditorThead());
+  const tbody = document.createElement('tbody');
+  snap.savingsAccounts.forEach(function (a) {
+    tbody.appendChild(buildSavingsRowTR(a));
+  });
+  table.appendChild(tbody);
+  host.appendChild(table);
 }
 
 export function addSavingsRowDraft(showUnsaved) {
@@ -123,18 +124,28 @@ export function addSavingsRowDraft(showUnsaved) {
   const empty = host.querySelector('.editor-empty-state');
   if (empty) empty.remove();
   const id = 's_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
-  const row = document.createElement('div');
-  row.className = 'savings-row';
-  row.setAttribute('data-savings-id', id);
-  row.innerHTML =
-    '<div class="balance-field"><label>Account name</label><input type="text" data-field="name" autocomplete="off" placeholder="New account"></div>' +
-    '<div class="balance-field"><label>Current balance</label><input type="text" data-field="current" inputmode="decimal" autocomplete="off" placeholder="0"></div>' +
-    '<div class="balance-field"><label>APY %</label><input type="text" data-field="apyPct" inputmode="decimal" autocomplete="off" placeholder="0" value=""></div>' +
-    '<div class="balance-field"><label>Deposit to log</label><input type="text" data-field="deposit" inputmode="decimal" autocomplete="off" placeholder="0.00"></div>' +
-    '<div style="display:flex; gap:8px; justify-content:flex-end;">' +
-    '<button type="button" class="btn-remove-savings" data-action="remove">Remove</button>' +
-    '</div>';
-  host.appendChild(row);
+  let tbody = host.querySelector('table.editor-table--savings tbody');
+  if (!tbody) {
+    host.innerHTML = '';
+    const table = document.createElement('table');
+    table.className = 'editor-table editor-table--savings';
+    table.setAttribute('role', 'grid');
+    table.appendChild(buildSavingsEditorThead());
+    tbody = document.createElement('tbody');
+    table.appendChild(tbody);
+    host.appendChild(table);
+  }
+  const row = buildSavingsRowTR({
+    id: id,
+    name: '',
+    current: 0,
+    apyPct: DEFAULT_SAVINGS_APY_PCT,
+    countTowardsGoal: false,
+    depositHistory: [],
+  });
+  const nameEl = row.querySelector('input[data-field="name"]');
+  if (nameEl) nameEl.placeholder = 'New account';
+  tbody.appendChild(row);
   showUnsaved();
 }
 
