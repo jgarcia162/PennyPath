@@ -334,9 +334,14 @@ export function render(opts) {
     'goal2-editor-dialog-totals',
     hasDebts ? moneyExact(d.totalDebt) + ' total owed' : 'No balances yet'
   );
+  const savingsAcctN = (d.savingsAccounts && d.savingsAccounts.length) || 0;
   setText(
     'goal3-editor-dialog-totals',
-    moneyExact(d.goalSavingsCurrent) + ' saved of ' + moneyExact(PLAN.goalHysa)
+    moneyExact(d.totalAssets) +
+      ' in ' +
+      savingsAcctN +
+      ' ' +
+      (savingsAcctN === 1 ? 'account' : 'accounts')
   );
 
   renderGoal2Debts(PLAN, moneyExact);
