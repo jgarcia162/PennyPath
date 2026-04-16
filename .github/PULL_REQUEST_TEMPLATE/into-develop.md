@@ -1,3 +1,6 @@
+> **When to use:** Feature or fix branches opened against **`develop`**.  
+> GitHub cannot auto-pick a template by branch—choose **into-develop** in the template dropdown when you open the PR, or use `?template=into-develop.md` in the compare URL.
+
 # Pull request
 
 ## Summary
@@ -44,7 +47,7 @@
 
 - [ ] I’ve tested the changes locally (or noted why not).
 - [ ] Related labels/milestones are set on the PR (if your workflow uses them).
-- [ ] This targets the correct base branch (e.g. `develop` vs `main`).
+- [ ] This PR targets **`develop`**.
 
 ## Notes
 

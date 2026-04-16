@@ -900,49 +900,70 @@ body.financial-plan-demo-mode #checkin-form {
   margin: 0 0 22px;
 }
 .dashboard-goals-summary {
+  appearance: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
-  list-style: none;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 4px 0 12px;
   user-select: none;
+  font-size: 10px; /* match section eyebrow sizing for visual centering */
+  line-height: 1.1;
 }
-.dashboard-goals-summary::-webkit-details-marker {
-  display: none;
+.dashboard-goals-summary:focus-visible {
+  outline: 2px solid rgba(58, 95, 138, 0.45);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 .dashboard-goals-summary-chevron {
   display: inline-block;
-  width: 0.5em;
-  height: 0.5em;
+  width: 10px;
+  height: 10px;
   border-right: 2px solid var(--gold);
   border-bottom: 2px solid var(--gold);
   transform: rotate(-45deg);
   transition: transform 0.3s ease;
   flex-shrink: 0;
 }
-.dashboard-goals-details[open] .dashboard-goals-summary-chevron {
+.dashboard-goals-details--open .dashboard-goals-summary-chevron {
   transform: rotate(45deg);
 }
 .dashboard-goals-summary-eyebrow {
   margin-bottom: 0;
 }
 .dashboard-goals-anim {
-  max-height: 0;
-  overflow: hidden;
+  display: grid;
+  grid-template-rows: 0fr;
   opacity: 0;
-  transition: max-height 0.45s ease-in-out, opacity 0.3s ease;
+  transition: grid-template-rows 1s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.45s ease;
+  will-change: grid-template-rows, opacity;
 }
-.dashboard-goals-details[open] .dashboard-goals-anim {
-  max-height: 2400px;
+.dashboard-goals-details--open .dashboard-goals-anim {
+  grid-template-rows: 1fr;
   opacity: 1;
+  transition: grid-template-rows 800ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 250ms ease;
 }
 .dashboard-goals-inner {
   padding-bottom: 2px;
+  overflow: hidden; /* needed for grid-template-rows collapse */
 }
 :root[data-theme='dark'] .dashboard-goals-summary-chevron {
   border-right-color: rgba(212, 175, 55, 0.85);
   border-bottom-color: rgba(212, 175, 55, 0.85);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-goals-summary-chevron {
+    transition: none;
+  }
+  .dashboard-goals-anim {
+    transition: none;
+  }
 }
 /* Two side-by-side goal cards; undo plan-tab full-width spanning */
 .goals-grid.goals-grid--dashboard {
