@@ -947,6 +947,7 @@ body.financial-plan-demo-mode #checkin-form {
 .dashboard-goals-details--open .dashboard-goals-anim {
   grid-template-rows: 1fr;
   opacity: 1;
+  transition: grid-template-rows 800ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 250ms ease;
 }
 .dashboard-goals-inner {
   padding-bottom: 2px;
