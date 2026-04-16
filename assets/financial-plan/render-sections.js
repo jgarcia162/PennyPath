@@ -497,7 +497,8 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
       if (!accountContributesToGoal(acc, sg.id)) return;
       anyGoal = true;
       const goalAmt = numOr(sg.targetAmount, 0);
-      const pctTowardGoal = goalAmt > 0 ? Math.min(100, (current / goalAmt) * 100) : 0;
+      const towardAllAccounts = numOr(sg.sum, 0);
+      const pctTowardGoal = numOr(sg.pct, 0);
       const sub = document.createElement('div');
       sub.className = 'goal3-savings-goal-line';
       const cap = document.createElement('div');
@@ -509,7 +510,7 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
       labels.className = 'progress-label-row';
       const labelLeft =
         goalAmt > 0
-          ? moneyExact(current) + ' of ' + moneyExact(goalAmt)
+          ? moneyExact(towardAllAccounts) + ' of ' + moneyExact(goalAmt)
           : moneyExact(current) + ' balance';
       const labelRight =
         goalAmt > 0
