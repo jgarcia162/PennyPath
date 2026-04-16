@@ -147,10 +147,21 @@ export function wireGoal2DebtEditor(render) {
     });
   }
 
+  let debtDraftRerenderTimer = null;
+  function scheduleDebtsDraftSyncToPlanAndRender() {
+    clearTimeout(debtDraftRerenderTimer);
+    debtDraftRerenderTimer = setTimeout(function () {
+      readDebtsEditorIntoPlan();
+      render({ skipDebtsEditor: true });
+    }, 90);
+  }
+
   const addBtn = document.getElementById('btn-add-debt');
   if (addBtn) {
     addBtn.addEventListener('click', function () {
       addDebtRowDraft(showGoal2Unsaved);
+      readDebtsEditorIntoPlan();
+      render();
     });
   }
 
@@ -163,6 +174,7 @@ export function wireGoal2DebtEditor(render) {
       if (!row || !debtsHost.contains(row)) return;
       if (!t.matches('input, textarea, select')) return;
       showGoal2Unsaved();
+      scheduleDebtsDraftSyncToPlanAndRender();
     }
     debtsHost.addEventListener('input', onDebtRowFieldActivity);
     debtsHost.addEventListener('change', onDebtRowFieldActivity);
@@ -196,6 +208,8 @@ export function wireGoal2DebtEditor(render) {
         const row = btn.closest('.debt-row');
         if (row) row.remove();
         showGoal2Unsaved();
+        readDebtsEditorIntoPlan();
+        render();
       },
     });
   }

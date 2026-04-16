@@ -198,7 +198,10 @@ function monthlyDebtBarHint(d) {
   );
 }
 
-export function render() {
+/**
+ * @param {{ skipDebtsEditor?: boolean }} [opts] — When true, keeps the Goal 2 debts table DOM (draft row / focus) and only refreshes derived totals elsewhere.
+ */
+export function render(opts) {
   const d = derived(PLAN);
   syncDashboardMonthSelect();
   const noteWorking = document.getElementById('dashboard-view-working-note');
@@ -337,7 +340,9 @@ export function render() {
   );
 
   renderGoal2Debts(PLAN, moneyExact);
-  renderDebtsEditor(PLAN);
+  if (!(opts && opts.skipDebtsEditor)) {
+    renderDebtsEditor(PLAN);
+  }
   syncDebtsEditorSortSelect(PLAN);
   syncDebtsProgressSortSelect(PLAN);
   renderGoal3SavingsAccounts(d, moneyExact);
