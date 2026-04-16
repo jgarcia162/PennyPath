@@ -883,7 +883,8 @@ body.financial-plan-demo-mode #checkin-form {
 .goals-grid.goals-grid--dashboard {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
-  align-items: stretch;
+  /* Match each card height to its content — savings can be taller without stretching debt */
+  align-items: start;
 }
 .goals-grid--dashboard .goal-card.secondary-a,
 .goals-grid--dashboard .goal-card.secondary-b {
