@@ -993,6 +993,10 @@ body.financial-plan-demo-mode #checkin-form {
   background: rgba(255, 255, 255, 0.28);
   margin: 0 0 18px;
 }
+/* Edge editor tabs replace the horizontal dashboard tabs on desktop. */
+.page-tab-panel--dashboard .dashboard-tabs {
+  display: none;
+}
 .dashboard-tab-btn {
   appearance: none;
   border: 1px solid transparent;
@@ -1016,8 +1020,8 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(60, 68, 82, 0.92);
 }
 
-/* Fixed vertical edge tabs (quick switch between Debts/Savings). */
-.dashboard-edge-tabs {
+/* Edge editor drawers (tabs + expanding editor). */
+.dashboard-edge-editors {
   position: fixed;
   right: 0;
   top: 50%;
@@ -1029,7 +1033,7 @@ body.financial-plan-demo-mode #checkin-form {
   padding: 8px 0;
   pointer-events: none; /* only tabs themselves should be clickable */
 }
-.dashboard-edge-tab {
+.edge-editor__tab {
   pointer-events: auto;
   appearance: none;
   border: 1px solid rgba(60, 68, 82, 0.12);
@@ -1047,51 +1051,93 @@ body.financial-plan-demo-mode #checkin-form {
   box-shadow: 0 10px 26px rgba(60, 68, 82, 0.12);
   transition: transform 180ms ease, box-shadow 180ms ease, background 150ms ease, border-color 150ms ease, color 150ms ease;
 }
-.dashboard-edge-tab__label {
+.edge-editor__tab-label {
   display: inline-block;
   writing-mode: vertical-rl;
   transform: rotate(180deg); /* read top-to-bottom */
   font-size: 11px;
   line-height: 1;
 }
-.dashboard-edge-tab:hover {
+.edge-editor__tab:hover {
   background: rgba(255, 255, 255, 0.92);
   color: rgba(60, 68, 82, 0.94);
   transform: translateX(-2px);
 }
-.dashboard-edge-tab[aria-selected="true"] {
+.edge-editor__tab[aria-selected="true"] {
   background: rgba(58, 95, 138, 0.18);
   border-color: rgba(58, 95, 138, 0.28);
   color: rgba(60, 68, 82, 0.94);
   box-shadow: 0 14px 34px rgba(60, 68, 82, 0.18);
   transform: translateX(-6px);
 }
-:root[data-theme="dark"] .dashboard-edge-tab {
+/* Drawer panel */
+.edge-editor {
+  pointer-events: none;
+}
+.edge-editor.is-open {
+  pointer-events: auto;
+}
+.edge-editor__panel {
+  position: fixed;
+  top: 110px;
+  right: 0;
+  z-index: 315;
+  width: min(660px, calc(100vw - 72px));
+  max-height: calc(100vh - 160px);
+  overflow: auto;
+  padding: 0 0 0 0;
+  transform: translateX(100%);
+  transition: transform 240ms cubic-bezier(0.33, 1, 0.68, 1);
+  pointer-events: auto;
+}
+.edge-editor.is-open .edge-editor__panel {
+  transform: translateX(0);
+}
+.edge-editor__panel .toolwin {
+  position: static;
+  right: auto;
+  top: auto;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  max-height: none;
+  height: auto;
+  resize: none;
+}
+.edge-editor__panel .toolwin__body {
+  max-height: none;
+}
+
+:root[data-theme="dark"] .edge-editor__tab {
   border-color: rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.06);
   color: rgba(233, 233, 246, 0.86);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
-:root[data-theme="dark"] .dashboard-edge-tab:hover {
+:root[data-theme="dark"] .edge-editor__tab:hover {
   background: rgba(255, 255, 255, 0.10);
   color: rgba(233, 233, 246, 0.92);
 }
-:root[data-theme="dark"] .dashboard-edge-tab[aria-selected="true"] {
+:root[data-theme="dark"] .edge-editor__tab[aria-selected="true"] {
   background: rgba(121, 166, 216, 0.16);
   border-color: rgba(121, 166, 216, 0.22);
   color: rgba(233, 233, 246, 0.92);
 }
 @media (prefers-reduced-motion: reduce) {
-  .dashboard-edge-tab,
-  .dashboard-edge-tab:hover,
-  .dashboard-edge-tab[aria-selected="true"] {
+  .edge-editor__tab,
+  .edge-editor__tab:hover,
+  .edge-editor__tab[aria-selected="true"],
+  .edge-editor__panel {
     transition: none;
     transform: none;
   }
 }
 @media (max-width: 900px) {
-  .dashboard-edge-tabs {
+  .dashboard-edge-editors {
     display: none; /* avoid fighting for space on mobile */
+  }
+  .page-tab-panel--dashboard .dashboard-tabs {
+    display: inline-flex;
   }
 }
 :root[data-theme="dark"] .dashboard-tabs {
