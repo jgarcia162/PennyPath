@@ -5,7 +5,7 @@ reviews:
     Always provide a concise, professional title following the Conventional Commits
     format (e.g., feat:, fix:, style:).
     In the description, include a "High-level description" of the changes and
-    a "Key changes" bulleted list.
+    a "Key changes" bulleted list. Feel free to add some flair to the description like some emojis or gifs
   auto_review:
     base_branches:
       - "^develop$"
