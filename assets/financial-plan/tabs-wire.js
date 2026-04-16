@@ -62,6 +62,11 @@ export function wirePlanTabs() {
     if (editor) editor.classList.toggle('is-open', !!open);
   }
 
+  function closeAllEdgeEditors() {
+    setEdgeEditorOpen('debts', false);
+    setEdgeEditorOpen('savings', false);
+  }
+
   function syncDashEdgeTabs(which) {
     if (!tabDebtsEdge || !tabSavingsEdge) return;
     const isSavings = which === 'savings';
@@ -142,6 +147,26 @@ export function wirePlanTabs() {
         activateDash('savings', { updateHash: true, openEditor: true });
       }
     });
+
+    // Click outside drawer collapses any open editor.
+    document.addEventListener(
+      'click',
+      function (e) {
+        const t = e && e.target;
+        if (!t) return;
+        // Ignore clicks on the tabs or inside the drawer panels.
+        if (t.closest && t.closest('.edge-editor__tab')) return;
+        if (t.closest && t.closest('.edge-editor__panel')) return;
+        // Only close if anything is currently open.
+        if (
+          tabDebtsEdge.getAttribute('aria-expanded') === 'true' ||
+          tabSavingsEdge.getAttribute('aria-expanded') === 'true'
+        ) {
+          closeAllEdgeEditors();
+        }
+      },
+      false
+    );
   }
 
   // Buttons with data-open-dashboard (goal cards, plan hints) open Dashboard + subtab.

@@ -1033,12 +1033,15 @@ body.financial-plan-demo-mode #checkin-form {
   padding: 8px 0;
   pointer-events: none; /* only tabs themselves should be clickable */
 }
+.edge-editor[data-edge-editor='debts'] { --edge-accent: var(--sage); --edge-bg: rgba(143, 176, 160, 0.18); }
+.edge-editor[data-edge-editor='savings'] { --edge-accent: var(--purple); --edge-bg: rgba(173, 160, 194, 0.20); }
+.edge-editor { --edge-accent: rgba(58, 95, 138, 0.9); --edge-bg: rgba(58, 95, 138, 0.14); }
 .edge-editor__tab {
   pointer-events: auto;
   appearance: none;
   border: 1px solid rgba(60, 68, 82, 0.12);
   border-right: none;
-  background: rgba(255, 255, 255, 0.75);
+  background: var(--edge-bg);
   color: rgba(60, 68, 82, 0.86);
   font-family: 'DM Sans', sans-serif;
   font-weight: 900;
@@ -1059,15 +1062,17 @@ body.financial-plan-demo-mode #checkin-form {
   line-height: 1;
 }
 .edge-editor__tab:hover {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.85);
   color: rgba(60, 68, 82, 0.94);
   transform: translateX(-2px);
 }
 .edge-editor__tab[aria-selected="true"] {
-  background: rgba(58, 95, 138, 0.18);
-  border-color: rgba(58, 95, 138, 0.28);
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(60, 68, 82, 0.16);
   color: rgba(60, 68, 82, 0.94);
-  box-shadow: 0 14px 34px rgba(60, 68, 82, 0.18);
+  box-shadow:
+    0 14px 34px rgba(60, 68, 82, 0.18),
+    0 0 0 1px var(--edge-accent) inset;
   transform: translateX(-6px);
 }
 /* Drawer panel */
@@ -1118,6 +1123,8 @@ body.financial-plan-demo-mode #checkin-form {
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
 }
 
+:root[data-theme="dark"] .edge-editor[data-edge-editor='debts'] { --edge-bg: rgba(143, 176, 160, 0.18); }
+:root[data-theme="dark"] .edge-editor[data-edge-editor='savings'] { --edge-bg: rgba(173, 160, 194, 0.20); }
 :root[data-theme="dark"] .edge-editor__tab {
   border-color: rgba(255, 255, 255, 0.12);
   background: rgba(255, 255, 255, 0.06);
@@ -1129,9 +1136,12 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(233, 233, 246, 0.92);
 }
 :root[data-theme="dark"] .edge-editor__tab[aria-selected="true"] {
-  background: rgba(121, 166, 216, 0.16);
-  border-color: rgba(121, 166, 216, 0.22);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.16);
   color: rgba(233, 233, 246, 0.92);
+  box-shadow:
+    0 16px 38px rgba(0, 0, 0, 0.45),
+    0 0 0 1px var(--edge-accent) inset;
 }
 @media (prefers-reduced-motion: reduce) {
   .edge-editor__tab,
