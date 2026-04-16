@@ -1080,9 +1080,10 @@ body.financial-plan-demo-mode #checkin-form {
 .edge-editor__panel {
   position: fixed;
   top: 50%;
-  right: 0;
+  /* Leave room so the vertical tabs remain visible/clickable. */
+  right: 56px;
   z-index: 315;
-  width: min(660px, calc(100vw - 72px));
+  width: min(660px, calc(100vw - 56px - 16px));
   max-height: calc(100vh - 160px);
   overflow: auto;
   padding: 0 0 0 0;

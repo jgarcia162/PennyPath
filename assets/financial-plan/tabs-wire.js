@@ -75,9 +75,11 @@ export function wirePlanTabs() {
     if (w === 'savings') activatePairB(dash);
     else activatePair(dash);
     syncDashEdgeTabs(w);
-    // Edge tabs are the editor selectors: open the matching drawer and close the other.
-    setEdgeEditorOpen('debts', w === 'debts');
-    setEdgeEditorOpen('savings', w === 'savings');
+    // Only open drawers when explicitly requested (edge tabs).
+    if (opts && opts.openEditor) {
+      setEdgeEditorOpen('debts', w === 'debts');
+      setEdgeEditorOpen('savings', w === 'savings');
+    }
     if (opts && opts.updateHash) {
       try {
         history.replaceState(null, '', w === 'savings' ? '#dashboard/savings' : '#dashboard/debts');
@@ -88,7 +90,11 @@ export function wirePlanTabs() {
   // Default state (in case markup changes later).
   activatePair(top);
   if (tabDebts && tabSavings && panelDebts && panelSavings) {
-    activateDash('debts');
+    // Keep edge editor drawers collapsed on load.
+    setEdgeEditorOpen('debts', false);
+    setEdgeEditorOpen('savings', false);
+    // Preserve the default tab selection (Debts) without opening an editor.
+    activateDash('debts', { openEditor: false });
   }
 
   tabPlan.addEventListener('click', function () {
@@ -106,10 +112,10 @@ export function wirePlanTabs() {
 
   if (tabDebts && tabSavings && panelDebts && panelSavings) {
     tabDebts.addEventListener('click', function () {
-      activateDash('debts', { updateHash: true });
+      activateDash('debts', { updateHash: true, openEditor: false });
     });
     tabSavings.addEventListener('click', function () {
-      activateDash('savings', { updateHash: true });
+      activateDash('savings', { updateHash: true, openEditor: false });
     });
   }
 
@@ -121,7 +127,9 @@ export function wirePlanTabs() {
         // Collapse when clicking the active editor tab.
         setEdgeEditorOpen('debts', false);
       } else {
-        activateDash('debts', { updateHash: true });
+        // Ensure the other editor collapses, then open this one.
+        setEdgeEditorOpen('savings', false);
+        activateDash('debts', { updateHash: true, openEditor: true });
       }
     });
     tabSavingsEdge.addEventListener('click', function () {
@@ -130,7 +138,8 @@ export function wirePlanTabs() {
       if (open) {
         setEdgeEditorOpen('savings', false);
       } else {
-        activateDash('savings', { updateHash: true });
+        setEdgeEditorOpen('debts', false);
+        activateDash('savings', { updateHash: true, openEditor: true });
       }
     });
   }
@@ -152,8 +161,9 @@ export function wirePlanTabs() {
     const h = String(location.hash || '');
     if (h.startsWith('#dashboard')) {
       activatePairB(top);
-      if (h.indexOf('/savings') !== -1) activateDash('savings');
-      else activateDash('debts');
+      // Select correct dashboard panel, keep drawers collapsed.
+      if (h.indexOf('/savings') !== -1) activateDash('savings', { openEditor: false });
+      else activateDash('debts', { openEditor: false });
     }
   } catch (e) {}
 }
