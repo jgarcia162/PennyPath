@@ -272,8 +272,8 @@ export function render(opts) {
   } else {
     setText('status-personal-note', 'Add personal savings accounts in Goal 3 to track your emergency fund.');
   }
-  setText('status-debt-rounded', money(d.debtRounded));
-  setText('status-debt-note', hasDebts ? moneyExact(d.totalDebt) + ' total — edit in Goal 2' : 'No debts on file — add them in Goal 2.');
+  setText('status-debt-rounded', hasDebts ? moneyExact(d.totalDebt) : '—');
+  setText('status-debt-note', hasDebts ? 'Total owed — edit in Goal 2' : 'No debts on file — add them in Goal 2.');
   setText('status-takehome', money(PLAN.monthlyTakeHome));
   setText('status-takehome-note', moneyExact(PLAN.paycheckAmount) + ' × ' + PLAN.paychecksPerMonth + ' paychecks per month');
 
@@ -293,7 +293,7 @@ export function render(opts) {
   setText('goal-hysa-amt', money(PLAN.goalHysa));
   setText('goal-hysa-when', PLAN.labels.goalHysaWhen);
   if (hasDebts) {
-    setTextDash('goal-debt-amt', money(d.debtRounded));
+    setTextDash('goal-debt-amt', moneyExact(d.totalDebt));
     setTextDash('goal-debt-when', d.debtGoalWhenLine);
     setTextDash('debt-progress-left', moneyExact(d.totalDebt) + ' remaining');
     setHtmlDash(
@@ -419,7 +419,7 @@ export function render(opts) {
           '–' +
           intr.aprHigh +
           '% APR, the ' +
-          money(d.debtRounded) +
+          moneyExact(d.totalDebt) +
           ' balance will accrue roughly $' +
           intr.monthOneLow +
           '–$' +
