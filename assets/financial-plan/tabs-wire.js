@@ -117,9 +117,11 @@ export function wirePlanTabs() {
 
   if (tabDebts && tabSavings && panelDebts && panelSavings) {
     tabDebts.addEventListener('click', function () {
+      closeAllEdgeEditors();
       activateDash('debts', { updateHash: true, openEditor: false });
     });
     tabSavings.addEventListener('click', function () {
+      closeAllEdgeEditors();
       activateDash('savings', { updateHash: true, openEditor: false });
     });
   }
@@ -127,25 +129,29 @@ export function wirePlanTabs() {
   if (tabDebtsEdge && tabSavingsEdge && tabDebts && tabSavings && panelDebts && panelSavings) {
     tabDebtsEdge.addEventListener('click', function () {
       activatePairB(top);
-      const open = tabDebtsEdge.getAttribute('aria-expanded') === 'true';
-      if (open) {
-        // Collapse when clicking the active editor tab.
-        setEdgeEditorOpen('debts', false);
-      } else {
-        // Ensure the other editor collapses, then open this one.
-        setEdgeEditorOpen('savings', false);
-        activateDash('debts', { updateHash: true, openEditor: true });
+      const isSelected = tabDebtsEdge.getAttribute('aria-selected') === 'true';
+      if (!isSelected) {
+        // First click selects the dashboard tab (no editor open).
+        closeAllEdgeEditors();
+        activateDash('debts', { updateHash: true, openEditor: false });
+        return;
       }
+      // Second click toggles the editor drawer.
+      const open = tabDebtsEdge.getAttribute('aria-expanded') === 'true';
+      setEdgeEditorOpen('savings', false);
+      setEdgeEditorOpen('debts', !open);
     });
     tabSavingsEdge.addEventListener('click', function () {
       activatePairB(top);
-      const open = tabSavingsEdge.getAttribute('aria-expanded') === 'true';
-      if (open) {
-        setEdgeEditorOpen('savings', false);
-      } else {
-        setEdgeEditorOpen('debts', false);
-        activateDash('savings', { updateHash: true, openEditor: true });
+      const isSelected = tabSavingsEdge.getAttribute('aria-selected') === 'true';
+      if (!isSelected) {
+        closeAllEdgeEditors();
+        activateDash('savings', { updateHash: true, openEditor: false });
+        return;
       }
+      const open = tabSavingsEdge.getAttribute('aria-expanded') === 'true';
+      setEdgeEditorOpen('debts', false);
+      setEdgeEditorOpen('savings', !open);
     });
 
     // Click outside drawer collapses any open editor.
@@ -169,6 +175,8 @@ export function wirePlanTabs() {
     );
   }
 
+  // (Auto-contrast demo removed; using scrim/text-shadow approach only.)
+
   // Buttons with data-open-dashboard (goal cards, plan hints) open Dashboard + subtab.
   const openDashBtns = document.querySelectorAll('[data-open-dashboard]');
   if (openDashBtns && openDashBtns.length) {
@@ -176,7 +184,8 @@ export function wirePlanTabs() {
       btn.addEventListener('click', function () {
         activatePairB(top);
         const which = btn.getAttribute('data-open-dashboard');
-        activateDash(which === 'savings' ? 'savings' : 'debts', { updateHash: true });
+        closeAllEdgeEditors();
+        activateDash(which === 'savings' ? 'savings' : 'debts', { updateHash: true, openEditor: false });
       });
     });
   }
