@@ -1,0 +1,6 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit reviews PRs to the default branch by default; list other base branches here.
+reviews:
+  auto_review:
+    base_branches:
+      - "^develop$"
