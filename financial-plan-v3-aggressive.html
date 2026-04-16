@@ -167,27 +167,53 @@
     <div class="section-title">Where We Want to Be</div>
 
     <div class="plan-goals-editor no-print" id="plan-goals-editor">
-      <div class="plan-goals-editor__head">
-        <div class="plan-goals-editor__title">Edit goal targets</div>
-        <div class="plan-goals-editor__hint">Updates instantly across the plan + dashboard.</div>
-      </div>
-      <div class="plan-goals-editor__grid">
-        <div class="balance-field">
-          <label for="goal-hysa-target-input">HYSA goal amount</label>
-          <input type="text" id="goal-hysa-target-input" inputmode="decimal" autocomplete="off" />
-          <div class="balance-field-hint">Example: 50000</div>
+      <div class="goal-editor-inner balance-editor plan-goals-editor__panel">
+        <div class="debts-editor-header plan-goals-editor__header">
+          <div class="debts-editor-title">Edit goal targets</div>
+          <div class="plan-goals-editor__hint">Updates instantly across the plan + dashboard.</div>
         </div>
-        <div class="balance-field">
-          <label for="goal-hysa-by-input">HYSA goal by</label>
-          <input type="month" id="goal-hysa-by-input" autocomplete="off" />
-          <div class="balance-field-hint">Example: 2027-06</div>
+
+        <div class="plan-goals-editor__section">
+          <div class="debts-editor-title">Joint HYSA — amount &amp; timeline</div>
+          <div class="balance-editor-grid plan-goals-editor__hysa-grid">
+            <div class="balance-field">
+              <label for="goal-hysa-target-input">HYSA goal amount</label>
+              <input type="text" id="goal-hysa-target-input" inputmode="decimal" autocomplete="off" />
+              <div class="balance-field-hint">Example: 50000</div>
+            </div>
+            <div class="balance-field">
+              <label for="goal-hysa-by-input">HYSA goal by</label>
+              <input type="month" id="goal-hysa-by-input" autocomplete="off" />
+              <div class="balance-field-hint">Example: 2027-06</div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div id="savings-goals-target-editor" class="plan-goals-editor__savings-goals" aria-label="Savings goal targets"></div>
-      <div class="balance-editor-actions">
-        <div class="balance-editor-actions-primary">
-          <button type="button" class="btn-save" id="btn-save-goal-targets">Save goals</button>
-          <span class="balance-saved-hint" id="goal-targets-save-status" aria-live="polite"></span>
+
+        <div class="plan-goals-editor__section">
+          <div class="debts-editor-header plan-goals-editor__subheader">
+            <div class="debts-editor-title">Savings targets</div>
+          </div>
+          <p class="balance-editor-note plan-goals-editor__targets-note">
+            Each target can include the full balance of accounts you link in the savings editor. One account can count toward several goals.
+          </p>
+          <div
+            id="savings-goals-target-editor"
+            class="debts-editor-list goals-targets-editor-list"
+            aria-label="Savings goal targets"
+          ></div>
+          <div class="balance-editor-actions balance-editor-actions--goal-targets-add">
+            <span class="balance-editor-actions-primary" aria-hidden="true"></span>
+            <button type="button" class="btn-add-debt balance-editor-actions-add" id="btn-add-savings-goal">
+              + Add savings goal
+            </button>
+          </div>
+        </div>
+
+        <div class="balance-editor-actions">
+          <div class="balance-editor-actions-primary">
+            <button type="button" class="btn-save" id="btn-save-goal-targets">Save goals</button>
+            <span class="balance-saved-hint" id="goal-targets-save-status" aria-live="polite"></span>
+          </div>
         </div>
       </div>
     </div>

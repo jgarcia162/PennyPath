@@ -99,47 +99,70 @@ function renderSavingsGoalsTargetEditor() {
   const host = document.getElementById('savings-goals-target-editor');
   if (!host) return;
   host.innerHTML = '';
-  const sub = document.createElement('div');
-  sub.className = 'plan-goals-editor__subhead';
-  sub.textContent = 'Savings targets';
-  host.appendChild(sub);
-  const hint = document.createElement('p');
-  hint.className = 'plan-goals-editor__subhint';
-  hint.textContent =
-    'Each target can include the full balance of any accounts you link in the savings editor (below). One account can count toward several goals.';
-  host.appendChild(hint);
+  const table = document.createElement('table');
+  table.className = 'editor-table editor-table--goal-targets';
+  table.setAttribute('role', 'grid');
+  const thead = document.createElement('thead');
+  const trh = document.createElement('tr');
+  trh.className = 'editor-table__head-row';
+  [
+    { t: 'Goal name', title: 'Savings goal label' },
+    { t: 'Target amount', title: 'Dollar target for this goal' },
+    { t: '', title: 'Remove row' },
+  ].forEach(function (h) {
+    const th = document.createElement('th');
+    th.scope = 'col';
+    th.textContent = h.t;
+    if (h.title) th.title = h.title;
+    if (!h.t) {
+      th.className = 'editor-table__th--action';
+      th.setAttribute('aria-label', 'Remove');
+    }
+    trh.appendChild(th);
+  });
+  thead.appendChild(trh);
+  table.appendChild(thead);
+  const tbody = document.createElement('tbody');
   (PLAN.savingsGoals || []).forEach(function (g) {
-    const row = document.createElement('div');
+    const row = document.createElement('tr');
     row.className = 'savings-goal-target-row';
     row.setAttribute('data-goal-id', String(g.id));
+
+    const tdName = document.createElement('td');
+    tdName.className = 'editor-table__cell--name';
     const nameIn = document.createElement('input');
     nameIn.type = 'text';
     nameIn.setAttribute('data-field', 'goal-name');
     nameIn.setAttribute('aria-label', 'Goal name');
     nameIn.value = String(g.name || '');
+    tdName.appendChild(nameIn);
+
+    const tdAmt = document.createElement('td');
     const amtIn = document.createElement('input');
     amtIn.type = 'text';
     amtIn.inputMode = 'decimal';
     amtIn.setAttribute('data-field', 'goal-amount');
     amtIn.setAttribute('aria-label', 'Goal amount');
     amtIn.value = String(Math.round(numOr(g.targetAmount, 0)));
+    tdAmt.appendChild(amtIn);
+
+    const tdRm = document.createElement('td');
+    tdRm.className = 'editor-table__cell--actions';
     const rm = document.createElement('button');
     rm.type = 'button';
-    rm.className = 'btn-undo savings-goal-target-row__remove';
+    rm.className = 'btn-remove-savings';
     rm.setAttribute('data-action', 'remove-savings-goal');
     rm.setAttribute('data-goal-id', String(g.id));
     rm.textContent = 'Remove';
-    row.appendChild(nameIn);
-    row.appendChild(amtIn);
-    row.appendChild(rm);
-    host.appendChild(row);
+    tdRm.appendChild(rm);
+
+    row.appendChild(tdName);
+    row.appendChild(tdAmt);
+    row.appendChild(tdRm);
+    tbody.appendChild(row);
   });
-  const addBtn = document.createElement('button');
-  addBtn.type = 'button';
-  addBtn.id = 'btn-add-savings-goal';
-  addBtn.className = 'btn-save';
-  addBtn.textContent = 'Add savings goal';
-  host.appendChild(addBtn);
+  table.appendChild(tbody);
+  host.appendChild(table);
 }
 
 function monthlyDebtBarHint(d) {

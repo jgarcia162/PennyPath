@@ -375,11 +375,13 @@ body.financial-plan-demo-mode #checkin-form {
   border-bottom-color: rgba(255, 255, 255, 0.1);
 }
 :root[data-theme="dark"] .editor-table tbody tr.debt-row td,
-:root[data-theme="dark"] .editor-table tbody tr.savings-row td {
+:root[data-theme="dark"] .editor-table tbody tr.savings-row td,
+:root[data-theme="dark"] .editor-table tbody tr.savings-goal-target-row td {
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 :root[data-theme="dark"] .editor-table tbody tr.debt-row:hover,
-:root[data-theme="dark"] .editor-table tbody tr.savings-row:hover {
+:root[data-theme="dark"] .editor-table tbody tr.savings-row:hover,
+:root[data-theme="dark"] .editor-table tbody tr.savings-goal-target-row:hover {
   background: rgba(255, 255, 255, 0.04);
 }
 :root[data-theme="dark"] .editor-table td input[type="text"],
@@ -629,81 +631,65 @@ body.financial-plan-demo-mode #checkin-form {
   border-color: rgba(225, 195, 106, 0.38);
 }
 
-/* Plan goals editor (targets like goal amount + by month) */
+/* Plan tab goal targets: same shell as dashboard editors — .goal-editor-inner.balance-editor,
+   .debts-editor-header / .debts-editor-title, .balance-editor-grid, .debts-editor-list + .editor-table */
 .plan-goals-editor {
-  background: var(--paper);
-  border: 1px solid rgba(60, 68, 82, 0.10);
-  border-radius: 16px;
-  padding: 18px 18px 16px;
-  margin: 0 0 14px;
-  box-shadow: 0 2px 12px rgba(60, 68, 82, 0.04);
+  margin: 0 0 22px;
 }
-.plan-goals-editor__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 8px 12px;
-  margin-bottom: 12px;
+.plan-goals-editor__panel.balance-editor {
+  padding: 26px 28px 28px;
 }
-.plan-goals-editor__title {
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(60, 68, 82, 0.55);
+.plan-goals-editor__header.debts-editor-header {
+  margin-top: 0;
+  margin-bottom: 14px;
 }
 .plan-goals-editor__hint {
   font-size: 13px;
-  color: rgba(60, 68, 82, 0.62);
+  font-weight: 600;
+  color: rgba(60, 68, 82, 0.58);
+  max-width: 28rem;
+  line-height: 1.4;
+  text-align: right;
 }
-.plan-goals-editor__grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px 18px;
+.plan-goals-editor__section {
+  margin-bottom: 20px;
 }
-:root[data-theme="dark"] .plan-goals-editor {
-  border-color: rgba(255, 255, 255, 0.10);
-  background: rgba(255, 255, 255, 0.04);
-}
-:root[data-theme="dark"] .plan-goals-editor__title {
-  color: rgba(233, 233, 246, 0.55);
-}
-:root[data-theme="dark"] .plan-goals-editor__hint {
-  color: rgba(233, 233, 246, 0.65);
-}
-
-.plan-goals-editor__subhead {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: rgba(60, 68, 82, 0.5);
-  margin: 18px 0 6px;
-}
-.plan-goals-editor__subhint {
-  font-size: 12px;
-  line-height: 1.45;
-  color: rgba(60, 68, 82, 0.65);
-  margin: 0 0 12px;
-}
-.plan-goals-editor__savings-goals {
-  margin-top: 4px;
-}
-.savings-goal-target-row {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(88px, 120px) auto;
-  gap: 8px 10px;
-  align-items: center;
+.plan-goals-editor__subheader.debts-editor-header {
+  margin-top: 0;
   margin-bottom: 8px;
 }
-.savings-goal-target-row__remove {
-  font-size: 11px;
-  padding: 5px 8px;
+.plan-goals-editor__targets-note.balance-editor-note {
+  margin-bottom: 12px;
+  margin-top: 0;
+}
+.plan-goals-editor__hysa-grid.balance-editor-grid {
+  margin-bottom: 0;
+}
+.goals-targets-editor-list.debts-editor-list {
+  margin-top: 0;
+  max-height: min(50vh, 420px);
+}
+.balance-editor-actions--goal-targets-add {
+  margin-top: 10px;
+  justify-content: flex-end;
+}
+.editor-table tbody tr.savings-goal-target-row {
+  background: transparent;
+}
+.editor-table tbody tr.savings-goal-target-row td {
+  padding: 8px 10px;
+  vertical-align: middle;
+  border-bottom: 1px solid rgba(60, 68, 82, 0.07);
   white-space: nowrap;
 }
-#btn-add-savings-goal {
-  margin-top: 6px;
+.editor-table tbody tr.savings-goal-target-row:hover {
+  background: rgba(60, 68, 82, 0.03);
+}
+.editor-table--goal-targets .editor-table__cell--name input {
+  min-width: 10rem;
+}
+:root[data-theme="dark"] .plan-goals-editor__hint {
+  color: rgba(233, 233, 246, 0.62);
 }
 .editor-table__cell--goals {
   min-width: 120px;
@@ -763,12 +749,6 @@ body.financial-plan-demo-mode #checkin-form {
   text-transform: uppercase;
   color: rgba(60, 68, 82, 0.55);
   margin-bottom: 4px;
-}
-:root[data-theme="dark"] .plan-goals-editor__subhead {
-  color: rgba(233, 233, 246, 0.5);
-}
-:root[data-theme="dark"] .plan-goals-editor__subhint {
-  color: rgba(233, 233, 246, 0.65);
 }
 :root[data-theme="dark"] .savings-goal-block {
   border-top-color: rgba(255, 255, 255, 0.08);
@@ -2545,7 +2525,15 @@ body.financial-plan-demo-mode #checkin-form {
   .goals-grid { grid-template-columns: 1fr; }
   .goal-card.primary, .goal-card.secondary-b { grid-column: 1; }
   .efund-grid { grid-template-columns: 1fr 1fr; }
-  .plan-goals-editor__grid { grid-template-columns: 1fr; }
+  .plan-goals-editor__hysa-grid { grid-template-columns: 1fr; }
+  .plan-goals-editor__header.debts-editor-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .plan-goals-editor__hint {
+    text-align: left;
+    max-width: none;
+  }
   .balance-editor-grid { grid-template-columns: 1fr; }
   .goal2-debts { grid-template-columns: 1fr; }
   .goal3-savings { grid-template-columns: 1fr; }
