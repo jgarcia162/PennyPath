@@ -1159,10 +1159,14 @@ body.financial-plan-demo-mode #checkin-form {
 @media (prefers-reduced-motion: reduce) {
   .edge-editor__tab,
   .edge-editor__tab:hover,
-  .edge-editor__tab[aria-selected="true"],
-  .edge-editor__panel {
+  .edge-editor__tab[aria-selected="true"] {
     transition: none;
     transform: none;
+  }
+  .edge-editor__panel {
+    transition: none;
+    /* Preserve vertical centering while disabling horizontal animation. */
+    transform: translate(0, -50%);
   }
 }
 @media (max-width: 900px) {
