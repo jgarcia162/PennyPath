@@ -900,8 +900,14 @@ body.financial-plan-demo-mode #checkin-form {
   margin: 0 0 22px;
 }
 .dashboard-goals-summary {
+  appearance: none;
+  border: none;
+  background: transparent;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
   cursor: pointer;
-  list-style: none;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -910,8 +916,10 @@ body.financial-plan-demo-mode #checkin-form {
   font-size: 10px; /* match section eyebrow sizing for visual centering */
   line-height: 1.1;
 }
-.dashboard-goals-summary::-webkit-details-marker {
-  display: none;
+.dashboard-goals-summary:focus-visible {
+  outline: 2px solid rgba(58, 95, 138, 0.45);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 .dashboard-goals-summary-chevron {
   display: inline-block;
@@ -923,7 +931,7 @@ body.financial-plan-demo-mode #checkin-form {
   transition: transform 0.3s ease;
   flex-shrink: 0;
 }
-.dashboard-goals-details[open] .dashboard-goals-summary-chevron {
+.dashboard-goals-details--open .dashboard-goals-summary-chevron {
   transform: rotate(45deg);
 }
 .dashboard-goals-summary-eyebrow {
@@ -936,7 +944,7 @@ body.financial-plan-demo-mode #checkin-form {
   transition: grid-template-rows 1s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.45s ease;
   will-change: grid-template-rows, opacity;
 }
-.dashboard-goals-details[open] .dashboard-goals-anim {
+.dashboard-goals-details--open .dashboard-goals-anim {
   grid-template-rows: 1fr;
   opacity: 1;
 }

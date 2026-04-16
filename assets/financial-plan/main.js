@@ -58,6 +58,22 @@ function loadPlanForMode() {
   syncLegacySavingsFromAccounts(PLAN);
 }
 
+/**
+ * Goals at a glance: avoid native <details> so grid height transitions can run (closed slot is display:none).
+ */
+function wireDashboardGoalsAtGlance() {
+  const root = document.getElementById('dashboard-goals-at-glance');
+  const btn = document.getElementById('dashboard-goals-toggle');
+  if (!root || !btn) return;
+  const panel = document.getElementById('dashboard-goals-panel');
+  btn.addEventListener('click', function () {
+    const open = root.classList.toggle('dashboard-goals-details--open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (panel) panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+  });
+  if (panel) panel.setAttribute('aria-hidden', 'false');
+}
+
 function wireWipeAllButton() {
   const btn = document.getElementById('btn-wipe-all-data');
   if (!btn) return;
@@ -101,6 +117,7 @@ function init() {
   wireWipeAllButton();
   wireMonthWrap(render);
   wireDashboardMonthSelector(render);
+  wireDashboardGoalsAtGlance();
 }
 
 if (document.readyState === 'loading') {

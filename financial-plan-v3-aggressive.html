@@ -441,12 +441,22 @@
       </p>
     </div>
 
-    <details class="dashboard-goals-details no-print" open>
-      <summary class="dashboard-goals-summary">
+    <!-- Native <details> hides body with display:none when closed, so height/grid transitions do not run; use button + class toggle instead. -->
+    <div
+      class="dashboard-goals-details no-print dashboard-goals-details--open"
+      id="dashboard-goals-at-glance"
+    >
+      <button
+        type="button"
+        class="dashboard-goals-summary"
+        id="dashboard-goals-toggle"
+        aria-expanded="true"
+        aria-controls="dashboard-goals-panel"
+      >
         <span class="dashboard-goals-summary-chevron" aria-hidden="true"></span>
         <span class="section-eyebrow dashboard-goals-summary-eyebrow">Goals at a glance</span>
-      </summary>
-      <div class="dashboard-goals-anim">
+      </button>
+      <div class="dashboard-goals-anim" id="dashboard-goals-panel">
         <div class="dashboard-goals-inner">
           <div class="goals-grid goals-grid--dashboard">
         <div class="goal-card secondary-a">
@@ -496,7 +506,7 @@
           </div>
         </div>
       </div>
-    </details>
+    </div>
 
     <div class="dashboard-tabs no-print" role="tablist" aria-label="Dashboard tabs">
       <button type="button" class="dashboard-tab-btn" id="tab-dashboard-debts" role="tab" aria-selected="true" aria-controls="panel-dashboard-debts">
