@@ -80,6 +80,33 @@ export function collectMonthsWithActivity(plan, checkins) {
 }
 
 /**
+ * YYYY-MM values for the dashboard month picker (newest first): logged activity plus a window around the working month.
+ * @param {object} plan
+ * @param {Array} checkins
+ * @param {string} workingYm YYYY-MM
+ */
+export function collectDashboardMonthOptions(plan, checkins, workingYm) {
+  const set = new Set(collectMonthsWithActivity(plan, checkins || []));
+  const w =
+    typeof workingYm === 'string' && /^\d{4}-\d{2}$/.test(workingYm) ? workingYm : yyyyMmFromDate(new Date());
+  set.add(w);
+  const v = plan && plan.dashboardViewMonthYm;
+  if (typeof v === 'string' && /^\d{4}-\d{2}$/.test(v)) set.add(v);
+  const parts = w.split('-');
+  const y0 = Number(parts[0]);
+  const m0 = Number(parts[1]);
+  if (Number.isFinite(y0) && Number.isFinite(m0) && m0 >= 1 && m0 <= 12) {
+    for (let i = -12; i <= 6; i++) {
+      const d = new Date(y0, m0 - 1 + i, 1);
+      set.add(yyyyMmFromDate(d));
+    }
+  }
+  return Array.from(set).sort(function (a, b) {
+    return b.localeCompare(a);
+  });
+}
+
+/**
  * Chronological summaries for charting (oldest → newest).
  * @param {object} plan
  * @param {Array} checkins

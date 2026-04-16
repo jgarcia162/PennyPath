@@ -2,7 +2,8 @@
  * Goal 2 per-debt UI + debts list inside the balance editor (DOM builders).
  */
 
-import { DEFAULT_DEBT_APR_PCT, DEFAULT_SAVINGS_APY_PCT } from './plan-data.js';
+import { DEFAULT_DEBT_APR_PCT, DEFAULT_SAVINGS_APY_PCT, PLAN } from './plan-data.js';
+import { ensureSavingsGoals, accountContributesToGoal } from './savings-goals.js';
 import { numOr, formatMoneyInput } from './utils.js';
 
 /** Normalize legacy sort keys for UI + sorting. */
@@ -334,7 +335,7 @@ export function buildSavingsEditorThead() {
     { t: 'Balance', title: 'Current balance' },
     { t: 'APY %', title: 'Annual percentage yield' },
     { t: 'Deposit', title: 'Deposit to log, then +' },
-    { t: 'Goal', title: 'Balance counts toward your HYSA savings goal total' },
+    { t: 'Goals', title: 'This balance can count toward one or more targets' },
     { t: '', title: 'Remove row' },
   ];
   headers.forEach(function (h) {
@@ -354,9 +355,10 @@ export function buildSavingsEditorThead() {
 
 /**
  * @param {object} acc
+ * @param {Array<{ id?: string, name?: string }>} savingsGoals
  * @returns {HTMLTableRowElement}
  */
-export function buildSavingsRowTR(acc) {
+export function buildSavingsRowTR(acc, savingsGoals) {
   const row = document.createElement('tr');
   row.className = 'savings-row';
   row.setAttribute('data-savings-id', String(acc.id));
@@ -382,15 +384,30 @@ export function buildSavingsRowTR(acc) {
     '</div>';
 
   const tdGoal = document.createElement('td');
-  tdGoal.className = 'editor-table__cell--goal';
-  const cb = document.createElement('input');
-  cb.type = 'checkbox';
-  cb.setAttribute('data-field', 'countTowardsGoal');
-  cb.title = 'Count this balance toward your HYSA savings goal';
-  cb.setAttribute('aria-label', 'Count toward HYSA savings goal');
-  cb.checked =
-    typeof acc.countTowardsGoal === 'boolean' ? acc.countTowardsGoal : String(acc.id) === 'hysa';
-  tdGoal.appendChild(cb);
+  tdGoal.className = 'editor-table__cell--goals';
+  const goals = Array.isArray(savingsGoals) ? savingsGoals : [];
+  if (goals.length === 0) {
+    tdGoal.textContent = '—';
+  } else {
+    goals.forEach(function (g) {
+      const gid = String(g && g.id ? g.id : '');
+      if (!gid) return;
+      const label = document.createElement('label');
+      label.className = 'editor-savings-goal-check';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.setAttribute('data-field', 'goalId');
+      cb.setAttribute('data-goal-id', gid);
+      cb.setAttribute('aria-label', 'Count toward ' + String(g.name || gid));
+      cb.checked = accountContributesToGoal(acc, gid);
+      const span = document.createElement('span');
+      span.className = 'editor-savings-goal-check__text';
+      span.textContent = String(g.name || gid);
+      label.appendChild(cb);
+      label.appendChild(span);
+      tdGoal.appendChild(label);
+    });
+  }
 
   const rmTd = document.createElement('td');
   rmTd.className = 'editor-table__cell--actions';
@@ -423,6 +440,8 @@ export function renderSavingsEditor(d) {
   if (!host) return;
   host.innerHTML = '';
   const accs = d.savingsAccounts || [];
+  ensureSavingsGoals(PLAN);
+  const savingsGoals = PLAN.savingsGoals || [];
   if (accs.length === 0) {
     appendSavingsEditorEmptyState(host);
     return;
@@ -433,7 +452,7 @@ export function renderSavingsEditor(d) {
   table.appendChild(buildSavingsEditorThead());
   const tbody = document.createElement('tbody');
   accs.forEach(function (acc) {
-    tbody.appendChild(buildSavingsRowTR(acc));
+    tbody.appendChild(buildSavingsRowTR(acc, savingsGoals));
   });
   table.appendChild(tbody);
   host.appendChild(table);
@@ -470,40 +489,51 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
     head.appendChild(name);
     head.appendChild(meta);
 
-    const goalAmt = numOr(d.goalHysa, 0);
-    const countsToward =
-      typeof acc.countTowardsGoal === 'boolean'
-        ? acc.countTowardsGoal
-        : String(acc.id) === 'hysa';
-    let pctTowardGoal = 0;
-    let labelLeft = '';
-    let labelRight = '';
-    if (countsToward && goalAmt > 0) {
-      pctTowardGoal = Math.min(100, (current / goalAmt) * 100);
-      labelLeft = moneyExact(current) + ' toward goal';
-      labelRight = '<strong>' + pctTowardGoal.toFixed(1) + '%</strong> of ' + moneyExact(goalAmt);
-    } else if (countsToward && goalAmt <= 0) {
-      labelLeft = moneyExact(current) + ' balance';
-      labelRight = '<strong>—</strong>';
-    } else {
-      labelLeft = moneyExact(current) + ' balance';
-      labelRight = '<span class="goal3-savings-not-goal">Not in HYSA goal</span>';
+    const goalWrap = document.createElement('div');
+    goalWrap.className = 'goal3-savings-goals';
+    const summaries = d.savingsGoalSummaries || [];
+    let anyGoal = false;
+    summaries.forEach(function (sg) {
+      if (!accountContributesToGoal(acc, sg.id)) return;
+      anyGoal = true;
+      const goalAmt = numOr(sg.targetAmount, 0);
+      const pctTowardGoal = goalAmt > 0 ? Math.min(100, (current / goalAmt) * 100) : 0;
+      const sub = document.createElement('div');
+      sub.className = 'goal3-savings-goal-line';
+      const cap = document.createElement('div');
+      cap.className = 'goal3-savings-goal-caption';
+      cap.textContent = String(sg.name || 'Goal');
+      const prog = document.createElement('div');
+      prog.className = 'goal3-savings-progress goal3-savings-progress--nested';
+      const labels = document.createElement('div');
+      labels.className = 'progress-label-row';
+      const labelLeft =
+        goalAmt > 0
+          ? moneyExact(current) + ' of ' + moneyExact(goalAmt)
+          : moneyExact(current) + ' balance';
+      const labelRight =
+        goalAmt > 0
+          ? '<strong>' + pctTowardGoal.toFixed(1) + '%</strong> of target'
+          : '<strong>—</strong> set target in goal list';
+      labels.innerHTML = '<span>' + labelLeft + '</span><span>' + labelRight + '</span>';
+      const track = document.createElement('div');
+      track.className = 'progress-track';
+      const fill = document.createElement('div');
+      fill.className = 'progress-fill-purple';
+      fill.style.width = goalAmt > 0 ? pctTowardGoal.toFixed(2) + '%' : '0%';
+      track.appendChild(fill);
+      prog.appendChild(labels);
+      prog.appendChild(track);
+      sub.appendChild(cap);
+      sub.appendChild(prog);
+      goalWrap.appendChild(sub);
+    });
+    if (!anyGoal) {
+      const none = document.createElement('div');
+      none.className = 'goal3-savings-not-goal';
+      none.textContent = 'Not assigned to any savings goal — use checkboxes in the savings editor.';
+      goalWrap.appendChild(none);
     }
-
-    const prog = document.createElement('div');
-    prog.className = 'goal3-savings-progress';
-    const labels = document.createElement('div');
-    labels.className = 'progress-label-row';
-    labels.innerHTML = '<span>' + labelLeft + '</span><span>' + labelRight + '</span>';
-    const track = document.createElement('div');
-    track.className = 'progress-track';
-    const fill = document.createElement('div');
-    fill.className = 'progress-fill-purple';
-    fill.style.width =
-      countsToward && goalAmt > 0 ? pctTowardGoal.toFixed(2) + '%' : '0%';
-    track.appendChild(fill);
-    prog.appendChild(labels);
-    prog.appendChild(track);
 
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const recent = hist.filter(function (p) {
@@ -556,8 +586,99 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
     }
 
     wrap.appendChild(head);
-    wrap.appendChild(prog);
+    wrap.appendChild(goalWrap);
     wrap.appendChild(details);
     host.appendChild(wrap);
+  });
+}
+
+/**
+ * Renders stacked progress cards for each savings goal (plan tab + dashboard).
+ * @param {string} hostId
+ * @param {object} d — result of `derived(PLAN)`
+ * @param {(n: number) => string} money
+ * @param {(n: number) => string} moneyExact
+ * @param {{ hasData?: boolean }} [opts]
+ */
+export function renderSavingsGoalsStack(hostId, d, money, moneyExact, opts) {
+  const host = document.getElementById(hostId);
+  if (!host) return;
+  const hasData = opts && opts.hasData;
+  const sums = d.savingsGoalSummaries || [];
+  host.innerHTML = '';
+  if (sums.length === 0) {
+    const p = document.createElement('p');
+    p.className = 'savings-goals-stack__empty';
+    p.textContent = 'Add savings targets in “Edit goal targets” above.';
+    host.appendChild(p);
+    return;
+  }
+  sums.forEach(function (sg) {
+    const block = document.createElement('div');
+    block.className = 'savings-goal-block';
+    const title = document.createElement('div');
+    title.className = 'savings-goal-block__title';
+    title.textContent = String(sg.name || 'Goal');
+    block.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = 'efund-grid savings-goal-block__grid';
+    function cell(label, val, note) {
+      const it = document.createElement('div');
+      it.className = 'efund-item';
+      const l = document.createElement('div');
+      l.className = 'efund-item-label';
+      l.textContent = label;
+      const v = document.createElement('div');
+      v.className = 'efund-item-val';
+      v.textContent = val;
+      const n = document.createElement('div');
+      n.className = 'efund-item-note';
+      n.textContent = note;
+      it.appendChild(l);
+      it.appendChild(v);
+      it.appendChild(n);
+      return it;
+    }
+    grid.appendChild(
+      cell(
+        'Target',
+        money(sg.targetAmount),
+        String(sg.id) === 'goal-efund' ? 'Often 12 × monthly expenses — editable below' : 'Goal amount'
+      )
+    );
+    grid.appendChild(cell('Assigned balances', moneyExact(sg.sum), 'Full balance of each linked account'));
+    grid.appendChild(cell('Gap', moneyExact(sg.gap), 'Still needed'));
+    block.appendChild(grid);
+
+    const prog = document.createElement('div');
+    prog.className = 'progress-wrap';
+    const row = document.createElement('div');
+    row.className = 'progress-label-row';
+    if (hasData && sg.targetAmount > 0) {
+      row.innerHTML =
+        '<span>' +
+        moneyExact(sg.sum) +
+        ' toward target</span><span><strong>' +
+        sg.pct.toFixed(1) +
+        '%</strong> complete</span>';
+    } else if (!hasData) {
+      row.innerHTML =
+        '<span>$0</span><span><strong>—</strong> add accounts in Goal 3</span>';
+    } else {
+      row.innerHTML =
+        '<span>' + moneyExact(sg.sum) + '</span><span>Set a target above $0 to track %</span>';
+    }
+    const track = document.createElement('div');
+    track.className = 'progress-track';
+    const fill = document.createElement('div');
+    fill.className = 'progress-fill-purple';
+    fill.style.width =
+      hasData && sg.targetAmount > 0 ? Math.min(100, sg.pct).toFixed(2) + '%' : '0%';
+    track.appendChild(fill);
+    prog.appendChild(row);
+    prog.appendChild(track);
+    block.appendChild(prog);
+    host.appendChild(block);
   });
 }

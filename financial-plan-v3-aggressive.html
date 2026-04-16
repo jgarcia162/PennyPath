@@ -183,6 +183,7 @@
           <div class="balance-field-hint">Example: 2027-06</div>
         </div>
       </div>
+      <div id="savings-goals-target-editor" class="plan-goals-editor__savings-goals" aria-label="Savings goal targets"></div>
       <div class="balance-editor-actions">
         <div class="balance-editor-actions-primary">
           <button type="button" class="btn-save" id="btn-save-goal-targets">Save goals</button>
@@ -248,7 +249,7 @@
 
       <div class="goal-card secondary-b">
         <div class="goal-card-head" id="goal3-card-head">
-          <div class="goal-tag">Goal 3 — Emergency Fund 🚨</div>
+          <div class="goal-tag">Goal 3 — Savings goals 🚨</div>
           <button
             type="button"
             class="toggle-goal-editor-btn no-print"
@@ -260,38 +261,12 @@
         <div class="goal-desc" id="goal-efund-desc"></div>
         <div class="goal-when" id="goal-efund-when"></div>
 
-        <div class="efund-grid">
-          <div class="efund-item">
-            <div class="efund-item-label">Target 🎯</div>
-            <div class="efund-item-val" id="efund-target-val"></div>
-            <div class="efund-item-note" id="efund-target-note"></div>
-          </div>
-          <div class="efund-item">
-            <div class="efund-item-label">We Have 🏦</div>
-            <div class="efund-item-val" id="efund-have-val"></div>
-            <div class="efund-item-note">Current personal savings</div>
-          </div>
-          <div class="efund-item">
-            <div class="efund-item-label">Gap🫸🏼 💵 🫷🏼</div>
-            <div class="efund-item-val" id="efund-gap-val"></div>
-            <div class="efund-item-note">Still needed</div>
-          </div>
-        </div>
+        <div class="savings-goals-stack" id="savings-goals-stack"></div>
 
         <div class="plan-inline-hint plan-inline-hint--cta no-print">
           <button type="button" class="plan-dash-nav-btn" data-open-dashboard="savings">
             Click here to edit accounts or log deposits.
           </button>
-        </div>
-
-        <div class="progress-wrap">
-          <div class="progress-label-row">
-            <span id="efund-progress-left"></span>
-            <span id="efund-progress-right"></span>
-          </div>
-          <div class="progress-track">
-            <div class="progress-fill-purple" id="efund-progress-fill"></div>
-          </div>
         </div>
       </div>
     </div>
@@ -432,6 +407,30 @@
       <div class="dashboard-hero__sub">Edit debts and savings here. Changes reflect instantly in the Financial Plan outline.</div>
     </div>
 
+    <div class="dashboard-month-wrap no-print">
+      <div class="dashboard-month-wrap__row">
+        <div class="dashboard-month-wrap__text">
+          <span class="dashboard-month-wrap__eyebrow">View &amp; edit month</span>
+          <div class="dashboard-month-wrap__picker-row">
+            <label class="dashboard-month-wrap__picker-label" for="dashboard-view-month">Month</label>
+            <select
+              id="dashboard-view-month"
+              class="dashboard-view-month-select"
+              aria-label="Month to view on the dashboard and date new payments"
+            ></select>
+          </div>
+          <p class="dashboard-month-wrap__working-note" id="dashboard-view-working-note" hidden></p>
+        </div>
+        <div class="dashboard-month-wrap__actions">
+          <button type="button" class="btn-save" id="btn-month-wrap-up">Wrap up month</button>
+          <button type="button" class="btn-undo" id="btn-month-wrap-undo" disabled>Undo last wrap</button>
+        </div>
+      </div>
+      <p class="dashboard-month-wrap__hint">
+        Pick a month to see that month’s debt progress and to log payments or deposits with dates in that month. “Follow working month” keeps the bar aligned with wrap-up. Wrapping saves a snapshot, advances the working month, and resets the monthly bar for the new month. Use Undo once if you need to fix the previous month.
+      </p>
+    </div>
+
     <div class="dashboard-goals no-print">
       <div class="section-eyebrow">Goals at a glance</div>
       <div class="goals-grid goals-grid--dashboard">
@@ -471,39 +470,13 @@
 
         <div class="goal-card secondary-b">
           <div class="goal-card-head">
-            <div class="goal-tag">Goal 3 — Emergency Fund 🚨</div>
+            <div class="goal-tag">Goal 3 — Savings goals 🚨</div>
           </div>
           <div class="goal-value" id="dash-goal-efund-amt"></div>
           <div class="goal-desc" id="dash-goal-efund-desc"></div>
           <div class="goal-when" id="dash-goal-efund-when"></div>
 
-          <div class="efund-grid">
-            <div class="efund-item">
-              <div class="efund-item-label">Target 🎯</div>
-              <div class="efund-item-val" id="dash-efund-target-val"></div>
-              <div class="efund-item-note" id="dash-efund-target-note"></div>
-            </div>
-            <div class="efund-item">
-              <div class="efund-item-label">We Have 🏦</div>
-              <div class="efund-item-val" id="dash-efund-have-val"></div>
-              <div class="efund-item-note">Current personal savings</div>
-            </div>
-            <div class="efund-item">
-              <div class="efund-item-label">Gap🫸🏼 💵 🫷🏼</div>
-              <div class="efund-item-val" id="dash-efund-gap-val"></div>
-              <div class="efund-item-note">Still needed</div>
-            </div>
-          </div>
-
-          <div class="progress-wrap">
-            <div class="progress-label-row">
-              <span id="dash-efund-progress-left"></span>
-              <span id="dash-efund-progress-right"></span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-fill-purple" id="dash-efund-progress-fill"></div>
-            </div>
-          </div>
+          <div class="savings-goals-stack" id="dash-savings-goals-stack"></div>
         </div>
       </div>
     </div>

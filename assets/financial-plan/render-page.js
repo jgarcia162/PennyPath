@@ -3,7 +3,8 @@
  */
 
 import { PLAN } from './plan-data.js';
-import { derived } from './plan-derived.js';
+import { derived, getWorkingMonthYm } from './plan-derived.js';
+import { collectDashboardMonthOptions, monthLabel } from './monthly-activity.js';
 import { createMoneyFormatters, setText, setHtml, numOr } from './utils.js';
 import {
   renderGoal2Debts,
@@ -12,7 +13,9 @@ import {
   syncDebtsProgressSortSelect,
   renderGoal3SavingsAccounts,
   renderSavingsEditor,
+  renderSavingsGoalsStack,
 } from './render-sections.js';
+import { ensureSavingsGoals } from './savings-goals.js';
 import { renderPayoffTimeline, renderBadges } from './features.js';
 import { renderCheckIns } from './checkin-log.js';
 import {
@@ -20,6 +23,7 @@ import {
   hasDebtBalanceForInterest,
   hasDebtsOnFile,
 } from './plan-empty-state.js';
+import { hasMonthWrapRollback } from './month-wrap.js';
 
 const { money, moneyExact } = createMoneyFormatters();
 
@@ -51,8 +55,123 @@ function setSectionHiddenDash(id, hidden) {
   if (b) b.hidden = hidden;
 }
 
+function loadCheckinsForMonthPicker() {
+  try {
+    if (window.CheckInService && typeof window.CheckInService.list === 'function') {
+      return window.CheckInService.list();
+    }
+  } catch (e) {}
+  return [];
+}
+
+function syncDashboardMonthSelect() {
+  const sel = document.getElementById('dashboard-view-month');
+  if (!sel) return;
+  const checkins = loadCheckinsForMonthPicker();
+  const workingYm = getWorkingMonthYm(PLAN);
+  const months = collectDashboardMonthOptions(PLAN, checkins, workingYm);
+  const explicit =
+    typeof PLAN.dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test(PLAN.dashboardViewMonthYm)
+      ? PLAN.dashboardViewMonthYm
+      : '';
+  sel.innerHTML = '';
+  const optFollow = document.createElement('option');
+  optFollow.value = '';
+  optFollow.textContent = 'Follow working month (' + monthLabel(workingYm) + ')';
+  sel.appendChild(optFollow);
+  months.forEach(function (ym) {
+    const opt = document.createElement('option');
+    opt.value = ym;
+    opt.textContent = monthLabel(ym);
+    sel.appendChild(opt);
+  });
+  if (explicit !== '' && months.indexOf(explicit) === -1) {
+    const opt = document.createElement('option');
+    opt.value = explicit;
+    opt.textContent = monthLabel(explicit);
+    sel.appendChild(opt);
+  }
+  sel.value = explicit;
+}
+
+function renderSavingsGoalsTargetEditor() {
+  ensureSavingsGoals(PLAN);
+  const host = document.getElementById('savings-goals-target-editor');
+  if (!host) return;
+  host.innerHTML = '';
+  const sub = document.createElement('div');
+  sub.className = 'plan-goals-editor__subhead';
+  sub.textContent = 'Savings targets';
+  host.appendChild(sub);
+  const hint = document.createElement('p');
+  hint.className = 'plan-goals-editor__subhint';
+  hint.textContent =
+    'Each target can include the full balance of any accounts you link in the savings editor (below). One account can count toward several goals.';
+  host.appendChild(hint);
+  (PLAN.savingsGoals || []).forEach(function (g) {
+    const row = document.createElement('div');
+    row.className = 'savings-goal-target-row';
+    row.setAttribute('data-goal-id', String(g.id));
+    const nameIn = document.createElement('input');
+    nameIn.type = 'text';
+    nameIn.setAttribute('data-field', 'goal-name');
+    nameIn.setAttribute('aria-label', 'Goal name');
+    nameIn.value = String(g.name || '');
+    const amtIn = document.createElement('input');
+    amtIn.type = 'text';
+    amtIn.inputMode = 'decimal';
+    amtIn.setAttribute('data-field', 'goal-amount');
+    amtIn.setAttribute('aria-label', 'Goal amount');
+    amtIn.value = String(Math.round(numOr(g.targetAmount, 0)));
+    const rm = document.createElement('button');
+    rm.type = 'button';
+    rm.className = 'btn-undo savings-goal-target-row__remove';
+    rm.setAttribute('data-action', 'remove-savings-goal');
+    rm.setAttribute('data-goal-id', String(g.id));
+    rm.textContent = 'Remove';
+    row.appendChild(nameIn);
+    row.appendChild(amtIn);
+    row.appendChild(rm);
+    host.appendChild(row);
+  });
+  const addBtn = document.createElement('button');
+  addBtn.type = 'button';
+  addBtn.id = 'btn-add-savings-goal';
+  addBtn.className = 'btn-save';
+  addBtn.textContent = 'Add savings goal';
+  host.appendChild(addBtn);
+}
+
+function monthlyDebtBarHint(d) {
+  const view = d.dashboardViewMonthLabel;
+  if (d.viewingDifferentFromWorking) {
+    return (
+      'Payments logged in ' +
+      view +
+      ' count toward this bar. Working month for wrap-up is still ' +
+      d.workingMonthLabel +
+      '. Choose “Follow working month” to align the bar with wrap-up.'
+    );
+  }
+  return (
+    'Payments logged in ' +
+      view +
+      ' count toward this bar. Wrap up the month on the Dashboard when you are ready for a fresh monthly target.'
+  );
+}
+
 export function render() {
   const d = derived(PLAN);
+  syncDashboardMonthSelect();
+  const noteWorking = document.getElementById('dashboard-view-working-note');
+  if (noteWorking) {
+    noteWorking.hidden = !d.viewingDifferentFromWorking;
+    noteWorking.textContent = d.viewingDifferentFromWorking
+      ? 'Wrap-up month: ' + d.workingMonthLabel + '. New payments and deposits use dates in ' + d.dashboardViewMonthLabel + ' while this view is selected.'
+      : '';
+  }
+  const undoWrap = document.getElementById('btn-month-wrap-undo');
+  if (undoWrap) undoWrap.disabled = !hasMonthWrapRollback();
   const hasData = hasBalanceDataForProjections(PLAN);
   const hasDebtBal = hasDebtBalanceForInterest(PLAN);
   const hasDebts = hasDebtsOnFile(PLAN);
@@ -142,17 +261,17 @@ export function render() {
 
   setSectionHiddenDash('monthly-debt-goal-section', !hasDebts);
   if (hasDebts) {
-    setTextDash('monthly-debt-goal-meta', 'Goal ' + money(d.monthlyDebtGoal) + '/mo');
+    setTextDash(
+      'monthly-debt-goal-meta',
+      d.dashboardViewMonthLabel + ' · Goal ' + money(d.monthlyDebtGoal) + '/mo'
+    );
     setTextDash('monthly-debt-paid-label', moneyExact(d.monthlyDebtPaid) + ' / ' + moneyExact(d.monthlyDebtGoal));
     setHtmlDash(
       'monthly-debt-pct-label',
       '<strong>' + d.monthlyDebtPct.toFixed(1) + '%</strong> of monthly target'
     );
     setProgWidthDash('monthly-debt-progress-fill', d.monthlyDebtPct);
-    setTextDash(
-      'monthly-debt-goal-hint',
-      'Sum of payments logged this calendar month across all debts (saved from the Goal 2 editor).'
-    );
+    setTextDash('monthly-debt-goal-hint', monthlyDebtBarHint(d));
   }
 
   setText(
@@ -171,45 +290,18 @@ export function render() {
   renderGoal3SavingsAccounts(d, moneyExact);
   renderSavingsEditor(d);
 
-  setTextDash('goal-efund-amt', money(d.efundTarget));
-  if (hasData) {
-    setTextDash(
-      'goal-efund-desc',
-      'A full ' +
-        PLAN.efundMonths +
-        '-month emergency fund based on ' +
-        money(PLAN.monthlyFixedExpenses) +
-        '/month in fixed expenses. We\'re already ' +
-        d.efundPct.toFixed(1) +
-        '% of the way there — we just need to grow it by ' +
-        moneyExact(d.efundGap) +
-        ' more.'
-    );
-  } else {
-    setTextDash(
-      'goal-efund-desc',
-      'A full ' +
-        PLAN.efundMonths +
-        '-month emergency fund based on ' +
-        money(PLAN.monthlyFixedExpenses) +
-        '/month in fixed expenses. Add personal savings in Goal 3 to track how close you are to this target.'
-    );
-  }
+  renderSavingsGoalsTargetEditor();
+
+  const nGoals = (d.savingsGoalSummaries || []).length;
+  setTextDash('goal-efund-amt', nGoals ? nGoals + ' savings targets' : 'Savings targets');
+  setTextDash(
+    'goal-efund-desc',
+    'Link accounts to each target above. The same balance can count toward multiple goals when it applies.'
+  );
   setTextDash('goal-efund-when', PLAN.labels.efundBuildAfter);
 
-  setTextDash('efund-target-val', money(d.efundTarget));
-  setTextDash('efund-target-note', String(PLAN.efundMonths) + ' × ' + money(PLAN.monthlyFixedExpenses) + ' per month');
-  setTextDash('efund-have-val', moneyExact(d.personalSavings));
-  setTextDash('efund-gap-val', moneyExact(d.efundGap));
-
-  if (hasData) {
-    setTextDash('efund-progress-left', moneyExact(d.personalSavings) + ' saved');
-    setHtmlDash('efund-progress-right', '<strong>' + d.efundPct.toFixed(1) + '%</strong> of the way there');
-  } else {
-    setTextDash('efund-progress-left', '$0 saved');
-    setHtmlDash('efund-progress-right', '<strong>—</strong> add balances in Goal 3');
-  }
-  setProgWidthDash('efund-progress-fill', hasData ? d.efundPct : 0);
+  renderSavingsGoalsStack('savings-goals-stack', d, money, moneyExact, { hasData: hasData });
+  renderSavingsGoalsStack('dash-savings-goals-stack', d, money, moneyExact, { hasData: hasData });
 
   setHtml(
     'callout-full-picture',

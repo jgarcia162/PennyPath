@@ -8,6 +8,8 @@ import {
   TOGGLE_GOAL2_EDITOR_KEY,
   TOGGLE_GOAL3_EDITOR_KEY,
   DEMO_MODE_STORAGE_KEY,
+  MONTH_WRAP_ROLLBACK_KEY,
+  MONTH_WRAP_ARCHIVES_KEY,
 } from './plan-data.js';
 import { applyPlanPayloadFromObject } from './persistence.js';
 
@@ -23,6 +25,8 @@ export const FINANCIAL_PLAN_STORAGE_KEYS = [
   TOGGLE_GOAL3_EDITOR_KEY,
   BADGES_STORAGE_KEY,
   DEMO_MODE_STORAGE_KEY,
+  MONTH_WRAP_ROLLBACK_KEY,
+  MONTH_WRAP_ARCHIVES_KEY,
 ];
 
 /** Months of payment/deposit history to generate (~1.5 years). */

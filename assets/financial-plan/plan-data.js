@@ -25,9 +25,33 @@ export const PLAN = {
    * apyPct: APY as a percent (e.g. 3.25 = 3.25%), same idea as aprPct on debts.
    */
   savingsAccounts: [
-    { id: 'hysa', name: 'Joint Savings', current: 24000, apyPct: 3.25, countTowardsGoal: true, depositHistory: [] },
-    { id: 'jose', name: 'Jose — personal', current: 4103.96, apyPct: 0, countTowardsGoal: false, depositHistory: [] },
-    { id: 'sher', name: 'Sherlyna — personal', current: 20000, apyPct: 0, countTowardsGoal: false, depositHistory: [] },
+    {
+      id: 'hysa',
+      name: 'Joint Savings',
+      current: 24000,
+      apyPct: 3.25,
+      goalIds: ['goal-hysa', 'goal-efund'],
+      countTowardsGoal: true,
+      depositHistory: [],
+    },
+    {
+      id: 'jose',
+      name: 'Jose — personal',
+      current: 4103.96,
+      apyPct: 0,
+      goalIds: ['goal-efund', 'goal-personal'],
+      countTowardsGoal: false,
+      depositHistory: [],
+    },
+    {
+      id: 'sher',
+      name: 'Sherlyna — personal',
+      current: 20000,
+      apyPct: 0,
+      goalIds: ['goal-efund', 'goal-personal'],
+      countTowardsGoal: false,
+      depositHistory: [],
+    },
   ],
   /**
    * Debts list.
@@ -93,6 +117,25 @@ export const PLAN = {
   debtsEditorSort: 'saved',
   /** Goal 2 per-debt progress cards order; includes `paid-desc` | `paid-asc` (lifetime paid toward debt). */
   debtsProgressSort: 'saved',
+  /**
+   * YYYY-MM month used for “this month” debt progress (vs phase1.ccPayment goal).
+   * Advances when you wrap up the month; defaults to the real calendar month if unset.
+   */
+  workingMonthYm: '',
+  /**
+   * Optional YYYY-MM: dashboard “view & edit” month (monthly bar + default dates for new logs).
+   * Empty means follow `workingMonthYm`.
+   */
+  dashboardViewMonthYm: '',
+  /**
+   * Savings targets (Joint HYSA, emergency fund, etc.). Amounts are dollar targets.
+   * Accounts pick one or more via `goalIds` on each savings account.
+   */
+  savingsGoals: [
+    { id: 'goal-hysa', name: 'Joint HYSA', targetAmount: 50000 },
+    { id: 'goal-efund', name: 'Emergency fund', targetAmount: 36000 },
+    { id: 'goal-personal', name: 'Personal savings', targetAmount: 0 },
+  ],
 };
 
 /** Snapshot for “Reset to original defaults” — keep in sync with PLAN above. */
@@ -103,14 +146,30 @@ export const PLAN_DEFAULTS = {
   debtsEditorSort: 'saved',
   debtsProgressSort: 'saved',
   savingsAccounts: [
-    { id: 'hysa', name: 'Joint Savings', current: 0, apyPct: 0, countTowardsGoal: true, depositHistory: [] },
-    { id: 'jose', name: 'Jose — personal', current: 0, apyPct: 0, countTowardsGoal: false, depositHistory: [] },
-    { id: 'sher', name: 'Sherlyna — personal', current: 0, apyPct: 0, countTowardsGoal: false, depositHistory: [] },
+    {
+      id: 'hysa',
+      name: 'Joint Savings',
+      current: 0,
+      apyPct: 0,
+      goalIds: ['goal-hysa'],
+      countTowardsGoal: true,
+      depositHistory: [],
+    },
+    { id: 'jose', name: 'Jose — personal', current: 0, apyPct: 0, goalIds: [], countTowardsGoal: false, depositHistory: [] },
+    { id: 'sher', name: 'Sherlyna — personal', current: 0, apyPct: 0, goalIds: [], countTowardsGoal: false, depositHistory: [] },
   ],
   debts: [],
+  savingsGoals: [
+    { id: 'goal-hysa', name: 'Joint HYSA', targetAmount: 0 },
+    { id: 'goal-efund', name: 'Emergency fund', targetAmount: 0 },
+    { id: 'goal-personal', name: 'Personal savings', targetAmount: 0 },
+  ],
 };
 
 export const STORAGE_KEY = 'financial-plan-v3-aggressive.balances';
+/** Month wrap-up: one-step undo + optional archives list (JSON strings). */
+export const MONTH_WRAP_ROLLBACK_KEY = 'financial-plan-v3-aggressive.month-wrap-rollback';
+export const MONTH_WRAP_ARCHIVES_KEY = 'financial-plan-v3-aggressive.month-wrap-archives';
 export const TOGGLE_GOAL2_EDITOR_KEY = 'financial-plan-v3-aggressive.goal2-editor-open';
 export const TOGGLE_GOAL3_EDITOR_KEY = 'financial-plan-v3-aggressive.goal3-editor-open';
 export const BADGES_STORAGE_KEY = 'financial-plan.badges';

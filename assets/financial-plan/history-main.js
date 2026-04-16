@@ -2,7 +2,7 @@
  * History page: compare two months + charts, bars, and optional demo data.
  */
 
-import { PLAN, DEMO_MODE_STORAGE_KEY } from './plan-data.js';
+import { PLAN, DEMO_MODE_STORAGE_KEY, STORAGE_KEY } from './plan-data.js';
 import { applyPlanOverrides } from './persistence.js';
 import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
 import {
@@ -20,7 +20,6 @@ import {
   percentChange,
 } from './history-visuals.js';
 import { createMoneyFormatters, escapeHtml } from './utils.js';
-import { STORAGE_KEY } from './plan-data.js';
 import { buildMonthCsv, buildMonthCheckpointPayload } from './monthly-export.js';
 
 const { moneyExact } = createMoneyFormatters();
@@ -250,7 +249,6 @@ function wireExportImport() {
 
   if (!exportMonthInput || !exportCsvBtn || !exportJsonBtn || !importInput) return;
 
-  // Default export month to Month B when available; otherwise “this month”.
   const monthB = document.getElementById('hist-month-b');
   if (monthB && monthB.value && !exportMonthInput.value) exportMonthInput.value = monthB.value;
   if (!exportMonthInput.value) {

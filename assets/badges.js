@@ -27,6 +27,21 @@
     return arr.length;
   }
 
+  function sumTowardGoalHysa(plan) {
+    const accs = Array.isArray(plan && plan.savingsAccounts) ? plan.savingsAccounts : [];
+    var sum = 0;
+    accs.forEach(function (a) {
+      if (!a) return;
+      var ids = a.goalIds;
+      if (Array.isArray(ids) && ids.indexOf('goal-hysa') >= 0) {
+        sum += clamp0(a.current);
+      } else if ((!ids || !ids.length) && a.countTowardsGoal) {
+        sum += clamp0(a.current);
+      }
+    });
+    return sum;
+  }
+
   /**
    * Pure badge evaluation. No IO. No mutation.
    * Returns [{ id, earned, unlockedOn: null }]
@@ -35,6 +50,7 @@
     const now = todayYyyyMmDd(); // returned for convenience, but caller controls persistence
     const ds = debtStats(plan || {});
     const hysa = clamp0(plan && plan.hysaBalance);
+    const towardHysaGoal = sumTowardGoalHysa(plan);
     const goalHysa = clamp0(plan && plan.goalHysa);
     const hysaStart = clamp0(plan && plan._hysaStartingDefault);
     const nCheckins = checkinCount(checkins);
@@ -51,7 +67,7 @@
       { id: 'savings-starts', earned: hysa > hysaStart, now: now },
       { id: 'savings-30k', earned: hysa >= 30000, now: now },
       { id: 'savings-40k', earned: hysa >= 40000, now: now },
-      { id: 'savings-goal', earned: goalHysa > 0 && hysa >= goalHysa, now: now },
+      { id: 'savings-goal', earned: goalHysa > 0 && towardHysaGoal >= goalHysa, now: now },
 
       // Consistency
       { id: 'checkins-first', earned: nCheckins >= 1, now: now },

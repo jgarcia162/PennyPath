@@ -24,6 +24,7 @@ import { wireCheckIns } from './checkin-log.js';
 import { wireBadges, renderBadges } from './features.js';
 import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage.js';
 import { wipeAllUserData } from './wipe-user-data.js';
+import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap.js';
 
 /** Preserve real list() when toggling sample-data mode or after reset. */
 let origCheckInList = null;
@@ -98,6 +99,8 @@ function init() {
   wireBadges();
   renderBadges();
   wireWipeAllButton();
+  wireMonthWrap(render);
+  wireDashboardMonthSelector(render);
 }
 
 if (document.readyState === 'loading') {

@@ -6,6 +6,8 @@ import { PLAN, PLAN_DEFAULTS, DEFAULT_SAVINGS_APY_PCT } from './plan-data.js';
 import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils.js';
 import { appendSavingsEditorEmptyState, buildSavingsEditorThead, buildSavingsRowTR } from './render-sections.js';
 import { normalizeDepositHistory, newDepositId } from './persistence.js';
+import { ID_GOAL_HYSA, ensureSavingsGoals, getAccountGoalIds } from './savings-goals.js';
+import { defaultLogAtIsoForEdits } from './default-log-at.js';
 
 export function readSavingsEditorIntoPlan() {
   const host = document.getElementById('savings-editor-list');
@@ -24,7 +26,6 @@ export function readSavingsEditorIntoPlan() {
     const curEl = row.querySelector('input[data-field="current"]');
     const apyEl = row.querySelector('input[data-field="apyPct"]');
     const depEl = row.querySelector('input[data-field="deposit"]');
-    const goalEl = row.querySelector('input[data-field="countTowardsGoal"]');
     const name = nameEl ? String(nameEl.value || 'Account').trim() : 'Account';
     const rawCurrent = curEl ? parseMoneyInput(curEl.value) : null;
     const rawApy = apyEl ? parseMoneyInput(apyEl.value) : null;
@@ -58,23 +59,24 @@ export function readSavingsEditorIntoPlan() {
       const dep = roundMoney(deposit);
       currentBal = roundMoney(currentBal + dep);
       hist = hist.slice();
-      hist.push({ id: newDepositId(), amount: dep, at: new Date().toISOString() });
+      hist.push({ id: newDepositId(), amount: dep, at: defaultLogAtIsoForEdits() });
       if (curEl) curEl.value = formatMoneyInput(currentBal);
       if (depEl) depEl.value = '';
     }
 
-    const countTowardsGoal =
-      goalEl && typeof goalEl.checked === 'boolean'
-        ? !!goalEl.checked
-        : base && typeof base.countTowardsGoal === 'boolean'
-          ? !!base.countTowardsGoal
-          : String(id) === 'hysa';
+    const goalIds = [];
+    row.querySelectorAll('input[data-field="goalId"]:checked').forEach(function (cb) {
+      const gid = cb.getAttribute('data-goal-id');
+      if (gid) goalIds.push(String(gid));
+    });
+    const countTowardsGoal = goalIds.indexOf(ID_GOAL_HYSA) >= 0;
 
     next.push({
       id: String(id),
       name: name || 'Account',
       current: roundMoney(currentBal),
       apyPct: roundMoney(apyPctVal),
+      goalIds: goalIds,
       countTowardsGoal: countTowardsGoal,
       depositHistory: hist,
     });
@@ -90,7 +92,8 @@ export function cloneSavingsSnapshot() {
         name: String(a.name || 'Account'),
         current: roundMoney(numOr(a.current, 0)),
         apyPct: roundMoney(numOr(a.apyPct, DEFAULT_SAVINGS_APY_PCT)),
-        countTowardsGoal: typeof a.countTowardsGoal === 'boolean' ? a.countTowardsGoal : String(a.id) === 'hysa',
+        goalIds: getAccountGoalIds(a),
+        countTowardsGoal: getAccountGoalIds(a).indexOf(ID_GOAL_HYSA) >= 0,
         depositHistory: normalizeDepositHistory(a),
       };
     }),
@@ -111,8 +114,10 @@ export function setSavingsDraftFromSnapshot(snap) {
   table.setAttribute('role', 'grid');
   table.appendChild(buildSavingsEditorThead());
   const tbody = document.createElement('tbody');
+  ensureSavingsGoals(PLAN);
+  const sg = PLAN.savingsGoals || [];
   snap.savingsAccounts.forEach(function (a) {
-    tbody.appendChild(buildSavingsRowTR(a));
+    tbody.appendChild(buildSavingsRowTR(a, sg));
   });
   table.appendChild(tbody);
   host.appendChild(table);
@@ -135,14 +140,19 @@ export function addSavingsRowDraft(showUnsaved) {
     table.appendChild(tbody);
     host.appendChild(table);
   }
-  const row = buildSavingsRowTR({
-    id: id,
-    name: '',
-    current: 0,
-    apyPct: DEFAULT_SAVINGS_APY_PCT,
-    countTowardsGoal: false,
-    depositHistory: [],
-  });
+  ensureSavingsGoals(PLAN);
+  const row = buildSavingsRowTR(
+    {
+      id: id,
+      name: '',
+      current: 0,
+      apyPct: DEFAULT_SAVINGS_APY_PCT,
+      goalIds: [],
+      countTowardsGoal: false,
+      depositHistory: [],
+    },
+    PLAN.savingsGoals || []
+  );
   const nameEl = row.querySelector('input[data-field="name"]');
   if (nameEl) nameEl.placeholder = 'New account';
   tbody.appendChild(row);

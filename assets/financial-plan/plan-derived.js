@@ -4,27 +4,51 @@
 
 import { numOr } from './utils.js';
 import { getSavingsAccounts } from './savings-accounts.js';
+import {
+  ensureSavingsGoals,
+  sumBalancesTowardGoal,
+  ID_GOAL_HYSA,
+  ID_GOAL_EFUND,
+} from './savings-goals.js';
 import { projectPayoffTimeline } from './payoff-projection.js';
+import { isoInLocalYyyyMm, monthLabel, yyyyMmFromDate } from './monthly-activity.js';
 
-/** Sum of all debt paymentHistory amounts whose `at` falls in the current calendar month (local). */
-export function sumPaymentsThisCalendarMonth(plan) {
+/** Working month for monthly debt progress (`YYYY-MM`). Falls back to the real calendar month. */
+export function getWorkingMonthYm(plan) {
+  const w = plan && plan.workingMonthYm;
+  if (typeof w === 'string' && /^\d{4}-\d{2}$/.test(w)) return w;
+  return yyyyMmFromDate(new Date());
+}
+
+/**
+ * Month shown on the dashboard monthly debt bar and used for default payment/deposit dates.
+ * If `dashboardViewMonthYm` is unset, matches the working month.
+ */
+export function getDashboardViewMonthYm(plan) {
+  const v = plan && plan.dashboardViewMonthYm;
+  if (typeof v === 'string' && /^\d{4}-\d{2}$/.test(v)) return v;
+  return getWorkingMonthYm(plan);
+}
+
+/** Sum of debt payments logged with `at` in the given YYYY-MM (local). */
+export function sumPaymentsInYyyyMm(plan, yyyyMm) {
+  const ym = String(yyyyMm || '');
+  if (!/^\d{4}-\d{2}$/.test(ym)) return 0;
   const debts = Array.isArray(plan.debts) ? plan.debts : [];
-  const now = new Date();
-  const y = now.getFullYear();
-  const mo = now.getMonth();
   let sum = 0;
   debts.forEach(function (d) {
     const hist = Array.isArray(d.paymentHistory) ? d.paymentHistory : [];
     hist.forEach(function (p) {
       if (!p || typeof p.at !== 'string') return;
-      const dt = new Date(p.at);
-      if (!Number.isFinite(dt.getTime())) return;
-      if (dt.getFullYear() === y && dt.getMonth() === mo) {
-        sum += numOr(p.amount, 0);
-      }
+      if (isoInLocalYyyyMm(p.at, ym)) sum += numOr(p.amount, 0);
     });
   });
   return sum;
+}
+
+/** @deprecated Use sumPaymentsInYyyyMm(plan, yyyyMmFromDate(new Date())) — kept for clarity in tooling. */
+export function sumPaymentsThisCalendarMonth(plan) {
+  return sumPaymentsInYyyyMm(plan, yyyyMmFromDate(new Date()));
 }
 
 /** Monthly rate from APY percent (e.g. 3.25 → 3.25% nominal, compounded monthly). */
@@ -72,14 +96,17 @@ export function endOfPlanLiquid(plan) {
 
 export function derived(plan) {
   const accs = getSavingsAccounts(plan);
-  const goalSavingsCurrent = accs
-    .filter(function (a) {
-      if (a && typeof a.countTowardsGoal === 'boolean') return a.countTowardsGoal;
-      return String(a && a.id) === 'hysa';
-    })
-    .reduce(function (s, a) {
-      return s + numOr(a.current, 0);
-    }, 0);
+  ensureSavingsGoals(plan);
+  const goalSavingsCurrent = sumBalancesTowardGoal(accs, ID_GOAL_HYSA);
+  const savingsGoalSummaries = (plan.savingsGoals || []).map(function (g) {
+    const id = String(g.id || '');
+    const name = String(g.name || 'Goal');
+    const targetAmount = Math.max(0, numOr(g.targetAmount, 0));
+    const sum = sumBalancesTowardGoal(accs, id);
+    const pct = targetAmount > 0 ? Math.min(100, (sum / targetAmount) * 100) : 0;
+    const gap = Math.max(0, targetAmount - sum);
+    return { id: id, name: name, targetAmount: targetAmount, sum: sum, pct: pct, gap: gap };
+  });
   const hysaBal = accs
     .filter(function (a) {
       return String(a.id) === 'hysa';
@@ -122,9 +149,15 @@ export function derived(plan) {
   const hysaApyDec =
     hysaAcc && Number.isFinite(hysaAcc.apyPct) ? hysaAcc.apyPct / 100 : numOr(plan.hysaApy, 0);
   const hysaInterestYr = hysaBal * hysaApyDec;
-  const efundTarget = plan.monthlyFixedExpenses * plan.efundMonths;
-  const efundGap = efundTarget - personalSavings;
-  const efundPct = efundTarget > 0 ? (personalSavings / efundTarget) * 100 : 0;
+  const efundRow = savingsGoalSummaries.find(function (x) {
+    return x.id === ID_GOAL_EFUND;
+  });
+  const efundFallback = numOr(plan.monthlyFixedExpenses, 0) * numOr(plan.efundMonths, 12);
+  const efundTarget = efundRow ? efundRow.targetAmount : efundFallback;
+  const towardEfund = efundRow ? efundRow.sum : personalSavings;
+  const efundGap = efundRow ? efundRow.gap : Math.max(0, efundFallback - personalSavings);
+  const efundPct =
+    efundTarget > 0 ? Math.min(100, (Math.max(0, towardEfund) / efundTarget) * 100) : 0;
   const buffer =
     plan.monthlyTakeHome -
     plan.monthlyFixedExpenses -
@@ -149,12 +182,22 @@ export function derived(plan) {
   const personalEndPlan = eop.personalEndPlan;
 
   const monthlyDebtGoal = numOr(plan.phase1 && plan.phase1.ccPayment, 3500);
-  const monthlyDebtPaidAuto = sumPaymentsThisCalendarMonth(plan);
+  const workingYm = getWorkingMonthYm(plan);
+  const viewYm = getDashboardViewMonthYm(plan);
+  const monthlyDebtPaidAuto = sumPaymentsInYyyyMm(plan, viewYm);
   const monthlyDebtPaid = monthlyDebtPaidAuto;
   const monthlyDebtPct =
     monthlyDebtGoal > 0 ? Math.min(100, (Math.max(0, monthlyDebtPaid) / monthlyDebtGoal) * 100) : 0;
+  const dashboardFollowsWorking =
+    !(typeof plan.dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test(plan.dashboardViewMonthYm));
 
   return {
+    workingMonthYm: workingYm,
+    workingMonthLabel: monthLabel(workingYm),
+    dashboardViewMonthYm: viewYm,
+    dashboardViewMonthLabel: monthLabel(viewYm),
+    viewingDifferentFromWorking: viewYm !== workingYm,
+    dashboardFollowsWorking: dashboardFollowsWorking,
     goalHysa: numOr(plan.goalHysa, 0),
     personalSavings,
     goalSavingsCurrent,
@@ -168,6 +211,8 @@ export function derived(plan) {
     efundTarget,
     efundGap,
     efundPct,
+    towardEfund,
+    savingsGoalSummaries,
     buffer,
     budgetTotal,
     pctOfBudget,

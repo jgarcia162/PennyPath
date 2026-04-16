@@ -673,6 +673,107 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(233, 233, 246, 0.65);
 }
 
+.plan-goals-editor__subhead {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(60, 68, 82, 0.5);
+  margin: 18px 0 6px;
+}
+.plan-goals-editor__subhint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(60, 68, 82, 0.65);
+  margin: 0 0 12px;
+}
+.plan-goals-editor__savings-goals {
+  margin-top: 4px;
+}
+.savings-goal-target-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(88px, 120px) auto;
+  gap: 8px 10px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.savings-goal-target-row__remove {
+  font-size: 11px;
+  padding: 5px 8px;
+  white-space: nowrap;
+}
+#btn-add-savings-goal {
+  margin-top: 6px;
+}
+.editor-table__cell--goals {
+  min-width: 120px;
+  max-width: 220px;
+  vertical-align: top;
+}
+.editor-savings-goal-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.35;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.editor-savings-goal-check__text {
+  flex: 1;
+  min-width: 0;
+}
+.savings-goals-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.savings-goal-block {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(60, 68, 82, 0.1);
+}
+.savings-goal-block:first-child {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+.savings-goal-block__title {
+  font-family: 'Playfair Display', serif;
+  font-size: 17px;
+  font-weight: 800;
+  color: var(--purple);
+  margin-bottom: 8px;
+}
+.savings-goals-stack__empty {
+  font-size: 13px;
+  color: rgba(60, 68, 82, 0.7);
+  margin: 8px 0 0;
+}
+.goal3-savings-goals {
+  margin-top: 8px;
+}
+.goal3-savings-goal-line {
+  margin-bottom: 10px;
+}
+.goal3-savings-goal-caption {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(60, 68, 82, 0.55);
+  margin-bottom: 4px;
+}
+:root[data-theme="dark"] .plan-goals-editor__subhead {
+  color: rgba(233, 233, 246, 0.5);
+}
+:root[data-theme="dark"] .plan-goals-editor__subhint {
+  color: rgba(233, 233, 246, 0.65);
+}
+:root[data-theme="dark"] .savings-goal-block {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
 /* Dashboard layout */
 .dashboard-hero {
   margin: 6px 0 14px;
@@ -691,6 +792,108 @@ body.financial-plan-demo-mode #checkin-form {
 }
 :root[data-theme="dark"] .dashboard-hero__sub {
   color: rgba(233, 233, 246, 0.65);
+}
+
+.dashboard-month-wrap {
+  margin: 0 0 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(60, 68, 82, 0.1);
+  background: var(--paper);
+  box-shadow: 0 2px 10px rgba(60, 68, 82, 0.04);
+}
+.dashboard-month-wrap__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+.dashboard-month-wrap__eyebrow {
+  display: block;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(60, 68, 82, 0.5);
+  margin-bottom: 4px;
+}
+.dashboard-month-wrap__title {
+  font-family: 'Playfair Display', serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1.2;
+}
+.dashboard-month-wrap__picker-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-top: 2px;
+}
+.dashboard-month-wrap__picker-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(60, 68, 82, 0.75);
+}
+.dashboard-view-month-select {
+  flex: 1 1 220px;
+  min-width: min(100%, 240px);
+  max-width: 420px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(60, 68, 82, 0.18);
+  background: var(--paper);
+  color: var(--text);
+  cursor: pointer;
+  appearance: auto;
+}
+.dashboard-month-wrap__working-note {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(60, 68, 82, 0.72);
+}
+:root[data-theme="dark"] .dashboard-month-wrap__picker-label {
+  color: rgba(233, 233, 246, 0.72);
+}
+:root[data-theme="dark"] .dashboard-view-month-select {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(233, 233, 246, 0.94);
+}
+:root[data-theme="dark"] .dashboard-month-wrap__working-note {
+  color: rgba(233, 233, 246, 0.65);
+}
+.dashboard-month-wrap__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.dashboard-month-wrap__hint {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(60, 68, 82, 0.65);
+}
+:root[data-theme="dark"] .dashboard-month-wrap {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+}
+:root[data-theme="dark"] .dashboard-month-wrap__eyebrow {
+  color: rgba(233, 233, 246, 0.5);
+}
+:root[data-theme="dark"] .dashboard-month-wrap__title {
+  color: rgba(233, 233, 246, 0.92);
+}
+:root[data-theme="dark"] .dashboard-month-wrap__hint {
+  color: rgba(233, 233, 246, 0.62);
 }
 
 .dashboard-goals {

@@ -12,6 +12,8 @@ import {
 } from './plan-data.js';
 import { numOr } from './utils.js';
 import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
+import { yyyyMmFromDate } from './monthly-activity.js';
+import { ID_GOAL_HYSA, ensureSavingsGoals, normalizeSavingsGoalRow } from './savings-goals.js';
 
 function normalizeDebtsEditorSortForStorage(sort) {
   if (sort === 'balance') return 'balance-desc';
@@ -66,12 +68,20 @@ function normalizeSavingsAccount(a) {
   } else {
     apyPct = DEFAULT_SAVINGS_APY_PCT;
   }
+  var goalIds = [];
+  if (Array.isArray(a.goalIds) && a.goalIds.length) {
+    goalIds = a.goalIds.map(String).filter(Boolean);
+  } else if (typeof a.countTowardsGoal === 'boolean' && a.countTowardsGoal) {
+    goalIds = [ID_GOAL_HYSA];
+  }
+  const countTowardsGoal = goalIds.indexOf(ID_GOAL_HYSA) >= 0;
   return {
     id: id,
     name: String(a.name || 'Account'),
     current: numOr(a.current, 0),
     apyPct: apyPct,
-    countTowardsGoal: typeof a.countTowardsGoal === 'boolean' ? a.countTowardsGoal : id === 'hysa',
+    goalIds: goalIds,
+    countTowardsGoal: countTowardsGoal,
     depositHistory: normalizeDepositHistory(a),
   };
 }
@@ -85,6 +95,7 @@ function migrateLegacySavingsFromJson(o) {
       name: 'Joint Savings',
       current: typeof o.hysaBalance === 'number' && Number.isFinite(o.hysaBalance) ? o.hysaBalance : 0,
       apyPct: hysaApyPct,
+      goalIds: [ID_GOAL_HYSA],
       countTowardsGoal: true,
       depositHistory: [],
     },
@@ -93,6 +104,7 @@ function migrateLegacySavingsFromJson(o) {
       name: 'Jose — personal',
       current: typeof o.joseSavings === 'number' && Number.isFinite(o.joseSavings) ? o.joseSavings : 0,
       apyPct: 0,
+      goalIds: [],
       countTowardsGoal: false,
       depositHistory: [],
     },
@@ -101,6 +113,7 @@ function migrateLegacySavingsFromJson(o) {
       name: 'Sherlyna — personal',
       current: typeof o.sherlynaSavings === 'number' && Number.isFinite(o.sherlynaSavings) ? o.sherlynaSavings : 0,
       apyPct: 0,
+      goalIds: [],
       countTowardsGoal: false,
       depositHistory: [],
     },
@@ -112,6 +125,9 @@ export function applyBlankFinancialBalances(plan) {
   plan.debts = [];
   plan.debtsEditorSort = PLAN_DEFAULTS.debtsEditorSort || 'saved';
   plan.debtsProgressSort = PLAN_DEFAULTS.debtsProgressSort || 'saved';
+  plan.workingMonthYm = yyyyMmFromDate(new Date());
+  plan.dashboardViewMonthYm = '';
+  plan.savingsGoals = JSON.parse(JSON.stringify(PLAN_DEFAULTS.savingsGoals));
   plan.savingsAccounts = JSON.parse(JSON.stringify(PLAN_DEFAULTS.savingsAccounts));
   plan.hysaBalance = PLAN_DEFAULTS.hysaBalance;
   plan.joseSavings = PLAN_DEFAULTS.joseSavings;
@@ -141,6 +157,14 @@ export function applyPlanPayloadFromObject(plan, o) {
   }
   if (typeof o.hysaGoalBy === 'string') {
     plan.hysaGoalBy = o.hysaGoalBy;
+  }
+  if (typeof o.workingMonthYm === 'string' && /^\d{4}-\d{2}$/.test(o.workingMonthYm)) {
+    plan.workingMonthYm = o.workingMonthYm;
+  }
+  if (typeof o.dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test(o.dashboardViewMonthYm)) {
+    plan.dashboardViewMonthYm = o.dashboardViewMonthYm;
+  } else if (o.dashboardViewMonthYm === '' || o.dashboardViewMonthYm == null) {
+    plan.dashboardViewMonthYm = '';
   }
   if (o.labels && typeof o.labels === 'object') {
     if (!plan.labels) plan.labels = {};
@@ -185,6 +209,9 @@ export function applyPlanPayloadFromObject(plan, o) {
       else plan.debtsProgressSort = s;
     }
   }
+  if (Array.isArray(o.savingsGoals) && o.savingsGoals.length) {
+    plan.savingsGoals = o.savingsGoals.map(normalizeSavingsGoalRow).filter(Boolean);
+  }
   if (Array.isArray(o.debts)) {
     plan.debts = o.debts
       .filter(function (d) {
@@ -212,6 +239,13 @@ export function applyPlanPayloadFromObject(plan, o) {
     plan.savingsAccounts = migrateLegacySavingsFromJson(o);
   }
   syncLegacySavingsFromAccounts(plan);
+  if (typeof plan.workingMonthYm !== 'string' || !/^\d{4}-\d{2}$/.test(plan.workingMonthYm)) {
+    plan.workingMonthYm = yyyyMmFromDate(new Date());
+  }
+  if (typeof plan.dashboardViewMonthYm !== 'string' || !/^\d{4}-\d{2}$/.test(plan.dashboardViewMonthYm)) {
+    plan.dashboardViewMonthYm = '';
+  }
+  ensureSavingsGoals(plan);
 }
 
 export function applyPlanOverrides() {
@@ -243,6 +277,15 @@ export function savePlanOverrides() {
         debts: PLAN.debts,
         debtsEditorSort: normalizeDebtsEditorSortForStorage(PLAN.debtsEditorSort),
         debtsProgressSort: normalizeDebtsProgressSortForStorage(PLAN.debtsProgressSort),
+        workingMonthYm:
+          typeof PLAN.workingMonthYm === 'string' && /^\d{4}-\d{2}$/.test(PLAN.workingMonthYm)
+            ? PLAN.workingMonthYm
+            : yyyyMmFromDate(new Date()),
+        dashboardViewMonthYm:
+          typeof PLAN.dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test(PLAN.dashboardViewMonthYm)
+            ? PLAN.dashboardViewMonthYm
+            : '',
+        savingsGoals: Array.isArray(PLAN.savingsGoals) ? PLAN.savingsGoals : [],
       })
     );
   } catch (e) {}
