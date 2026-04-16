@@ -105,7 +105,21 @@ export function derived(plan) {
     const sum = sumBalancesTowardGoal(accs, id);
     const pct = targetAmount > 0 ? Math.min(100, (sum / targetAmount) * 100) : 0;
     const gap = Math.max(0, targetAmount - sum);
-    return { id: id, name: name, targetAmount: targetAmount, sum: sum, pct: pct, gap: gap };
+    const ym =
+      typeof g.goalByYm === 'string' && /^\d{4}-\d{2}$/.test(g.goalByYm.trim())
+        ? g.goalByYm.trim()
+        : '';
+    const goalByWhen = ym ? 'By ' + monthLabel(ym) : '';
+    return {
+      id: id,
+      name: name,
+      targetAmount: targetAmount,
+      sum: sum,
+      pct: pct,
+      gap: gap,
+      goalByYm: ym,
+      goalByWhen: goalByWhen,
+    };
   });
   const hysaBal = accs
     .filter(function (a) {

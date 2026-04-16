@@ -1,5 +1,5 @@
 /**
- * Goal targets editor (Goal 1 timeline + amount).
+ * Goal targets editor (savings goal amounts + optional “goal by” month per row).
  * Keeps edits in the shared PLAN object and persists them.
  */
 
@@ -7,33 +7,16 @@ import { PLAN } from './plan-data.js';
 import { savePlanOverrides } from './persistence.js';
 import {
   ensureSavingsGoals,
-  syncGoalHysaFromGoals,
+  syncJointHysaPlanFieldsFromGoals,
   normalizeSavingsGoalRow,
   stripGoalIdFromAllAccounts,
   ID_GOAL_HYSA,
 } from './savings-goals.js';
+import { numOr } from './utils.js';
 
 function parseMoneyInput(val) {
   const n = Number(String(val || '').replace(/[^\d.-]/g, ''));
   return Number.isFinite(n) ? n : null;
-}
-
-function monthInputToLabel(yyyyMm) {
-  const parts = String(yyyyMm || '').split('-');
-  if (parts.length < 2) return null;
-  const y = parts[0];
-  const m = Number(parts[1]);
-  const names = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  const mon = names[m - 1];
-  if (!mon) return null;
-  return mon + ' ' + y;
-}
-
-function syncInputsFromPlan() {
-  const amt = document.getElementById('goal-hysa-target-input');
-  const by = document.getElementById('goal-hysa-by-input');
-  if (amt) amt.value = String(Number.isFinite(PLAN.goalHysa) ? PLAN.goalHysa : '');
-  if (by && PLAN.hysaGoalByYm) by.value = String(PLAN.hysaGoalByYm);
 }
 
 function flashStatus(msg) {
@@ -56,12 +39,18 @@ function readSavingsGoalsFromDom() {
     if (!id) return;
     const nameEl = row.querySelector('input[data-field="goal-name"]');
     const amtEl = row.querySelector('input[data-field="goal-amount"]');
+    const byEl = row.querySelector('input[data-field="goal-by"]');
     const name = nameEl ? String(nameEl.value || '').trim() : '';
     const amt = amtEl ? parseMoneyInput(amtEl.value) : null;
+    let goalByYm = '';
+    if (byEl && typeof byEl.value === 'string' && /^\d{4}-\d{2}$/.test(byEl.value.trim())) {
+      goalByYm = byEl.value.trim();
+    }
     const rowObj = normalizeSavingsGoalRow({
       id: id,
       name: name || 'Savings goal',
       targetAmount: amt != null && amt >= 0 ? amt : 0,
+      goalByYm: goalByYm,
     });
     if (rowObj) next.push(rowObj);
   });
@@ -70,11 +59,8 @@ function readSavingsGoalsFromDom() {
 
 export function wireGoalTargetsEditor(render) {
   const saveBtn = document.getElementById('btn-save-goal-targets');
-  const amt = document.getElementById('goal-hysa-target-input');
-  const by = document.getElementById('goal-hysa-by-input');
-  if (!saveBtn || !amt || !by) return;
-
-  syncInputsFromPlan();
+  const host = document.getElementById('savings-goals-target-editor');
+  if (!saveBtn || !host) return;
 
   const peg = document.getElementById('plan-goals-editor');
   if (peg && !peg._savingsGoalsUiWired) {
@@ -89,6 +75,7 @@ export function wireGoalTargetsEditor(render) {
           id: 'goal_' + Date.now().toString(36),
           name: 'New savings goal',
           targetAmount: 0,
+          goalByYm: '',
         });
         savePlanOverrides();
         if (typeof render === 'function') render();
@@ -109,7 +96,7 @@ export function wireGoalTargetsEditor(render) {
           return g && String(g.id) !== String(gid);
         });
         ensureSavingsGoals(PLAN);
-        syncGoalHysaFromGoals(PLAN);
+        syncJointHysaPlanFieldsFromGoals(PLAN);
         savePlanOverrides();
         if (typeof render === 'function') render();
       }
@@ -117,38 +104,21 @@ export function wireGoalTargetsEditor(render) {
   }
 
   saveBtn.addEventListener('click', function () {
-    const money = parseMoneyInput(amt.value);
-    const byVal = String(by.value || '');
-    if (money == null || money <= 0) {
-      flashStatus('Enter a valid HYSA goal amount.');
-      return;
-    }
-    const byLabel = monthInputToLabel(byVal);
-    if (!byLabel) {
-      flashStatus('Pick a valid “by” month.');
-      return;
-    }
-
-    PLAN.goalHysa = Math.round(money);
-    PLAN.hysaGoalByYm = byVal;
-    PLAN.hysaGoalBy = byLabel;
-    if (!PLAN.labels) PLAN.labels = {};
-    PLAN.labels.hysaGoalByShort = byLabel;
-    PLAN.labels.goalHysaWhen = 'By ' + byLabel;
-
     readSavingsGoalsFromDom();
     ensureSavingsGoals(PLAN);
     const hysaG = (PLAN.savingsGoals || []).find(function (g) {
       return g && g.id === ID_GOAL_HYSA;
     });
-    if (hysaG) {
-      hysaG.targetAmount = PLAN.goalHysa;
+    const money = hysaG ? numOr(hysaG.targetAmount, 0) : 0;
+    if (money <= 0) {
+      flashStatus('Set a positive target amount for Joint HYSA in the table.');
+      return;
     }
-    syncGoalHysaFromGoals(PLAN);
+
+    syncJointHysaPlanFieldsFromGoals(PLAN);
 
     savePlanOverrides();
     if (typeof render === 'function') render();
     flashStatus('Saved in this browser');
   });
 }
-

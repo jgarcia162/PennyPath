@@ -662,9 +662,6 @@ body.financial-plan-demo-mode #checkin-form {
   margin-bottom: 12px;
   margin-top: 0;
 }
-.plan-goals-editor__hysa-grid.balance-editor-grid {
-  margin-bottom: 0;
-}
 .goals-targets-editor-list.debts-editor-list {
   margin-top: 0;
   max-height: min(50vh, 420px);
@@ -687,6 +684,21 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .editor-table--goal-targets .editor-table__cell--name input {
   min-width: 10rem;
+}
+.editor-table--goal-targets .editor-table__cell--goal-by input[type='month'] {
+  min-width: 10.5rem;
+  font-size: 13px;
+}
+.savings-goal-block__when {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(60, 68, 82, 0.55);
+  margin: -4px 0 8px;
+}
+:root[data-theme='dark'] .savings-goal-block__when {
+  color: rgba(233, 233, 246, 0.55);
 }
 :root[data-theme="dark"] .plan-goals-editor__hint {
   color: rgba(233, 233, 246, 0.62);
@@ -749,6 +761,14 @@ body.financial-plan-demo-mode #checkin-form {
   text-transform: uppercase;
   color: rgba(60, 68, 82, 0.55);
   margin-bottom: 4px;
+}
+.goal3-savings-goal-when {
+  font-size: 11px;
+  color: rgba(60, 68, 82, 0.65);
+  margin: -2px 0 6px;
+}
+:root[data-theme='dark'] .goal3-savings-goal-when {
+  color: rgba(233, 233, 246, 0.55);
 }
 :root[data-theme="dark"] .savings-goal-block {
   border-top-color: rgba(255, 255, 255, 0.08);

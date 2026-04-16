@@ -108,6 +108,7 @@ function renderSavingsGoalsTargetEditor() {
   [
     { t: 'Goal name', title: 'Savings goal label' },
     { t: 'Target amount', title: 'Dollar target for this goal' },
+    { t: 'Goal by', title: 'Optional target month (YYYY-MM)' },
     { t: '', title: 'Remove row' },
   ].forEach(function (h) {
     const th = document.createElement('th');
@@ -146,6 +147,19 @@ function renderSavingsGoalsTargetEditor() {
     amtIn.value = String(Math.round(numOr(g.targetAmount, 0)));
     tdAmt.appendChild(amtIn);
 
+    const tdBy = document.createElement('td');
+    tdBy.className = 'editor-table__cell--goal-by';
+    const byIn = document.createElement('input');
+    byIn.type = 'month';
+    byIn.setAttribute('data-field', 'goal-by');
+    byIn.setAttribute('aria-label', 'Goal by month');
+    const ym =
+      typeof g.goalByYm === 'string' && /^\d{4}-\d{2}$/.test(g.goalByYm.trim())
+        ? g.goalByYm.trim()
+        : '';
+    byIn.value = ym;
+    tdBy.appendChild(byIn);
+
     const tdRm = document.createElement('td');
     tdRm.className = 'editor-table__cell--actions';
     const rm = document.createElement('button');
@@ -158,6 +172,7 @@ function renderSavingsGoalsTargetEditor() {
 
     row.appendChild(tdName);
     row.appendChild(tdAmt);
+    row.appendChild(tdBy);
     row.appendChild(tdRm);
     tbody.appendChild(row);
   });

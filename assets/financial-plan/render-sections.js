@@ -525,6 +525,12 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
       prog.appendChild(labels);
       prog.appendChild(track);
       sub.appendChild(cap);
+      if (sg.goalByWhen) {
+        const when = document.createElement('div');
+        when.className = 'goal3-savings-goal-when';
+        when.textContent = String(sg.goalByWhen);
+        sub.appendChild(when);
+      }
       sub.appendChild(prog);
       goalWrap.appendChild(sub);
     });
@@ -620,6 +626,12 @@ export function renderSavingsGoalsStack(hostId, d, money, moneyExact, opts) {
     title.className = 'savings-goal-block__title';
     title.textContent = String(sg.name || 'Goal');
     block.appendChild(title);
+    if (sg.goalByWhen) {
+      const when = document.createElement('div');
+      when.className = 'savings-goal-block__when';
+      when.textContent = String(sg.goalByWhen);
+      block.appendChild(when);
+    }
 
     const grid = document.createElement('div');
     grid.className = 'efund-grid savings-goal-block__grid';

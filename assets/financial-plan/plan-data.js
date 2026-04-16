@@ -132,9 +132,9 @@ export const PLAN = {
    * Accounts pick one or more via `goalIds` on each savings account.
    */
   savingsGoals: [
-    { id: 'goal-hysa', name: 'Joint HYSA', targetAmount: 50000 },
-    { id: 'goal-efund', name: 'Emergency fund', targetAmount: 36000 },
-    { id: 'goal-personal', name: 'Personal savings', targetAmount: 0 },
+    { id: 'goal-hysa', name: 'Joint HYSA', targetAmount: 50000, goalByYm: '2027-06' },
+    { id: 'goal-efund', name: 'Emergency fund', targetAmount: 36000, goalByYm: '' },
+    { id: 'goal-personal', name: 'Personal savings', targetAmount: 0, goalByYm: '' },
   ],
 };
 
@@ -160,9 +160,9 @@ export const PLAN_DEFAULTS = {
   ],
   debts: [],
   savingsGoals: [
-    { id: 'goal-hysa', name: 'Joint HYSA', targetAmount: 0 },
-    { id: 'goal-efund', name: 'Emergency fund', targetAmount: 0 },
-    { id: 'goal-personal', name: 'Personal savings', targetAmount: 0 },
+    { id: 'goal-hysa', name: 'Joint HYSA', targetAmount: 0, goalByYm: '' },
+    { id: 'goal-efund', name: 'Emergency fund', targetAmount: 0, goalByYm: '' },
+    { id: 'goal-personal', name: 'Personal savings', targetAmount: 0, goalByYm: '' },
   ],
 };
 
