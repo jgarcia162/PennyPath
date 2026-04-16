@@ -441,9 +441,14 @@
       </p>
     </div>
 
-    <div class="dashboard-goals no-print">
-      <div class="section-eyebrow">Goals at a glance</div>
-      <div class="goals-grid goals-grid--dashboard">
+    <details class="dashboard-goals-details no-print" open>
+      <summary class="dashboard-goals-summary">
+        <span class="dashboard-goals-summary-chevron" aria-hidden="true"></span>
+        <span class="section-eyebrow dashboard-goals-summary-eyebrow">Goals at a glance</span>
+      </summary>
+      <div class="dashboard-goals-anim">
+        <div class="dashboard-goals-inner">
+          <div class="goals-grid goals-grid--dashboard">
         <div class="goal-card secondary-a">
           <div class="goal-card-head">
             <div class="goal-tag">Goal 2</div>
@@ -488,8 +493,10 @@
 
           <div class="savings-goals-stack" id="dash-savings-goals-stack"></div>
         </div>
+          </div>
+        </div>
       </div>
-    </div>
+    </details>
 
     <div class="dashboard-tabs no-print" role="tablist" aria-label="Dashboard tabs">
       <button type="button" class="dashboard-tab-btn" id="tab-dashboard-debts" role="tab" aria-selected="true" aria-controls="panel-dashboard-debts">

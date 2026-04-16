@@ -896,8 +896,53 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(233, 233, 246, 0.62);
 }
 
-.dashboard-goals {
+.dashboard-goals-details {
   margin: 0 0 22px;
+}
+.dashboard-goals-summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 12px;
+  user-select: none;
+}
+.dashboard-goals-summary::-webkit-details-marker {
+  display: none;
+}
+.dashboard-goals-summary-chevron {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  border-right: 2px solid var(--gold);
+  border-bottom: 2px solid var(--gold);
+  transform: rotate(-45deg);
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+.dashboard-goals-details[open] .dashboard-goals-summary-chevron {
+  transform: rotate(45deg);
+}
+.dashboard-goals-summary-eyebrow {
+  margin-bottom: 0;
+}
+.dashboard-goals-anim {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.45s ease-in-out, opacity 0.3s ease;
+}
+.dashboard-goals-details[open] .dashboard-goals-anim {
+  max-height: 2400px;
+  opacity: 1;
+}
+.dashboard-goals-inner {
+  padding-bottom: 2px;
+}
+:root[data-theme='dark'] .dashboard-goals-summary-chevron {
+  border-right-color: rgba(212, 175, 55, 0.85);
+  border-bottom-color: rgba(212, 175, 55, 0.85);
 }
 /* Two side-by-side goal cards; undo plan-tab full-width spanning */
 .goals-grid.goals-grid--dashboard {
