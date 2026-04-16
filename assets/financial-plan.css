@@ -961,7 +961,8 @@ body.financial-plan-demo-mode #checkin-form {
   .dashboard-goals-summary-chevron {
     transition: none;
   }
-  .dashboard-goals-anim {
+  .dashboard-goals-anim,
+  .dashboard-goals-details--open .dashboard-goals-anim {
     transition: none;
   }
 }
