@@ -49,6 +49,25 @@ export function wirePlanTabs() {
   const top = { tabA: tabPlan, tabB: tabDash, panelA: panelPlan, panelB: panelDash };
   const dash = { tabA: tabDebts, tabB: tabSavings, panelA: panelDebts, panelB: panelSavings };
 
+  function setToolwinCollapsed(name, collapsed) {
+    const key = 'financial-plan.dashboard.toolwin.' + String(name || 'tool') + '.collapsed';
+    const win = document.querySelector('.toolwin[data-toolwin="' + String(name || '') + '"]');
+    if (!win) return;
+    win.classList.toggle('is-collapsed', !!collapsed);
+    win.setAttribute('data-collapsed', collapsed ? '1' : '0');
+    const btn = win.querySelector('[data-toolwin-toggle]');
+    if (btn) {
+      btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      btn.setAttribute(
+        'aria-label',
+        collapsed ? 'Expand ' + name + ' editor' : 'Collapse ' + name + ' editor'
+      );
+    }
+    try {
+      localStorage.setItem(key, collapsed ? '1' : '0');
+    } catch (e) {}
+  }
+
   function syncDashEdgeTabs(which) {
     if (!tabDebtsEdge || !tabSavingsEdge) return;
     const isSavings = which === 'savings';
@@ -62,6 +81,9 @@ export function wirePlanTabs() {
     if (w === 'savings') activatePairB(dash);
     else activatePair(dash);
     syncDashEdgeTabs(w);
+    // Edge tabs are the primary editor selectors: open the matching editor pane.
+    setToolwinCollapsed('debts', w !== 'debts');
+    setToolwinCollapsed('savings', w !== 'savings');
     if (opts && opts.updateHash) {
       try {
         history.replaceState(null, '', w === 'savings' ? '#dashboard/savings' : '#dashboard/debts');
