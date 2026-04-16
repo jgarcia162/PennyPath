@@ -993,6 +993,10 @@ body.financial-plan-demo-mode #checkin-form {
   background: rgba(255, 255, 255, 0.28);
   margin: 0 0 18px;
 }
+/* Edge editor tabs replace the horizontal dashboard tabs on desktop. */
+.page-tab-panel--dashboard .dashboard-tabs {
+  display: none;
+}
 .dashboard-tab-btn {
   appearance: none;
   border: 1px solid transparent;
@@ -1014,6 +1018,164 @@ body.financial-plan-demo-mode #checkin-form {
   background: rgba(58, 95, 138, 0.16);
   border-color: rgba(58, 95, 138, 0.25);
   color: rgba(60, 68, 82, 0.92);
+}
+
+/* Edge editor drawers (tabs + expanding editor). */
+.dashboard-edge-editors {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 320; /* above toolwins (300) and site header (100) */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+  pointer-events: none; /* only tabs themselves should be clickable */
+}
+.edge-editor[data-edge-editor='debts'] { --edge-accent: var(--sage); --edge-bg: rgba(143, 176, 160, 0.22); }
+.edge-editor[data-edge-editor='savings'] { --edge-accent: var(--purple); --edge-bg: rgba(173, 160, 194, 0.24); }
+.edge-editor { --edge-accent: rgba(58, 95, 138, 0.9); --edge-bg: rgba(58, 95, 138, 0.14); }
+.edge-editor__tab {
+  pointer-events: auto;
+  appearance: none;
+  border: 1px solid rgba(60, 68, 82, 0.12);
+  border-right: none;
+  background: var(--edge-bg);
+  color: rgba(60, 68, 82, 0.86);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+  padding: 14px 10px;
+  box-shadow: 0 10px 26px rgba(60, 68, 82, 0.12);
+  transition: transform 180ms ease, box-shadow 180ms ease, background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.edge-editor__tab-label {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg); /* read top-to-bottom */
+  font-size: 11px;
+  line-height: 1;
+  /* Approach 1: “always legible” outline on mixed backgrounds. */
+  text-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55),
+    0 0 2px rgba(0, 0, 0, 0.28);
+  transition: color 180ms ease;
+}
+.edge-editor__tab:hover {
+  background: rgba(255, 255, 255, 0.85);
+  color: rgba(60, 68, 82, 0.94);
+  transform: translateX(-2px);
+}
+.edge-editor__tab[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: rgba(60, 68, 82, 0.16);
+  color: rgba(60, 68, 82, 0.94);
+  box-shadow:
+    0 14px 34px rgba(60, 68, 82, 0.18),
+    0 0 0 1px var(--edge-accent) inset;
+  transform: translateX(-6px);
+}
+/* Drawer panel */
+.edge-editor {
+  pointer-events: none;
+}
+.edge-editor.is-open {
+  pointer-events: auto;
+}
+.edge-editor__panel {
+  position: fixed;
+  top: 50%;
+  /* Leave room so the vertical tabs remain visible/clickable. */
+  right: 56px;
+  z-index: 315;
+  width: min(660px, calc(100vw - 56px - 16px));
+  max-height: calc(100vh - 160px);
+  overflow: auto;
+  padding: 0 0 0 0;
+  transform: translate(100%, -50%);
+  transition: transform 240ms cubic-bezier(0.33, 1, 0.68, 1);
+  pointer-events: auto;
+}
+.edge-editor.is-open .edge-editor__panel {
+  transform: translate(0, -50%);
+}
+.edge-editor__panel .toolwin {
+  position: static;
+  right: auto;
+  top: auto;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  max-height: none;
+  height: auto;
+  resize: none;
+}
+.edge-editor__panel .toolwin__body {
+  max-height: none;
+}
+
+/* Make the active tab feel “pulled out” with the drawer. */
+.edge-editor.is-open .edge-editor__tab {
+  transform: translateX(-18px);
+  box-shadow: 0 16px 36px rgba(60, 68, 82, 0.20);
+}
+:root[data-theme="dark"] .edge-editor.is-open .edge-editor__tab {
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-theme="dark"] .edge-editor[data-edge-editor='debts'] { --edge-bg: rgba(143, 176, 160, 0.20); }
+:root[data-theme="dark"] .edge-editor[data-edge-editor='savings'] { --edge-bg: rgba(173, 160, 194, 0.22); }
+:root[data-theme="dark"] .edge-editor__tab {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(233, 233, 246, 0.86);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="dark"] .edge-editor__tab:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: rgba(233, 233, 246, 0.92);
+}
+:root[data-theme="dark"] .edge-editor__tab[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.16);
+  color: rgba(233, 233, 246, 0.92);
+  box-shadow:
+    0 16px 38px rgba(0, 0, 0, 0.45),
+    0 0 0 1px var(--edge-accent) inset;
+}
+:root[data-theme="dark"] .edge-editor__tab-label {
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.45),
+    0 0 2px rgba(0, 0, 0, 0.45);
+}
+
+/* Approach 2 demo: if JS marks it dark, flip label color smoothly. */
+/* (Auto-contrast demo removed; using scrim/text-shadow approach only.) */
+@media (prefers-reduced-motion: reduce) {
+  .edge-editor__tab,
+  .edge-editor__tab:hover,
+  .edge-editor__tab[aria-selected="true"] {
+    transition: none;
+    transform: none;
+  }
+  .edge-editor__panel {
+    transition: none;
+    /* Preserve vertical centering while disabling horizontal animation. */
+    transform: translate(0, -50%);
+  }
+}
+@media (max-width: 900px) {
+  .dashboard-edge-editors {
+    display: none; /* avoid fighting for space on mobile */
+  }
+  .page-tab-panel--dashboard .dashboard-tabs {
+    display: inline-flex;
+  }
 }
 :root[data-theme="dark"] .dashboard-tabs {
   border-color: rgba(255, 255, 255, 0.10);

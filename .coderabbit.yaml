@@ -1,6 +1,11 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 # CodeRabbit reviews PRs to the default branch by default; list other base branches here.
 reviews:
+  high_level_summary_instructions: |
+    Always provide a concise, professional title following the Conventional Commits
+    format (e.g., feat:, fix:, style:).
+    In the description, include a "High-level description" of the changes and
+    a "Key changes" bulleted list.
   auto_review:
     base_branches:
       - "^develop$"

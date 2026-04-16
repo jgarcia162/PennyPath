@@ -19,7 +19,6 @@ import {
 } from './goal-editors-wire.js';
 import { wirePlanTabs } from './tabs-wire.js';
 import { wireGoalTargetsEditor } from './goal-targets-wire.js';
-import { wireToolWindows } from './toolwindow-wire.js';
 import { wireCheckIns } from './checkin-log.js';
 import { wireBadges, renderBadges } from './features.js';
 import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage.js';
@@ -109,7 +108,6 @@ function init() {
   wireGoal2DebtEditor(render);
   wireGoal3SavingsEditor(render);
   wirePlanTabs();
-  wireToolWindows();
   wireGoalTargetsEditor(render);
   wireCheckIns();
   wireBadges();
