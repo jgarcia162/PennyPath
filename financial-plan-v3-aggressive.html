@@ -523,6 +523,32 @@
       </button>
     </div>
 
+    <!-- Always-visible edge rail for quick switching (mirrors the tabs above). -->
+    <div class="dashboard-edge-tabs no-print" role="tablist" aria-label="Dashboard editor panes">
+      <button
+        type="button"
+        class="dashboard-edge-tab"
+        id="tab-dashboard-debts-edge"
+        role="tab"
+        aria-selected="true"
+        aria-controls="panel-dashboard-debts"
+        aria-label="Debts editor pane"
+      >
+        <span class="dashboard-edge-tab__label">Debts</span>
+      </button>
+      <button
+        type="button"
+        class="dashboard-edge-tab"
+        id="tab-dashboard-savings-edge"
+        role="tab"
+        aria-selected="false"
+        aria-controls="panel-dashboard-savings"
+        aria-label="Savings editor pane"
+      >
+        <span class="dashboard-edge-tab__label">Savings</span>
+      </button>
+    </div>
+
     <section class="dashboard-tab-panel" id="panel-dashboard-debts" role="tabpanel" aria-labelledby="tab-dashboard-debts">
       <div class="dashboard-split">
         <div class="dashboard-main">

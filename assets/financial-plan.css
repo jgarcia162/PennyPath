@@ -1015,6 +1015,85 @@ body.financial-plan-demo-mode #checkin-form {
   border-color: rgba(58, 95, 138, 0.25);
   color: rgba(60, 68, 82, 0.92);
 }
+
+/* Fixed vertical edge tabs (quick switch between Debts/Savings). */
+.dashboard-edge-tabs {
+  position: fixed;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 320; /* above toolwins (300) and site header (100) */
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 8px 0;
+  pointer-events: none; /* only tabs themselves should be clickable */
+}
+.dashboard-edge-tab {
+  pointer-events: auto;
+  appearance: none;
+  border: 1px solid rgba(60, 68, 82, 0.12);
+  border-right: none;
+  background: rgba(255, 255, 255, 0.75);
+  color: rgba(60, 68, 82, 0.86);
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-top-left-radius: 14px;
+  border-bottom-left-radius: 14px;
+  padding: 14px 10px;
+  box-shadow: 0 10px 26px rgba(60, 68, 82, 0.12);
+  transition: transform 180ms ease, box-shadow 180ms ease, background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.dashboard-edge-tab__label {
+  display: inline-block;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg); /* read top-to-bottom */
+  font-size: 11px;
+  line-height: 1;
+}
+.dashboard-edge-tab:hover {
+  background: rgba(255, 255, 255, 0.92);
+  color: rgba(60, 68, 82, 0.94);
+  transform: translateX(-2px);
+}
+.dashboard-edge-tab[aria-selected="true"] {
+  background: rgba(58, 95, 138, 0.18);
+  border-color: rgba(58, 95, 138, 0.28);
+  color: rgba(60, 68, 82, 0.94);
+  box-shadow: 0 14px 34px rgba(60, 68, 82, 0.18);
+  transform: translateX(-6px);
+}
+:root[data-theme="dark"] .dashboard-edge-tab {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(233, 233, 246, 0.86);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="dark"] .dashboard-edge-tab:hover {
+  background: rgba(255, 255, 255, 0.10);
+  color: rgba(233, 233, 246, 0.92);
+}
+:root[data-theme="dark"] .dashboard-edge-tab[aria-selected="true"] {
+  background: rgba(121, 166, 216, 0.16);
+  border-color: rgba(121, 166, 216, 0.22);
+  color: rgba(233, 233, 246, 0.92);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dashboard-edge-tab,
+  .dashboard-edge-tab:hover,
+  .dashboard-edge-tab[aria-selected="true"] {
+    transition: none;
+    transform: none;
+  }
+}
+@media (max-width: 900px) {
+  .dashboard-edge-tabs {
+    display: none; /* avoid fighting for space on mobile */
+  }
+}
 :root[data-theme="dark"] .dashboard-tabs {
   border-color: rgba(255, 255, 255, 0.10);
   background: rgba(255, 255, 255, 0.04);

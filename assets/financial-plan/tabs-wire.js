@@ -41,16 +41,38 @@ export function wirePlanTabs() {
   const tabSavings = document.getElementById('tab-dashboard-savings');
   const panelDebts = document.getElementById('panel-dashboard-debts');
   const panelSavings = document.getElementById('panel-dashboard-savings');
+  const tabDebtsEdge = document.getElementById('tab-dashboard-debts-edge');
+  const tabSavingsEdge = document.getElementById('tab-dashboard-savings-edge');
 
   if (!tabPlan || !tabDash || !panelPlan || !panelDash) return;
 
   const top = { tabA: tabPlan, tabB: tabDash, panelA: panelPlan, panelB: panelDash };
   const dash = { tabA: tabDebts, tabB: tabSavings, panelA: panelDebts, panelB: panelSavings };
 
+  function syncDashEdgeTabs(which) {
+    if (!tabDebtsEdge || !tabSavingsEdge) return;
+    const isSavings = which === 'savings';
+    setSelected(tabDebtsEdge, !isSavings);
+    setSelected(tabSavingsEdge, isSavings);
+  }
+
+  function activateDash(which, opts) {
+    const w = which === 'savings' ? 'savings' : 'debts';
+    if (!tabDebts || !tabSavings || !panelDebts || !panelSavings) return;
+    if (w === 'savings') activatePairB(dash);
+    else activatePair(dash);
+    syncDashEdgeTabs(w);
+    if (opts && opts.updateHash) {
+      try {
+        history.replaceState(null, '', w === 'savings' ? '#dashboard/savings' : '#dashboard/debts');
+      } catch (e) {}
+    }
+  }
+
   // Default state (in case markup changes later).
   activatePair(top);
   if (tabDebts && tabSavings && panelDebts && panelSavings) {
-    activatePair(dash);
+    activateDash('debts');
   }
 
   tabPlan.addEventListener('click', function () {
@@ -68,16 +90,21 @@ export function wirePlanTabs() {
 
   if (tabDebts && tabSavings && panelDebts && panelSavings) {
     tabDebts.addEventListener('click', function () {
-      activatePair(dash);
-      try {
-        history.replaceState(null, '', '#dashboard/debts');
-      } catch (e) {}
+      activateDash('debts', { updateHash: true });
     });
     tabSavings.addEventListener('click', function () {
-      activatePairB(dash);
-      try {
-        history.replaceState(null, '', '#dashboard/savings');
-      } catch (e) {}
+      activateDash('savings', { updateHash: true });
+    });
+  }
+
+  if (tabDebtsEdge && tabSavingsEdge && tabDebts && tabSavings && panelDebts && panelSavings) {
+    tabDebtsEdge.addEventListener('click', function () {
+      activatePairB(top);
+      activateDash('debts', { updateHash: true });
+    });
+    tabSavingsEdge.addEventListener('click', function () {
+      activatePairB(top);
+      activateDash('savings', { updateHash: true });
     });
   }
 
@@ -88,13 +115,7 @@ export function wirePlanTabs() {
       btn.addEventListener('click', function () {
         activatePairB(top);
         const which = btn.getAttribute('data-open-dashboard');
-        if (!tabDebts || !tabSavings || !panelDebts || !panelSavings) return;
-        if (which === 'savings') activatePairB(dash);
-        else activatePair(dash);
-        try {
-          const hash = which === 'savings' ? '#dashboard/savings' : '#dashboard/debts';
-          history.replaceState(null, '', hash);
-        } catch (e) {}
+        activateDash(which === 'savings' ? 'savings' : 'debts', { updateHash: true });
       });
     });
   }
@@ -104,9 +125,8 @@ export function wirePlanTabs() {
     const h = String(location.hash || '');
     if (h.startsWith('#dashboard')) {
       activatePairB(top);
-      if (h.indexOf('/savings') !== -1 && tabDebts && tabSavings && panelDebts && panelSavings) {
-        activatePairB(dash);
-      }
+      if (h.indexOf('/savings') !== -1) activateDash('savings');
+      else activateDash('debts');
     }
   } catch (e) {}
 }
