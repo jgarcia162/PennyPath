@@ -1738,15 +1738,82 @@ body.financial-plan-demo-mode #checkin-form {
   padding: 12px;
 }
 .goal3-savings-head {
+  margin-bottom: 8px;
+}
+.goal3-savings-title-row {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
   align-items: baseline;
-  margin-bottom: 8px;
+  gap: 10px;
   flex-wrap: wrap;
+  margin-bottom: 4px;
+  width: 100%;
 }
-.goal3-savings-name { font-weight: 800; color: var(--purple); font-size: 13px; }
-.goal3-savings-meta { font-size: 12px; color: #666; }
+.goal3-savings-name { font-weight: 800; color: var(--purple); font-size: 13px; flex: 1; min-width: 0; }
+.goal3-savings-balance {
+  font-weight: 800;
+  font-size: 14px;
+  color: rgba(60, 68, 82, 0.95);
+  white-space: nowrap;
+}
+.goal3-savings-meta { font-size: 12px; color: #666; width: 100%; }
+.goal3-savings-goals-details {
+  margin-top: 2px;
+}
+.goal3-savings-goals-summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--purple);
+  padding: 8px 0 6px;
+  user-select: none;
+  border-top: 1px solid rgba(107, 91, 138, 0.15);
+}
+.goal3-savings-goals-summary::-webkit-details-marker {
+  display: none;
+}
+.goal3-savings-goals-chevron {
+  display: inline-block;
+  width: 0.5em;
+  height: 0.5em;
+  border-right: 2px solid var(--purple);
+  border-bottom: 2px solid var(--purple);
+  transform: rotate(-45deg);
+  transition: transform 0.3s ease;
+  flex-shrink: 0;
+}
+.goal3-savings-goals-details[open] .goal3-savings-goals-chevron {
+  transform: rotate(45deg);
+}
+.goal3-savings-goals-summary-title {
+  flex: 1;
+  min-width: 0;
+}
+.goal3-savings-goals-summary-meta {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(60, 68, 82, 0.55);
+}
+.goal3-savings-goals-anim {
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: max-height 0.45s ease-in-out, opacity 0.3s ease;
+}
+.goal3-savings-goals-details[open] .goal3-savings-goals-anim {
+  max-height: 1200px;
+  opacity: 1;
+}
+:root[data-theme='dark'] .goal3-savings-balance {
+  color: rgba(233, 233, 246, 0.92);
+}
+:root[data-theme='dark'] .goal3-savings-goals-summary-meta {
+  color: rgba(233, 233, 246, 0.5);
+}
 .goal3-savings-progress {
   margin-top: 8px;
 }

@@ -475,9 +475,16 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
 
     const head = document.createElement('div');
     head.className = 'goal3-savings-head';
+    const titleRow = document.createElement('div');
+    titleRow.className = 'goal3-savings-title-row';
     const name = document.createElement('div');
     name.className = 'goal3-savings-name';
     name.textContent = acc.name || 'Account';
+    const balanceEl = document.createElement('div');
+    balanceEl.className = 'goal3-savings-balance';
+    balanceEl.textContent = moneyExact(current);
+    titleRow.appendChild(name);
+    titleRow.appendChild(balanceEl);
     const meta = document.createElement('div');
     meta.className = 'goal3-savings-meta';
     const apy = numOr(acc.apyPct, 0);
@@ -486,16 +493,17 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
       '% APY · ' +
       moneyExact(lifetimeDep) +
       ' logged deposits (lifetime)';
-    head.appendChild(name);
+    head.appendChild(titleRow);
     head.appendChild(meta);
 
     const goalWrap = document.createElement('div');
     goalWrap.className = 'goal3-savings-goals';
     const summaries = d.savingsGoalSummaries || [];
-    let anyGoal = false;
-    summaries.forEach(function (sg) {
-      if (!accountContributesToGoal(acc, sg.id)) return;
-      anyGoal = true;
+    const assigned = summaries.filter(function (sg) {
+      return accountContributesToGoal(acc, sg.id);
+    });
+    const anyGoal = assigned.length > 0;
+    assigned.forEach(function (sg) {
       const goalAmt = numOr(sg.targetAmount, 0);
       const towardAllAccounts = numOr(sg.sum, 0);
       const pctTowardGoal = numOr(sg.pct, 0);
@@ -541,6 +549,30 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
       none.textContent = 'Not assigned to any savings goal — use checkboxes in the savings editor.';
       goalWrap.appendChild(none);
     }
+
+    const goalsDetails = document.createElement('details');
+    goalsDetails.className = 'goal3-savings-goals-details';
+    const goalsSummary = document.createElement('summary');
+    goalsSummary.className = 'goal3-savings-goals-summary';
+    const chev = document.createElement('span');
+    chev.className = 'goal3-savings-goals-chevron';
+    chev.setAttribute('aria-hidden', 'true');
+    const sumTitle = document.createElement('span');
+    sumTitle.className = 'goal3-savings-goals-summary-title';
+    sumTitle.textContent = 'Savings goal progress';
+    const sumMeta = document.createElement('span');
+    sumMeta.className = 'goal3-savings-goals-summary-meta';
+    sumMeta.textContent = anyGoal
+      ? assigned.length + (assigned.length === 1 ? ' goal' : ' goals')
+      : 'None linked';
+    goalsSummary.appendChild(chev);
+    goalsSummary.appendChild(sumTitle);
+    goalsSummary.appendChild(sumMeta);
+    const goalsAnim = document.createElement('div');
+    goalsAnim.className = 'goal3-savings-goals-anim';
+    goalsAnim.appendChild(goalWrap);
+    goalsDetails.appendChild(goalsSummary);
+    goalsDetails.appendChild(goalsAnim);
 
     const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
     const recent = hist.filter(function (p) {
@@ -593,7 +625,7 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
     }
 
     wrap.appendChild(head);
-    wrap.appendChild(goalWrap);
+    wrap.appendChild(goalsDetails);
     wrap.appendChild(details);
     host.appendChild(wrap);
   });

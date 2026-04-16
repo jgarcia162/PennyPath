@@ -10,7 +10,7 @@ import {
   ID_GOAL_HYSA,
   ID_GOAL_EFUND,
 } from './savings-goals.js';
-import { projectPayoffTimeline } from './payoff-projection.js';
+import { projectPayoffTimeline, projectDebtPayoffYm } from './payoff-projection.js';
 import { isoInLocalYyyyMm, monthLabel, yyyyMmFromDate } from './monthly-activity.js';
 
 /** Working month for monthly debt progress (`YYYY-MM`). Falls back to the real calendar month. */
@@ -205,6 +205,31 @@ export function derived(plan) {
   const dashboardFollowsWorking =
     !(typeof plan.dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test(plan.dashboardViewMonthYm));
 
+  const payoff = projectDebtPayoffYm(plan, { maxMonths: 600 });
+  const debtPayoffYm = payoff.ym;
+  const debtPayoffMonthIndex = payoff.monthIndex;
+  let debtPayoffWhenLabel = '—';
+  let debtPayoffWhenNote = '';
+  let debtGoalWhenLine = '';
+  if (debts.length === 0) {
+    debtPayoffWhenLabel = '—';
+    debtPayoffWhenNote = '';
+    debtGoalWhenLine = 'Add a debt in Goal 2';
+  } else if (totalDebt <= 0) {
+    debtPayoffWhenLabel = 'Paid off';
+    debtPayoffWhenNote = 'All listed debts at $0.';
+    debtGoalWhenLine = 'Paid off';
+  } else if (payoff.ym) {
+    debtPayoffWhenLabel = monthLabel(payoff.ym);
+    debtPayoffWhenNote =
+      payoff.monthIndex != null ? '~' + (payoff.monthIndex + 1) + ' months (projected)' : '';
+    debtGoalWhenLine = 'By ' + monthLabel(payoff.ym);
+  } else {
+    debtPayoffWhenLabel = '—';
+    debtPayoffWhenNote = 'Not reaching $0 in the long-run projection at current payment levels.';
+    debtGoalWhenLine = 'Beyond current projection';
+  }
+
   return {
     workingMonthYm: workingYm,
     workingMonthLabel: monthLabel(workingYm),
@@ -235,6 +260,12 @@ export function derived(plan) {
     hysaEndPlan,
     personalEndPlan,
     debtGoalPct,
+    debtStartTotal,
+    debtPayoffYm,
+    debtPayoffMonthIndex,
+    debtPayoffWhenLabel,
+    debtPayoffWhenNote,
+    debtGoalWhenLine,
     debts,
     monthlyDebtGoal,
     monthlyDebtPaidAuto,

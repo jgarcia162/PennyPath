@@ -224,15 +224,21 @@ export function render() {
   );
 
   setText('cover-takehome', money(PLAN.monthlyTakeHome));
+  if (hasDebts) {
+    setText('cover-debt-free-date', d.debtPayoffWhenLabel);
+    setText('cover-debt-free-note', d.debtPayoffWhenNote);
+  } else {
+    setText('cover-debt-free-date', '—');
+    setText(
+      'cover-debt-free-note',
+      hasData ? 'Add debts in Goal 2 to see a projected payoff date.' : 'Add balances in Goals 2 & 3 to personalize the cover.'
+    );
+  }
   if (hasData) {
-    setText('cover-debt-free-date', PLAN.debtFreeBy);
-    setText('cover-debt-free-note', '~' + PLAN.monthsToDebtFree + ' months away');
     setText('cover-hysa-goal-label', money(PLAN.goalHysa) + ' HYSA By');
     setText('cover-hysa-by', PLAN.labels.hysaGoalByShort);
     setText('cover-hysa-note', '~' + PLAN.monthsToHysaGoal + ' months away');
   } else {
-    setText('cover-debt-free-date', '—');
-    setText('cover-debt-free-note', 'Add debts in Goal 2 to see a target date.');
     setText('cover-hysa-goal-label', money(PLAN.goalHysa) + ' HYSA By');
     setText('cover-hysa-by', '—');
     setText('cover-hysa-note', 'Add savings in Goal 3 to track progress toward your goal.');
@@ -285,9 +291,18 @@ export function render() {
   setText('goal-hysa-when', PLAN.labels.goalHysaWhen);
   if (hasDebts) {
     setTextDash('goal-debt-amt', money(d.debtRounded));
-    setTextDash('goal-debt-when', PLAN.labels.goalDebtWhen);
+    setTextDash('goal-debt-when', d.debtGoalWhenLine);
     setTextDash('debt-progress-left', moneyExact(d.totalDebt) + ' remaining');
-    setHtmlDash('debt-progress-right', '<strong>' + d.debtGoalPct.toFixed(1) + '%</strong> paid toward $0');
+    setHtmlDash(
+      'debt-progress-right',
+      d.debtStartTotal > 0
+        ? '<strong>' +
+            d.debtGoalPct.toFixed(1) +
+            '%</strong> paid toward ' +
+            moneyExact(d.debtStartTotal) +
+            ' original'
+        : '<strong>—</strong>'
+    );
     setProgWidthDash('debt-progress-fill', d.debtGoalPct);
   } else {
     setTextDash('goal-debt-amt', '—');
@@ -436,11 +451,16 @@ export function render() {
       '/month for dates, weekend road trips, and enjoying life is built into the plan and non-negotiable. Sustainability is what makes this work — not deprivation.'
   );
 
+  let footerDebtBit = '—';
+  if (hasDebts) {
+    if (d.totalDebt <= 0) footerDebtBit = 'Debt paid off';
+    else if (d.debtPayoffYm) footerDebtBit = 'Debt-free by ' + d.debtPayoffWhenLabel;
+    else footerDebtBit = 'Debt payoff beyond projection';
+  }
   setText(
     'footer-line',
     hasData
-      ? 'Debt-free by ' +
-          PLAN.debtFreeBy +
+      ? footerDebtBit +
           ' · ' +
           money(PLAN.goalHysa) +
           ' saved by ' +

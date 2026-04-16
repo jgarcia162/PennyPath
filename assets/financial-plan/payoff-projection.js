@@ -204,6 +204,32 @@ export function projectPayoffTimeline(plan, opts) {
   return rows;
 }
 
+/**
+ * First simulated month where aggregate CC balance reaches $0, or null if not within `maxMonths`.
+ * Uses the same rules as {@link projectPayoffTimeline} (Phase 1 payment, interest, etc.).
+ *
+ * @param {object} plan
+ * @param {{ maxMonths?: number }} [opts]
+ * @returns {{ ym: string | null, monthIndex: number | null }}
+ */
+export function projectDebtPayoffYm(plan, opts) {
+  const cap = opts && Number.isFinite(opts.maxMonths) ? Math.max(12, opts.maxMonths | 0) : 600;
+  const debts = (Array.isArray(plan && plan.debts) ? plan.debts : []).filter(Boolean);
+  const totalCurrent = debts.reduce(function (s, d) {
+    return s + clamp0(d && d.current);
+  }, 0);
+  if (totalCurrent <= 0) {
+    return { ym: null, monthIndex: null };
+  }
+  const rows = projectPayoffTimeline(plan, { maxMonths: cap, noEarlyBreak: true });
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].ccEnd <= 0) {
+      return { ym: rows[i].month, monthIndex: i };
+    }
+  }
+  return { ym: null, monthIndex: null };
+}
+
 if (typeof window !== 'undefined') {
   window.PayoffTimeline = { project: projectPayoffTimeline };
 }
