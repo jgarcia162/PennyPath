@@ -1,0 +1,20 @@
+---
+description: Commit significant work (features, UI, bug fixes) with clear messages
+alwaysApply: true
+---
+
+# Git commits for significant changes
+
+When implementing work in this repo, **create git commits** for meaningful deltas—do not leave large or important changes uncommitted at the end of a task unless the user explicitly wants no commit.
+
+**Always commit (with a clear, scoped message):**
+
+- **New features** (new behavior, data model, user-facing capability)
+- **Large or visible UI changes** (layouts, new sections, restyled editors)
+- **Bug fixes** (incorrect behavior, regressions, broken flows)
+
+**Commit message style:** imperative subject line (`fix:`, `feat:`, `style:`, etc.), optional body if the change needs context.
+
+**When to skip or batch:** tiny one-line typo fixes, purely exploratory edits, or when the user asks to hold commits. Otherwise, prefer **one logical commit per completed slice** of work rather than one giant unrelated commit.
+
+After substantive edits, if the session is wrapping up and changes are uncommitted, **propose or run** `git add` + `git commit` as part of finishing the task.
