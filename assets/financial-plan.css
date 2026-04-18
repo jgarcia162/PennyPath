@@ -628,27 +628,253 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .ai-payoff-output {
   margin-top: 16px;
-  padding: 16px 18px;
+  padding: 0;
   border-radius: 14px;
-  border: 1px solid rgba(60, 68, 82, 0.1);
-  background: rgba(60, 68, 82, 0.03);
+  border: 1px solid rgba(196, 176, 128, 0.28);
+  background: linear-gradient(
+    165deg,
+    rgba(196, 176, 128, 0.09) 0%,
+    rgba(60, 68, 82, 0.04) 42%,
+    rgba(143, 176, 160, 0.08) 100%
+  );
   min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 4px 22px rgba(60, 68, 82, 0.06);
 }
 :root[data-theme="dark"] .ai-payoff-output {
-  border-color: rgba(255, 255, 255, 0.1);
-  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(225, 195, 106, 0.22);
+  background: linear-gradient(
+    165deg,
+    rgba(225, 195, 106, 0.08) 0%,
+    rgba(255, 255, 255, 0.04) 45%,
+    rgba(143, 185, 168, 0.1) 100%
+  );
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
 }
+.ai-payoff-output__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 12px 0;
+  flex-shrink: 0;
+}
+.ai-payoff-expand-btn {
+  appearance: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(196, 176, 128, 0.45);
+  background: rgba(255, 255, 255, 0.55);
+  color: rgba(60, 68, 82, 0.85);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.ai-payoff-expand-btn:hover {
+  background: rgba(196, 176, 128, 0.18);
+  border-color: rgba(196, 176, 128, 0.65);
+}
+:root[data-theme="dark"] .ai-payoff-expand-btn {
+  border-color: rgba(225, 195, 106, 0.35);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(233, 233, 246, 0.88);
+}
+:root[data-theme="dark"] .ai-payoff-expand-btn:hover {
+  background: rgba(225, 195, 106, 0.12);
+}
+
+.ai-payoff-scroll {
+  padding: 16px 18px 20px;
+  max-height: min(58vh, 520px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-color: rgba(196, 176, 128, 0.55) rgba(60, 68, 82, 0.06);
+  scrollbar-width: thin;
+  flex: 1;
+  min-height: 0;
+}
+.ai-payoff-output--expanded .ai-payoff-scroll {
+  max-height: none;
+}
+.ai-payoff-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.ai-payoff-scroll::-webkit-scrollbar-thumb {
+  background: rgba(196, 176, 128, 0.45);
+  border-radius: 99px;
+}
+.ai-payoff-scroll::-webkit-scrollbar-track {
+  background: rgba(60, 68, 82, 0.06);
+  border-radius: 99px;
+}
+
+.ai-payoff-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed rgba(60, 68, 82, 0.12);
+}
+.ai-payoff-section:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+:root[data-theme="dark"] .ai-payoff-section {
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+.ai-payoff-h {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.35;
+  color: rgba(60, 68, 82, 0.92);
+  letter-spacing: 0.01em;
+}
+.ai-payoff-h__emoji {
+  flex-shrink: 0;
+  font-size: 1.15em;
+  line-height: 1.2;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.08));
+}
+.ai-payoff-h__title {
+  flex: 1;
+  padding-top: 1px;
+  border-left: 3px solid var(--gold);
+  padding-left: 12px;
+  margin-left: 2px;
+}
+:root[data-theme="dark"] .ai-payoff-h {
+  color: rgba(233, 233, 246, 0.94);
+}
+:root[data-theme="dark"] .ai-payoff-h__title {
+  border-left-color: rgba(225, 195, 106, 0.75);
+}
+
+.ai-payoff-intro-block {
+  margin-bottom: 16px;
+}
+.ai-payoff-intro-block:last-child {
+  margin-bottom: 0;
+}
+.ai-payoff-section-body .ai-payoff-p:first-child {
+  border-left: 2px solid rgba(143, 176, 160, 0.45);
+  padding-left: 12px;
+  margin-left: 2px;
+}
+.ai-payoff-p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(60, 68, 82, 0.88);
+}
+.ai-payoff-p:last-child {
+  margin-bottom: 0;
+}
+:root[data-theme="dark"] .ai-payoff-p {
+  color: rgba(233, 233, 246, 0.86);
+}
+.ai-payoff-ul {
+  margin: 0 0 12px;
+  padding-left: 1.35rem;
+  color: rgba(60, 68, 82, 0.88);
+}
+:root[data-theme="dark"] .ai-payoff-ul {
+  color: rgba(233, 233, 246, 0.86);
+}
+.ai-payoff-li {
+  margin-bottom: 8px;
+  line-height: 1.55;
+}
+.ai-payoff-li::marker {
+  color: var(--sage);
+  font-weight: 700;
+}
+
+.ai-payoff-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 32px 16px 40px;
+  text-align: center;
+}
+.ai-payoff-loading__spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid rgba(196, 176, 128, 0.25);
+  border-top-color: var(--gold);
+  animation: ai-payoff-spin 0.85s linear infinite;
+}
+.ai-payoff-loading__label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(60, 68, 82, 0.78);
+  letter-spacing: 0.02em;
+}
+:root[data-theme="dark"] .ai-payoff-loading__label {
+  color: rgba(233, 233, 246, 0.75);
+}
+@keyframes ai-payoff-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ai-payoff-loading__spinner {
+    animation: none;
+    border-color: rgba(196, 176, 128, 0.45);
+    border-top-color: var(--gold);
+  }
+}
+
 .ai-payoff-output .ai-payoff-placeholder {
   margin: 0;
 }
-.ai-payoff-output .ai-payoff-body {
+.ai-payoff-error {
   margin: 0;
   font-size: 14px;
-  line-height: 1.55;
-  color: rgba(60, 68, 82, 0.88);
+  line-height: 1.5;
+  color: var(--red);
+  font-weight: 600;
 }
-:root[data-theme="dark"] .ai-payoff-output .ai-payoff-body {
-  color: rgba(233, 233, 246, 0.88);
+:root[data-theme="dark"] .ai-payoff-error {
+  color: var(--red);
+}
+.ai-payoff-truncation-note {
+  margin: 18px 0 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 600;
+  color: rgba(60, 68, 82, 0.82);
+  background: rgba(217, 163, 163, 0.18);
+  border: 1px solid rgba(217, 163, 163, 0.35);
+}
+:root[data-theme="dark"] .ai-payoff-truncation-note {
+  color: rgba(233, 233, 246, 0.82);
+  background: rgba(224, 168, 168, 0.12);
+  border-color: rgba(224, 168, 168, 0.28);
+}
+
+@media print {
+  .ai-payoff-output__toolbar {
+    display: none !important;
+  }
+  .ai-payoff-scroll {
+    max-height: none !important;
+    overflow: visible !important;
+  }
 }
 
 /* Plan: inline hint where editors used to be */

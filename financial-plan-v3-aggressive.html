@@ -380,7 +380,16 @@
         </div>
       </div>
       <div class="ai-payoff-output" id="ai-payoff-output" aria-live="polite">
-        <p class="ai-payoff-placeholder section-sub">Switch here and generate to see an AI-suggested payoff strategy.</p>
+        <div class="ai-payoff-output__toolbar no-print" id="ai-payoff-toolbar" hidden>
+          <button type="button" class="ai-payoff-expand-btn" id="btn-ai-payoff-expand" aria-expanded="false">
+            Expand full plan
+          </button>
+        </div>
+        <div class="ai-payoff-scroll" id="ai-payoff-scroll" tabindex="0">
+          <p class="ai-payoff-placeholder section-sub" id="ai-payoff-placeholder-default">
+            Switch here and generate to see an AI-suggested payoff strategy.
+          </p>
+        </div>
       </div>
     </div>
   </div>

@@ -58,19 +58,20 @@ function loadCache() {
     const o = JSON.parse(raw);
     if (!o || typeof o !== 'object') return null;
     if (typeof o.text !== 'string' || typeof o.fingerprint !== 'string') return null;
-    return { text: o.text, fingerprint: o.fingerprint, at: o.at };
+    return { text: o.text, fingerprint: o.fingerprint, truncated: !!o.truncated, at: o.at };
   } catch (e) {
     return null;
   }
 }
 
-function saveCache(fingerprint, text) {
+function saveCache(fingerprint, text, truncated) {
   try {
     localStorage.setItem(
       LS_KEY_CACHE,
       JSON.stringify({
         fingerprint: fingerprint,
         text: text,
+        truncated: !!truncated,
         at: new Date().toISOString(),
       })
     );
@@ -128,7 +129,8 @@ function buildPrompt(plan) {
     'Debts:\n' +
     debtsBlock +
     '\n\n' +
-    'Respond in clear plain text (no HTML) with these sections and headings:\n' +
+    'Respond using Markdown: use ### for each section heading (e.g. ### 1) Summary). ' +
+    'Use short bullet lists where helpful. Sections:\n' +
     '1) Summary — one short paragraph.\n' +
     '2) Recommended payoff order — numbered list with one line of rationale each.\n' +
     '3) Monthly allocation — how to split extra payments across debts month to month (practical steps).\n' +
@@ -141,23 +143,181 @@ function buildPrompt(plan) {
   );
 }
 
-function displayPlanText(el, text) {
-  if (!el) return;
-  el.textContent = '';
-  el.style.whiteSpace = 'pre-wrap';
-  const p = document.createElement('p');
-  p.className = 'ai-payoff-body';
-  p.textContent = text;
-  el.appendChild(p);
+function headingEmoji(title) {
+  const t = String(title || '').toLowerCase();
+  if (t.includes('summary')) return '✨';
+  if (t.includes('payoff order') || t.includes('recommended')) return '📋';
+  if (t.includes('monthly') || t.includes('allocation')) return '💸';
+  if (t.includes('deferred') || t.includes('watchlist') || t.includes('promo')) return '⏰';
+  if (t.includes('assumption') || t.includes('risk')) return '⚠️';
+  if (t.includes('disclaimer')) return '📌';
+  return '💡';
 }
 
-function showPlaceholder(el, msg) {
-  if (!el) return;
-  el.textContent = '';
+function stripHeadingMarks(line) {
+  return String(line || '')
+    .replace(/^#{1,3}\s*/, '')
+    .trim();
+}
+
+/**
+ * Turn body text under a section into paragraphs and simple lists (lines starting with - or *).
+ */
+function appendBodyLines(parent, bodyText) {
+  const raw = String(bodyText || '').trim();
+  if (!raw) return;
+  const blocks = raw.split(/\n\n+/);
+  blocks.forEach(function (block) {
+    const lines = block.split('\n').map(function (l) {
+      return l.trim();
+    });
+    const listLines = lines.filter(Boolean);
+    const isList =
+      listLines.length > 0 &&
+      listLines.every(function (l) {
+        return /^[-*]\s+/.test(l) || /^\d+[.)]\s+/.test(l);
+      });
+    if (isList && listLines.length) {
+      const ul = document.createElement('ul');
+      ul.className = 'ai-payoff-ul';
+      listLines.forEach(function (l) {
+        const li = document.createElement('li');
+        li.className = 'ai-payoff-li';
+        li.textContent = l.replace(/^[-*]\s+/, '').replace(/^\d+[.)]\s+/, '');
+        ul.appendChild(li);
+      });
+      parent.appendChild(ul);
+      return;
+    }
+    const p = document.createElement('p');
+    p.className = 'ai-payoff-p';
+    p.textContent = lines.join(' ').replace(/\s+/g, ' ').trim();
+    if (p.textContent) parent.appendChild(p);
+  });
+}
+
+/**
+ * Render Markdown-ish plan text into structured, styled nodes (safe: textContent only).
+ */
+function renderPlanContent(text) {
+  const frag = document.createDocumentFragment();
+  const t = String(text || '').replace(/\r\n/g, '\n').trim();
+  if (!t) return frag;
+
+  const chunks = t.split(/\n(?=#{1,3}\s)/);
+  chunks.forEach(function (chunk) {
+    const trimmed = chunk.trim();
+    if (!trimmed) return;
+    const hm = trimmed.match(/^#{1,3}\s*([^\n]+)(?:\n([\s\S]*))?$/);
+    if (hm) {
+      const section = document.createElement('section');
+      section.className = 'ai-payoff-section';
+      const head = document.createElement('h3');
+      head.className = 'ai-payoff-h';
+      const titleClean = stripHeadingMarks(hm[1]);
+      const em = document.createElement('span');
+      em.className = 'ai-payoff-h__emoji';
+      em.setAttribute('aria-hidden', 'true');
+      em.textContent = headingEmoji(titleClean);
+      const titleEl = document.createElement('span');
+      titleEl.className = 'ai-payoff-h__title';
+      titleEl.textContent = titleClean;
+      head.appendChild(em);
+      head.appendChild(titleEl);
+      section.appendChild(head);
+      const body = document.createElement('div');
+      body.className = 'ai-payoff-section-body';
+      appendBodyLines(body, hm[2] || '');
+      section.appendChild(body);
+      frag.appendChild(section);
+      return;
+    }
+    const intro = document.createElement('div');
+    intro.className = 'ai-payoff-intro-block';
+    appendBodyLines(intro, trimmed);
+    frag.appendChild(intro);
+  });
+  return frag;
+}
+
+function clearScrollEl(scrollEl) {
+  if (!scrollEl) return;
+  scrollEl.textContent = '';
+}
+
+function setToolbarVisible(toolbarEl, visible) {
+  if (!toolbarEl) return;
+  toolbarEl.hidden = !visible;
+}
+
+function setExpandedState(outputRoot, scrollEl, expandBtn, expanded) {
+  if (!outputRoot || !scrollEl) return;
+  outputRoot.classList.toggle('ai-payoff-output--expanded', !!expanded);
+  if (expandBtn) {
+    expandBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    expandBtn.textContent = expanded ? 'Collapse' : 'Expand full plan';
+  }
+  if (expanded && scrollEl) {
+    try {
+      scrollEl.focus();
+    } catch (e) {}
+  }
+}
+
+function displayPlanInScroll(scrollEl, outputRoot, toolbarEl, expandBtn, text, opts) {
+  if (!scrollEl) return;
+  clearScrollEl(scrollEl);
+  scrollEl.appendChild(renderPlanContent(text));
+  if (opts && opts.truncated) {
+    const note = document.createElement('p');
+    note.className = 'ai-payoff-truncation-note';
+    note.setAttribute('role', 'status');
+    note.textContent =
+      '⚠️ The response may be truncated by the model length limit. Tap Generate again for a fresh run, or expand the full plan below and scroll.';
+    scrollEl.appendChild(note);
+  }
+  setToolbarVisible(toolbarEl, true);
+  setExpandedState(outputRoot, scrollEl, expandBtn, false);
+}
+
+function showPlaceholder(scrollEl, toolbarEl, expandBtn, outputRoot, msg) {
+  if (!scrollEl) return;
+  clearScrollEl(scrollEl);
   const p = document.createElement('p');
   p.className = 'ai-payoff-placeholder section-sub';
   p.textContent = msg;
-  el.appendChild(p);
+  scrollEl.appendChild(p);
+  setToolbarVisible(toolbarEl, false);
+  setExpandedState(outputRoot, scrollEl, expandBtn, false);
+}
+
+function showLoading(scrollEl, toolbarEl, expandBtn, outputRoot) {
+  if (!scrollEl) return;
+  clearScrollEl(scrollEl);
+  setToolbarVisible(toolbarEl, false);
+  setExpandedState(outputRoot, scrollEl, expandBtn, false);
+  const wrap = document.createElement('div');
+  wrap.className = 'ai-payoff-loading';
+  const spin = document.createElement('span');
+  spin.className = 'ai-payoff-loading__spinner';
+  spin.setAttribute('aria-hidden', 'true');
+  const label = document.createElement('p');
+  label.className = 'ai-payoff-loading__label';
+  label.textContent = 'Crafting your payoff plan…';
+  wrap.appendChild(spin);
+  wrap.appendChild(label);
+  scrollEl.appendChild(wrap);
+}
+
+function showError(scrollEl, toolbarEl, expandBtn, outputRoot, msg) {
+  if (!scrollEl) return;
+  clearScrollEl(scrollEl);
+  setToolbarVisible(toolbarEl, false);
+  setExpandedState(outputRoot, scrollEl, expandBtn, false);
+  const p = document.createElement('p');
+  p.className = 'ai-payoff-error';
+  p.textContent = msg;
+  scrollEl.appendChild(p);
 }
 
 async function callGemini(apiKey, prompt) {
@@ -173,7 +333,7 @@ async function callGemini(apiKey, prompt) {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.35,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192,
       },
     }),
   });
@@ -196,7 +356,12 @@ async function callGemini(apiKey, prompt) {
   if (typeof text !== 'string' || !text.trim()) {
     throw new Error('Empty response from the model. Try again.');
   }
-  return text.trim();
+  const finishReason =
+    data.candidates &&
+    data.candidates[0] &&
+    data.candidates[0].finishReason;
+  const truncated = finishReason === 'MAX_TOKENS';
+  return { text: text.trim(), truncated: !!truncated };
 }
 
 /**
@@ -210,9 +375,12 @@ export function wireAiPayoffPlan(plan) {
   const keyInput = document.getElementById('ai-payoff-api-key');
   const btn = document.getElementById('btn-ai-payoff-generate');
   const statusEl = document.getElementById('ai-payoff-status');
-  const outEl = document.getElementById('ai-payoff-output');
+  const outRoot = document.getElementById('ai-payoff-output');
+  const scrollEl = document.getElementById('ai-payoff-scroll');
+  const toolbarEl = document.getElementById('ai-payoff-toolbar');
+  const expandBtn = document.getElementById('btn-ai-payoff-expand');
 
-  if (!tabOriginal || !tabAi || !panelOriginal || !panelAi || !outEl) return;
+  if (!tabOriginal || !tabAi || !panelOriginal || !panelAi || !outRoot || !scrollEl) return;
 
   try {
     const k = localStorage.getItem(LS_KEY_API);
@@ -223,17 +391,24 @@ export function wireAiPayoffPlan(plan) {
     const cache = loadCache();
     const fp = buildFingerprint(plan);
     if (cache && cache.text && cache.fingerprint === fp) {
-      displayPlanText(outEl, cache.text);
+      displayPlanInScroll(scrollEl, outRoot, toolbarEl, expandBtn, cache.text, {
+        truncated: !!cache.truncated,
+      });
       if (statusEl) statusEl.textContent = '';
     } else if (cache && cache.text) {
-      displayPlanText(outEl, cache.text);
+      displayPlanInScroll(scrollEl, outRoot, toolbarEl, expandBtn, cache.text, {
+        truncated: !!cache.truncated,
+      });
       if (statusEl) {
         statusEl.textContent =
           'Showing saved plan; data changed — generate again to refresh.';
       }
     } else {
       showPlaceholder(
-        outEl,
+        scrollEl,
+        toolbarEl,
+        expandBtn,
+        outRoot,
         'Generate a plan to see AI-suggested payoff order and monthly allocation.'
       );
       if (statusEl) statusEl.textContent = '';
@@ -269,6 +444,13 @@ export function wireAiPayoffPlan(plan) {
   tabOriginal.addEventListener('click', activateOriginal);
   tabAi.addEventListener('click', activateAi);
 
+  if (expandBtn) {
+    expandBtn.addEventListener('click', function () {
+      const expanded = outRoot.classList.contains('ai-payoff-output--expanded');
+      setExpandedState(outRoot, scrollEl, expandBtn, !expanded);
+    });
+  }
+
   if (btn) {
     btn.addEventListener('click', async function () {
       const apiKey = keyInput ? String(keyInput.value || '').trim() : '';
@@ -280,18 +462,22 @@ export function wireAiPayoffPlan(plan) {
         localStorage.setItem(LS_KEY_API, apiKey);
       } catch (e) {}
 
-      if (statusEl) statusEl.textContent = 'Generating…';
+      if (statusEl) statusEl.textContent = '';
+      showLoading(scrollEl, toolbarEl, expandBtn, outRoot);
       btn.disabled = true;
       try {
         const prompt = buildPrompt(plan);
-        const text = await callGemini(apiKey, prompt);
+        const result = await callGemini(apiKey, prompt);
+        const text = result.text;
         const fp = buildFingerprint(plan);
-        saveCache(fp, text);
-        displayPlanText(outEl, text);
-        if (statusEl) statusEl.textContent = '';
+        saveCache(fp, text, result.truncated);
+        displayPlanInScroll(scrollEl, outRoot, toolbarEl, expandBtn, text, {
+          truncated: result.truncated,
+        });
       } catch (err) {
         const msg = err && err.message ? String(err.message) : 'Something went wrong.';
-        if (statusEl) statusEl.textContent = msg;
+        if (statusEl) statusEl.textContent = '';
+        showError(scrollEl, toolbarEl, expandBtn, outRoot, msg);
       } finally {
         btn.disabled = false;
       }
