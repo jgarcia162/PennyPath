@@ -1,5 +1,8 @@
 /**
- * Dev server: static files + POST /api/research (Google Gemini)
+ * Dev server: static files + Gemini-backed APIs
+ *
+ * - POST /api/research — real-estate market JSON
+ * - POST /api/financial-payoff — Financial Plan “AI payoff plan” (plain text)
  *
  * Create .env in the project root with: GEMINI_API_KEY=... (wins over shell)
  * Or: export GEMINI_API_KEY=... && npm run research-server
@@ -8,6 +11,7 @@
  * Key: https://aistudio.google.com/apikey
  *
  * Open: http://127.0.0.1:8787/real-estate-plan.html
+ *       http://127.0.0.1:8787/financial-plan-v3-aggressive.html
  *
  * Failed requests include keySent (length + prefix + suffix). Set DEBUG_API_KEY_IN_ERRORS=1
  * in .env to also include the full key in keySent.full (local debugging only).
@@ -409,6 +413,145 @@ Return the JSON object only.`;
   }
 }
 
+/**
+ * Financial Plan: debt payoff narrative (markdown-ish text). Same GEMINI_API_KEY as /api/research.
+ */
+async function handleFinancialPayoff(req, res) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.end(
+      JSON.stringify({
+        ok: false,
+        error:
+          'GEMINI_API_KEY is not set on the server. Add it to .env next to package.json and restart npm run research-server.',
+      })
+    );
+    return;
+  }
+
+  let body = '';
+  for await (const chunk of req) body += chunk;
+  let payload;
+  try {
+    payload = JSON.parse(body || '{}');
+  } catch {
+    res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.end(JSON.stringify({ ok: false, error: 'Invalid JSON body' }));
+    return;
+  }
+
+  const prompt = String(payload.prompt || '').trim();
+  if (!prompt) {
+    res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.end(JSON.stringify({ ok: false, error: 'Missing prompt' }));
+    return;
+  }
+
+  const model = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim();
+  const geminiUrl =
+    `${GEMINI_API_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+
+  try {
+    const r = await fetch(geminiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.35,
+          maxOutputTokens: 8192,
+        },
+      }),
+    });
+
+    const text = await r.text();
+    if (!r.ok) {
+      const gemini = summarizeGeminiFailure(r.status, text);
+      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: 'Gemini request failed',
+          gemini,
+          keySent: keySentDebug(apiKey),
+        })
+      );
+      return;
+    }
+
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch {
+      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: 'Gemini returned non-JSON',
+          detail: text.slice(0, 800),
+          keySent: keySentDebug(apiKey),
+        })
+      );
+      return;
+    }
+
+    if (data.error) {
+      const gemini = summarizeGeminiFailure(r.status, text);
+      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: 'Gemini returned an error object',
+          gemini,
+          keySent: keySentDebug(apiKey),
+        })
+      );
+      return;
+    }
+
+    const extracted = extractGeminiText(data);
+    if (extracted.error) {
+      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: extracted.error,
+          gemini: summarizeGeminiFailure(200, text),
+          keySent: keySentDebug(apiKey),
+        })
+      );
+      return;
+    }
+
+    const finishReason =
+      data.candidates && data.candidates[0] && data.candidates[0].finishReason;
+    const truncated = finishReason === 'MAX_TOKENS';
+
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Access-Control-Allow-Origin': '*',
+    });
+    res.end(
+      JSON.stringify({
+        ok: true,
+        text: extracted.text,
+        truncated,
+        finishReason: finishReason || null,
+      })
+    );
+  } catch (e) {
+    res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.end(
+      JSON.stringify({
+        ok: false,
+        error: String(e.message || e),
+        keySent: keySentDebug(apiKey),
+      })
+    );
+  }
+}
+
 const server = http.createServer((req, res) => {
   const u = req.url || '';
 
@@ -425,6 +568,12 @@ const server = http.createServer((req, res) => {
   if (req.method === 'POST' && u === '/api/research') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     handleResearch(req, res);
+    return;
+  }
+
+  if (req.method === 'POST' && u === '/api/financial-payoff') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    handleFinancialPayoff(req, res);
     return;
   }
 
@@ -449,7 +598,9 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`Market research server: http://127.0.0.1:${PORT}/real-estate-plan.html`);
+  console.log(`Dev server: http://127.0.0.1:${PORT}/real-estate-plan.html`);
+  console.log(`          http://127.0.0.1:${PORT}/financial-plan-v3-aggressive.html`);
+  console.log(`  POST /api/research  ·  POST /api/financial-payoff`);
   console.log(`Expected .env path: ${dotEnvStatus.envPath}`);
   console.log(`  .env file exists: ${dotEnvStatus.fileExists}`);
   if (process.env.GEMINI_API_KEY) {

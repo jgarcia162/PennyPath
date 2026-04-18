@@ -11,8 +11,8 @@ const KEYS_TO_WIPE = FINANCIAL_PLAN_STORAGE_KEYS.filter(function (k) {
   return k !== THEME_STORAGE_KEY;
 });
 
-/** Gemini AI payoff plan (browser-only key + cached response). */
-const GEMINI_PAYOFF_LS_KEYS = ['pennypath.gemini.apiKey', 'pennypath.aiPayoffPlan.v1'];
+/** Gemini AI payoff plan cached response. */
+const GEMINI_PAYOFF_LS_KEYS = ['pennypath.aiPayoffPlan.v1'];
 
 export function wipeAllUserData() {
   KEYS_TO_WIPE.forEach(function (key) {

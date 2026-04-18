@@ -3,11 +3,25 @@
  * API key and last generated text are stored in localStorage (browser-only).
  */
 
-const LS_KEY_API = 'pennypath.gemini.apiKey';
 const LS_KEY_CACHE = 'pennypath.aiPayoffPlan.v1';
 
-/** See https://ai.google.dev/gemini-api/docs/models — 2.0-flash is not available to new API keys. */
-const GEMINI_MODEL = 'gemini-2.5-flash';
+/** Same override as real-estate-plan.html (dev): custom API origin in localStorage. */
+const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
+
+function getPayoffApiBase() {
+  try {
+    const custom = localStorage.getItem(LS_API_BASE_KEY);
+    if (custom) return String(custom).replace(/\/$/, '');
+  } catch (e) {}
+  if (
+    typeof window !== 'undefined' &&
+    window.location &&
+    (window.location.protocol === 'http:' || window.location.protocol === 'https:')
+  ) {
+    return window.location.origin.replace(/\/$/, '');
+  }
+  return 'http://127.0.0.1:8787';
+}
 
 function setSelected(tabEl, selected) {
   if (!tabEl) return;
@@ -320,48 +334,37 @@ function showError(scrollEl, toolbarEl, expandBtn, outputRoot, msg) {
   scrollEl.appendChild(p);
 }
 
-async function callGemini(apiKey, prompt) {
-  const url =
-    'https://generativelanguage.googleapis.com/v1beta/models/' +
-    GEMINI_MODEL +
-    ':generateContent?key=' +
-    encodeURIComponent(apiKey);
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.35,
-        maxOutputTokens: 8192,
-      },
-    }),
-  });
+/**
+ * Calls the local dev server (or same-origin deploy) which holds GEMINI_API_KEY — see server/market-research.mjs.
+ */
+async function callFinancialPayoffApi(prompt) {
+  const base = getPayoffApiBase();
+  let res;
+  try {
+    res = await fetch(base + '/api/financial-payoff', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt: prompt }),
+    });
+  } catch (e) {
+    throw new Error(
+      'Could not reach the AI server. Run `npm run research-server` from the project folder, set GEMINI_API_KEY in .env, and open this page at http://127.0.0.1:8787/financial-plan-v3-aggressive.html (or serve the app from the same host as the API).'
+    );
+  }
   const data = await res.json().catch(function () {
     return {};
   });
-  if (!res.ok) {
-    const err =
-      (data.error && data.error.message) ||
-      'Request failed (' + res.status + '). Check the API key and network.';
-    throw new Error(err);
+  if (!res.ok || data.ok === false) {
+    const msg =
+      (data.gemini && data.gemini.message) ||
+      (typeof data.error === 'string' && data.error) ||
+      'Request failed (' + res.status + ').';
+    throw new Error(msg);
   }
-  const text =
-    data.candidates &&
-    data.candidates[0] &&
-    data.candidates[0].content &&
-    data.candidates[0].content.parts &&
-    data.candidates[0].content.parts[0] &&
-    data.candidates[0].content.parts[0].text;
-  if (typeof text !== 'string' || !text.trim()) {
+  if (typeof data.text !== 'string' || !data.text.trim()) {
     throw new Error('Empty response from the model. Try again.');
   }
-  const finishReason =
-    data.candidates &&
-    data.candidates[0] &&
-    data.candidates[0].finishReason;
-  const truncated = finishReason === 'MAX_TOKENS';
-  return { text: text.trim(), truncated: !!truncated };
+  return { text: data.text.trim(), truncated: !!data.truncated };
 }
 
 /**
@@ -372,7 +375,6 @@ export function wireAiPayoffPlan(plan) {
   const tabAi = document.getElementById('tab-how-ai');
   const panelOriginal = document.getElementById('panel-how-original');
   const panelAi = document.getElementById('panel-how-ai');
-  const keyInput = document.getElementById('ai-payoff-api-key');
   const btn = document.getElementById('btn-ai-payoff-generate');
   const statusEl = document.getElementById('ai-payoff-status');
   const outRoot = document.getElementById('ai-payoff-output');
@@ -381,11 +383,6 @@ export function wireAiPayoffPlan(plan) {
   const expandBtn = document.getElementById('btn-ai-payoff-expand');
 
   if (!tabOriginal || !tabAi || !panelOriginal || !panelAi || !outRoot || !scrollEl) return;
-
-  try {
-    const k = localStorage.getItem(LS_KEY_API);
-    if (k && keyInput) keyInput.value = k;
-  } catch (e) {}
 
   function applyCacheToOutput() {
     const cache = loadCache();
@@ -417,16 +414,6 @@ export function wireAiPayoffPlan(plan) {
 
   applyCacheToOutput();
 
-  if (keyInput) {
-    keyInput.addEventListener('change', function () {
-      try {
-        const v = String(keyInput.value || '').trim();
-        if (v) localStorage.setItem(LS_KEY_API, v);
-        else localStorage.removeItem(LS_KEY_API);
-      } catch (e) {}
-    });
-  }
-
   function activateOriginal() {
     setSelected(tabOriginal, true);
     setSelected(tabAi, false);
@@ -453,21 +440,12 @@ export function wireAiPayoffPlan(plan) {
 
   if (btn) {
     btn.addEventListener('click', async function () {
-      const apiKey = keyInput ? String(keyInput.value || '').trim() : '';
-      if (!apiKey) {
-        if (statusEl) statusEl.textContent = 'Enter a Gemini API key first.';
-        return;
-      }
-      try {
-        localStorage.setItem(LS_KEY_API, apiKey);
-      } catch (e) {}
-
       if (statusEl) statusEl.textContent = '';
       showLoading(scrollEl, toolbarEl, expandBtn, outRoot);
       btn.disabled = true;
       try {
         const prompt = buildPrompt(plan);
-        const result = await callGemini(apiKey, prompt);
+        const result = await callFinancialPayoffApi(prompt);
         const text = result.text;
         const fp = buildFingerprint(plan);
         saveCache(fp, text, result.truncated);

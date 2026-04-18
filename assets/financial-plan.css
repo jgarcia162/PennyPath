@@ -583,33 +583,17 @@ body.financial-plan-demo-mode #checkin-form {
 :root[data-theme="dark"] .ai-payoff-intro {
   color: rgba(233, 233, 246, 0.72);
 }
-.ai-payoff-key-label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  color: rgba(60, 68, 82, 0.65);
-  margin-bottom: 12px;
-}
-:root[data-theme="dark"] .ai-payoff-key-label {
-  color: rgba(233, 233, 246, 0.6);
-}
-.ai-payoff-api-key {
-  max-width: 480px;
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid rgba(60, 68, 82, 0.18);
-  background: rgba(255, 255, 255, 0.65);
+.ai-payoff-code {
   font-family: ui-monospace, monospace;
-  font-size: 13px;
+  font-size: 0.92em;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: rgba(60, 68, 82, 0.08);
+  border: 1px solid rgba(60, 68, 82, 0.12);
 }
-:root[data-theme="dark"] .ai-payoff-api-key {
-  border-color: rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(233, 233, 246, 0.92);
+:root[data-theme="dark"] .ai-payoff-code {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 .ai-payoff-actions {
   display: flex;
