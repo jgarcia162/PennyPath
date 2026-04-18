@@ -43,13 +43,20 @@
           <button type="button" class="site-settings-item" id="btn-print">Print</button>
         </div>
       </li>
-      <li>
+      <li data-dev-only="sample-data" hidden>
         <div class="site-settings-menu-section">
           <span class="site-settings-menu-label">Sample data</span>
           <label class="site-settings-demo-toggle">
             <input type="checkbox" id="demo-mode-toggle" />
             <span>Use sample data (demo)</span>
           </label>
+        </div>
+      </li>
+      <li data-dev-only="developer-settings" hidden>
+        <div class="site-settings-menu-section">
+          <span class="site-settings-menu-label">Developer</span>
+          <button type="button" class="site-settings-item" id="btn-dev-lock">Lock developer options</button>
+          <p class="site-settings-dev-hint">Clears the developer unlock (same as a fresh browser). Use the footer version gesture to unlock again.</p>
         </div>
       </li>
       <li>
@@ -287,10 +294,22 @@
   </div>
 
   <!-- SECTION 03: HOW WE GET THERE -->
-  <div class="section">
+  <div class="section" id="section-how-we-get-there">
     <div class="section-eyebrow">Section 03</div>
     <div class="section-title">How We Get There</div>
 
+    <div class="how-we-get-there__tabs-row no-print">
+      <div class="page-tabs" role="tablist" aria-label="How we get there">
+        <button type="button" class="page-tab-btn" role="tab" id="tab-how-original" aria-selected="true" aria-controls="panel-how-original">Original plan</button>
+        <button type="button" class="page-tab-btn" role="tab" id="tab-how-ai" aria-selected="false" tabindex="-1" aria-controls="panel-how-ai">AI payoff plan</button>
+      </div>
+      <div class="how-we-get-there__generate-wrap">
+        <button type="button" class="ai-payoff-generate-btn" id="btn-ai-payoff-generate">Generate plan</button>
+        <span class="ai-payoff-status" id="ai-payoff-status" role="status"></span>
+      </div>
+    </div>
+
+    <div id="panel-how-original" role="tabpanel" aria-labelledby="tab-how-original">
     <div class="plan-phases">
       <div class="phase-card p1">
         <div class="phase-num">Phase 1 · October 2026 - December 2026</div>
@@ -355,6 +374,32 @@
     <div class="callout" id="callout-phase2"></div>
 
     <div class="callout blue" id="callout-fun"></div>
+    </div>
+
+    <div id="panel-how-ai" role="tabpanel" aria-labelledby="tab-how-ai" hidden>
+      <div class="ai-payoff-setup no-print">
+        <p class="ai-payoff-intro">
+          Get a suggested payoff order and monthly allocation based on your debts, interest rates, and any deferred-interest promotions. Results are generated with Google Gemini and require an internet connection.
+        </p>
+        <p class="ai-payoff-intro ai-payoff-intro--technical" data-dev-copy="technical" hidden>
+          <strong class="ai-payoff-dev-label">Technical</strong>
+          The request is sent to your PennyPath server, which uses <code class="ai-payoff-code">GEMINI_API_KEY</code> from <code class="ai-payoff-code">.env</code> (same as other Gemini features). For local testing, run <code class="ai-payoff-code">npm run research-server</code> and open this page at
+          <code class="ai-payoff-code">http://127.0.0.1:8787/financial-plan-v3-aggressive.html</code>.
+        </p>
+      </div>
+      <div class="ai-payoff-output" id="ai-payoff-output" aria-live="polite">
+        <div class="ai-payoff-output__toolbar no-print" id="ai-payoff-toolbar" hidden>
+          <button type="button" class="ai-payoff-expand-btn" id="btn-ai-payoff-expand" aria-expanded="false">
+            Expand full plan
+          </button>
+        </div>
+        <div class="ai-payoff-scroll" id="ai-payoff-scroll" tabindex="0">
+          <p class="ai-payoff-placeholder section-sub" id="ai-payoff-placeholder-default">
+            Switch here and generate to see an AI-suggested payoff strategy.
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- SECTION 04: PAYOFF TIMELINE -->
@@ -679,6 +724,9 @@
 <div class="footer">
   <strong>Phase 1: Destroy. Phase 2: Build. Phase 3: Protect.</strong>
   <span id="footer-line"></span>
+  <div class="footer-meta" id="footer-meta" title="App version">
+    <button type="button" class="footer-version" id="footer-app-version" aria-label="Application version">Version</button>
+  </div>
 </div>
 
 <dialog class="appearance-dialog no-print" id="appearance-dialog" aria-labelledby="appearance-dialog-title" aria-modal="true">
@@ -726,13 +774,23 @@
           </span>
         </button>
       </div>
+      <div class="appearance-dialog__section appearance-dialog__dev" id="appearance-dev-section" hidden>
+        <p class="appearance-dialog__section-label">Developer</p>
+        <p class="appearance-dialog__dev-hint">When on, supported areas show setup and diagnostic details (for example the AI Payoff Plan section).</p>
+        <label class="appearance-dev-toggle">
+          <input type="checkbox" id="dev-mode-technical-toggle" />
+          <span>Show technical messages and setup details</span>
+        </label>
+      </div>
     </div>
   </div>
 </dialog>
 
+<script src="assets/safe-api-origin.js"></script>
 <script src="assets/theme-service.js" defer></script>
 <script src="assets/color-palette-service.js" defer></script>
 <script src="assets/site-settings.js" defer></script>
+<script src="assets/dev-mode.js" defer></script>
 <script type="module" src="assets/financial-plan/payoff-projection.js"></script>
 <script src="assets/checkin-service.js" defer></script>
 <script src="assets/badges.js" defer></script>

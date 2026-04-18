@@ -66,6 +66,13 @@
           <button type="button" class="site-settings-item" id="btn-print">Print</button>
         </div>
       </li>
+      <li data-dev-only="developer-settings" hidden>
+        <div class="site-settings-menu-section">
+          <span class="site-settings-menu-label">Developer</span>
+          <button type="button" class="site-settings-item" id="btn-dev-lock">Lock developer options</button>
+          <p class="site-settings-dev-hint">Clears the developer unlock. Use the footer version gesture to unlock again.</p>
+        </div>
+      </li>
     </ul>
   </div>
 </header>
@@ -83,6 +90,14 @@
     After seeding, open <a href="financial-plan-v3-aggressive.html">Financial Plan</a> · <a href="history.html">History</a>
   </div>
 </div>
+
+<div class="footer">
+  <strong>Development utilities</strong>
+  <div class="footer-meta" id="footer-meta" title="App version">
+    <button type="button" class="footer-version" id="footer-app-version" aria-label="Application version"></button>
+  </div>
+</div>
+
 <dialog class="appearance-dialog no-print" id="appearance-dialog" aria-labelledby="appearance-dialog-title" aria-modal="true">
   <div class="appearance-dialog__chrome">
     <div class="appearance-dialog__header">
@@ -128,10 +143,19 @@
           </span>
         </button>
       </div>
+      <div class="appearance-dialog__section appearance-dialog__dev" id="appearance-dev-section" hidden>
+        <p class="appearance-dialog__section-label">Developer</p>
+        <p class="appearance-dialog__dev-hint">When on, supported areas show setup and diagnostic details (for example the AI Payoff Plan section).</p>
+        <label class="appearance-dev-toggle">
+          <input type="checkbox" id="dev-mode-technical-toggle" />
+          <span>Show technical messages and setup details</span>
+        </label>
+      </div>
     </div>
   </div>
 </dialog>
 <script src="assets/site-settings.js"></script>
+<script src="assets/dev-mode.js"></script>
 <script type="module">
   import { seedDevMockStorage, FINANCIAL_PLAN_STORAGE_KEYS } from './assets/financial-plan/dev-mock-storage.js';
 
