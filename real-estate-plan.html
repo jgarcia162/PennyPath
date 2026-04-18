@@ -216,6 +216,7 @@
 </style>
 <script src="assets/theme-service.js"></script>
 <script src="assets/color-palette-service.js"></script>
+<script src="assets/safe-api-origin.js"></script>
 </head>
 <body class="re-page">
 
@@ -513,7 +514,7 @@
   <div class="re-footer-sub">First property by mid-2027 · Portfolio building from 2028.</div>
   <p class="re-disclaimer">This page is for planning purposes only and does not constitute financial or legal advice.</p>
   <div class="footer-meta" id="footer-meta" title="App version">
-    <button type="button" class="footer-version" id="footer-app-version"></button>
+    <button type="button" class="footer-version" id="footer-app-version" aria-label="Application version"></button>
   </div>
 </div>
 
@@ -543,13 +544,14 @@
   var nominatimResults = [];
 
   function apiOrigin() {
-    try {
-      var custom = localStorage.getItem(API_BASE_KEY);
-      if (custom) return custom.replace(/\/$/, '');
-    } catch (e) {}
-    if (typeof window !== 'undefined' && window.location && window.location.protocol === 'http:') {
-      return window.location.origin.replace(/\/$/, '');
+    if (typeof window !== 'undefined' && window.PennypathApiOrigin && typeof window.PennypathApiOrigin.getSafeApiBase === 'function') {
+      return window.PennypathApiOrigin.getSafeApiBase(API_BASE_KEY);
     }
+    try {
+      if (typeof window !== 'undefined' && window.location && window.location.protocol === 'http:') {
+        return window.location.origin.replace(/\/$/, '');
+      }
+    } catch (e) {}
     return 'http://127.0.0.1:8787';
   }
 

@@ -3,7 +3,9 @@
  * Last generated plan text is cached in localStorage; requests go to POST /api/financial-payoff.
  */
 
-const LS_KEY_CACHE = 'pennypath.aiPayoffPlan.v1';
+import { AI_PAYOFF_PLAN_CACHE_LS_KEY } from './storage-keys.js';
+
+const LS_KEY_CACHE = AI_PAYOFF_PLAN_CACHE_LS_KEY;
 
 /** Optional override for API origin (shared with real-estate-plan.html). */
 const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
@@ -18,17 +20,22 @@ function isDevTechnical() {
 }
 
 function getPayoffApiBase() {
-  try {
-    const custom = localStorage.getItem(LS_API_BASE_KEY);
-    if (custom) return String(custom).replace(/\/$/, '');
-  } catch (e) {}
   if (
     typeof window !== 'undefined' &&
-    window.location &&
-    (window.location.protocol === 'http:' || window.location.protocol === 'https:')
+    window.PennypathApiOrigin &&
+    typeof window.PennypathApiOrigin.getSafeApiBase === 'function'
   ) {
-    return window.location.origin.replace(/\/$/, '');
+    return window.PennypathApiOrigin.getSafeApiBase(LS_API_BASE_KEY);
   }
+  try {
+    if (
+      typeof window !== 'undefined' &&
+      window.location &&
+      (window.location.protocol === 'http:' || window.location.protocol === 'https:')
+    ) {
+      return window.location.origin.replace(/\/$/, '');
+    }
+  } catch (e) {}
   return 'http://127.0.0.1:8787';
 }
 
@@ -467,9 +474,9 @@ export function wireAiPayoffPlan(plan) {
       btn.disabled = true;
       try {
         const prompt = buildPrompt(plan);
+        const fp = buildFingerprint(plan);
         const result = await callFinancialPayoffApi(prompt);
         const text = result.text;
-        const fp = buildFingerprint(plan);
         saveCache(fp, text, result.truncated);
         displayPlanInScroll(scrollEl, outRoot, toolbarEl, expandBtn, text, {
           truncated: result.truncated,
