@@ -83,6 +83,14 @@
     After seeding, open <a href="financial-plan-v3-aggressive.html">Financial Plan</a> · <a href="history.html">History</a>
   </div>
 </div>
+
+<div class="footer">
+  <strong>Development utilities</strong>
+  <div class="footer-meta">
+    <button type="button" class="footer-version" id="footer-app-version" aria-live="polite"></button>
+  </div>
+</div>
+
 <dialog class="appearance-dialog no-print" id="appearance-dialog" aria-labelledby="appearance-dialog-title" aria-modal="true">
   <div class="appearance-dialog__chrome">
     <div class="appearance-dialog__header">
@@ -128,10 +136,19 @@
           </span>
         </button>
       </div>
+      <div class="appearance-dialog__section appearance-dialog__dev" id="appearance-dev-section" hidden>
+        <p class="appearance-dialog__section-label">Developer</p>
+        <p class="appearance-dialog__dev-hint">When on, supported areas show setup and diagnostic details (for example the AI Payoff Plan section).</p>
+        <label class="appearance-dev-toggle">
+          <input type="checkbox" id="dev-mode-technical-toggle" />
+          <span>Show technical messages and setup details</span>
+        </label>
+      </div>
     </div>
   </div>
 </dialog>
 <script src="assets/site-settings.js"></script>
+<script src="assets/dev-mode.js"></script>
 <script type="module">
   import { seedDevMockStorage, FINANCIAL_PLAN_STORAGE_KEYS } from './assets/financial-plan/dev-mock-storage.js';
 

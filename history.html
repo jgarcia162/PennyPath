@@ -102,6 +102,9 @@
 
 <div class="footer">
   <strong>Data stays in this browser</strong> — same saved plan and check-ins as the Financial Plan page.
+  <div class="footer-meta">
+    <button type="button" class="footer-version" id="footer-app-version" aria-live="polite"></button>
+  </div>
 </div>
 
 <dialog class="appearance-dialog no-print" id="appearance-dialog" aria-labelledby="appearance-dialog-title" aria-modal="true">
@@ -149,6 +152,14 @@
           </span>
         </button>
       </div>
+      <div class="appearance-dialog__section appearance-dialog__dev" id="appearance-dev-section" hidden>
+        <p class="appearance-dialog__section-label">Developer</p>
+        <p class="appearance-dialog__dev-hint">When on, supported areas show setup and diagnostic details (for example the AI Payoff Plan section).</p>
+        <label class="appearance-dev-toggle">
+          <input type="checkbox" id="dev-mode-technical-toggle" />
+          <span>Show technical messages and setup details</span>
+        </label>
+      </div>
     </div>
   </div>
 </dialog>
@@ -156,6 +167,7 @@
 <script src="assets/theme-service.js" defer></script>
 <script src="assets/color-palette-service.js" defer></script>
 <script src="assets/site-settings.js" defer></script>
+<script src="assets/dev-mode.js" defer></script>
 <script src="assets/checkin-service.js" defer></script>
 <script type="module" src="assets/financial-plan/history-main.js"></script>
 

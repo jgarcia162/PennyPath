@@ -505,6 +505,9 @@
   <strong>Research. Plan. Execute. Repeat.</strong>
   <div class="re-footer-sub">First property by mid-2027 · Portfolio building from 2028.</div>
   <p class="re-disclaimer">This page is for planning purposes only and does not constitute financial or legal advice.</p>
+  <div class="footer-meta">
+    <button type="button" class="footer-version" id="footer-app-version" aria-live="polite"></button>
+  </div>
 </div>
 
 <script>
@@ -1281,9 +1284,18 @@
           </span>
         </button>
       </div>
+      <div class="appearance-dialog__section appearance-dialog__dev" id="appearance-dev-section" hidden>
+        <p class="appearance-dialog__section-label">Developer</p>
+        <p class="appearance-dialog__dev-hint">When on, supported areas show setup and diagnostic details (for example the AI Payoff Plan section).</p>
+        <label class="appearance-dev-toggle">
+          <input type="checkbox" id="dev-mode-technical-toggle" />
+          <span>Show technical messages and setup details</span>
+        </label>
+      </div>
     </div>
   </div>
 </dialog>
 <script src="assets/site-settings.js"></script>
+<script src="assets/dev-mode.js"></script>
 </body>
 </html>
