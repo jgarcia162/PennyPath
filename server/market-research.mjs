@@ -121,16 +121,19 @@ async function readRequestBodyWithLimit(req, res, cors) {
   return body;
 }
 
+/**
+ * Fetch with deadline on the full operation (headers + response body).
+ * Timer clears only after `fetch` and `response.text()` complete so a stalled body read still aborts.
+ */
 async function fetchWithAbortMs(url, fetchInit, ms = GEMINI_FETCH_TIMEOUT_MS) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), ms);
   try {
     const r = await fetch(url, { ...fetchInit, signal: controller.signal });
+    const text = await r.text();
+    return { r, text };
+  } finally {
     clearTimeout(timeoutId);
-    return r;
-  } catch (e) {
-    clearTimeout(timeoutId);
-    throw e;
   }
 }
 
@@ -146,17 +149,19 @@ async function geminiGenerateContentEnvelope(model, apiKey, requestBody) {
   const geminiUrl =
     `${GEMINI_API_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
   let r;
+  let text;
   try {
-    r = await fetchGeminiWithTimeout(geminiUrl, {
+    const out = await fetchGeminiWithTimeout(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(requestBody),
     });
+    r = out.r;
+    text = out.text;
   } catch (e) {
     return { ok: false, step: 'network', error: e };
   }
 
-  const text = await r.text();
   if (!r.ok) {
     return { ok: false, step: 'http', httpStatus: r.status, text };
   }
@@ -505,7 +510,7 @@ async function handleGeocode(req, res) {
     }).toString();
 
   try {
-    const r = await fetchWithAbortMs(
+    const { r, text } = await fetchWithAbortMs(
       target,
       {
         headers: {
@@ -515,7 +520,6 @@ async function handleGeocode(req, res) {
       },
       GEMINI_FETCH_TIMEOUT_MS
     );
-    const text = await r.text();
     res.writeHead(
       r.ok ? 200 : 502,
       applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' })
