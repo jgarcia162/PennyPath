@@ -121,17 +121,166 @@ async function readRequestBodyWithLimit(req, res, cors) {
   return body;
 }
 
-async function fetchGeminiWithTimeout(url, fetchInit) {
+/**
+ * Fetch with deadline on the full operation (headers + response body).
+ * Timer clears only after `fetch` and `response.text()` complete so a stalled body read still aborts.
+ */
+async function fetchWithAbortMs(url, fetchInit, ms = GEMINI_FETCH_TIMEOUT_MS) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), GEMINI_FETCH_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), ms);
   try {
     const r = await fetch(url, { ...fetchInit, signal: controller.signal });
+    const text = await r.text();
+    return { r, text };
+  } finally {
     clearTimeout(timeoutId);
-    return r;
-  } catch (e) {
-    clearTimeout(timeoutId);
-    throw e;
   }
+}
+
+async function fetchGeminiWithTimeout(url, fetchInit) {
+  return fetchWithAbortMs(url, fetchInit, GEMINI_FETCH_TIMEOUT_MS);
+}
+
+/**
+ * Shared Gemini :generateContent transport, response JSON parse, and extractGeminiText.
+ * Callers parse structured JSON inside model text (research) or return plain text (financial payoff).
+ */
+async function geminiGenerateContentEnvelope(model, apiKey, requestBody) {
+  const geminiUrl =
+    `${GEMINI_API_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  let r;
+  let text;
+  try {
+    const out = await fetchGeminiWithTimeout(geminiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(requestBody),
+    });
+    r = out.r;
+    text = out.text;
+  } catch (e) {
+    return { ok: false, step: 'network', error: e };
+  }
+
+  if (!r.ok) {
+    return { ok: false, step: 'http', httpStatus: r.status, text };
+  }
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return { ok: false, step: 'gemini_json', detail: text.slice(0, 800) };
+  }
+
+  if (data.error) {
+    return { ok: false, step: 'gemini_obj', httpStatus: r.status, text, data };
+  }
+
+  const extracted = extractGeminiText(data);
+  if (extracted.error) {
+    return { ok: false, step: 'extract', error: extracted.error, text };
+  }
+
+  const finishReason =
+    data.candidates && data.candidates[0] && data.candidates[0].finishReason;
+  const truncated = finishReason === 'MAX_TOKENS';
+
+  return {
+    ok: true,
+    data,
+    rawText: text,
+    extractedText: extracted.text,
+    finishReason: finishReason || null,
+    truncated,
+  };
+}
+
+/** Write JSON error for {@link geminiGenerateContentEnvelope} failure; returns true if a response was sent. */
+function sendGeminiEnvelopeError(res, cors, apiKey, g) {
+  if (g.ok) return false;
+  if (g.step === 'network') {
+    const err = g.error;
+    if (err && err.name === 'AbortError') {
+      res.writeHead(504, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: 'Gemini request timed out',
+          keySent: keySentDebug(apiKey),
+        })
+      );
+      return true;
+    }
+    res.writeHead(500, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+    res.end(
+      JSON.stringify({
+        ok: false,
+        error: String(err && err.message ? err.message : err),
+        keySent: keySentDebug(apiKey),
+      })
+    );
+    return true;
+  }
+  if (g.step === 'http') {
+    const gemini = summarizeGeminiFailure(g.httpStatus, g.text);
+    res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+    res.end(
+      JSON.stringify({
+        ok: false,
+        error: 'Gemini request failed',
+        gemini,
+        keySent: keySentDebug(apiKey),
+      })
+    );
+    return true;
+  }
+  if (g.step === 'gemini_json') {
+    res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+    res.end(
+      JSON.stringify({
+        ok: false,
+        error: 'Gemini returned non-JSON',
+        detail: g.detail,
+        keySent: keySentDebug(apiKey),
+      })
+    );
+    return true;
+  }
+  if (g.step === 'gemini_obj') {
+    const gemini = summarizeGeminiFailure(g.httpStatus, g.text);
+    res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+    res.end(
+      JSON.stringify({
+        ok: false,
+        error: 'Gemini returned an error object',
+        gemini,
+        keySent: keySentDebug(apiKey),
+      })
+    );
+    return true;
+  }
+  if (g.step === 'extract') {
+    res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+    res.end(
+      JSON.stringify({
+        ok: false,
+        error: g.error,
+        gemini: summarizeGeminiFailure(200, g.text),
+        keySent: keySentDebug(apiKey),
+      })
+    );
+    return true;
+  }
+  res.writeHead(500, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+  res.end(
+    JSON.stringify({
+      ok: false,
+      error: 'Unexpected Gemini error',
+      keySent: keySentDebug(apiKey),
+    })
+  );
+  return true;
 }
 
 /**
@@ -361,19 +510,30 @@ async function handleGeocode(req, res) {
     }).toString();
 
   try {
-    const r = await fetch(target, {
-      headers: {
-        'User-Agent': 'FinancialPlan/1.0 (local dev; contact: none)',
-        Accept: 'application/json',
+    const { r, text } = await fetchWithAbortMs(
+      target,
+      {
+        headers: {
+          'User-Agent': 'FinancialPlan/1.0 (local dev; contact: none)',
+          Accept: 'application/json',
+        },
       },
-    });
-    const text = await r.text();
+      GEMINI_FETCH_TIMEOUT_MS
+    );
     res.writeHead(
       r.ok ? 200 : 502,
       applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' })
     );
     res.end(text);
   } catch (e) {
+    if (e && e.name === 'AbortError') {
+      res.writeHead(
+        504,
+        applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' })
+      );
+      res.end(JSON.stringify({ error: 'Geocode request timed out' }));
+      return;
+    }
     res.writeHead(
       502,
       applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' })
@@ -422,91 +582,28 @@ async function handleResearch(req, res) {
 
 Return the JSON object only.`;
 
-  const geminiUrl =
-    `${GEMINI_API_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const researchBody = {
+    systemInstruction: {
+      parts: [{ text: SYSTEM_PROMPT }],
+    },
+    contents: [
+      {
+        role: 'user',
+        parts: [{ text: user }],
+      },
+    ],
+    generationConfig: {
+      temperature: 0.35,
+      maxOutputTokens: 1024,
+      responseMimeType: 'application/json',
+    },
+  };
 
   try {
-    const r = await fetchGeminiWithTimeout(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: {
-          parts: [{ text: SYSTEM_PROMPT }],
-        },
-        contents: [
-          {
-            role: 'user',
-            parts: [{ text: user }],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.35,
-          maxOutputTokens: 1024,
-          responseMimeType: 'application/json',
-        },
-      }),
-    });
+    const g = await geminiGenerateContentEnvelope(model, apiKey, researchBody);
+    if (sendGeminiEnvelopeError(res, cors, apiKey, g)) return;
 
-    const text = await r.text();
-    if (!r.ok) {
-      const gemini = summarizeGeminiFailure(r.status, text);
-      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
-      res.end(
-        JSON.stringify({
-          ok: false,
-          error: 'Gemini request failed',
-          gemini,
-          keySent: keySentDebug(apiKey),
-        })
-      );
-      return;
-    }
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch (e) {
-      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
-      res.end(
-        JSON.stringify({
-          ok: false,
-          error: 'Gemini returned non-JSON',
-          detail: text.slice(0, 800),
-          keySent: keySentDebug(apiKey),
-        })
-      );
-      return;
-    }
-
-    if (data.error) {
-      const gemini = summarizeGeminiFailure(r.status, text);
-      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
-      res.end(
-        JSON.stringify({
-          ok: false,
-          error: 'Gemini returned an error object',
-          gemini,
-          keySent: keySentDebug(apiKey),
-        })
-      );
-      return;
-    }
-
-    const extracted = extractGeminiText(data);
-    if (extracted.error) {
-      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
-      res.end(
-        JSON.stringify({
-          ok: false,
-          error: extracted.error,
-          gemini: summarizeGeminiFailure(200, text),
-          keySent: keySentDebug(apiKey),
-        })
-      );
-      return;
-    }
-
-    const content = extracted.text;
+    const content = g.extractedText;
     let parsed;
     try {
       parsed = JSON.parse(content);
@@ -525,17 +622,6 @@ Return the JSON object only.`;
     res.writeHead(200, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(JSON.stringify({ ok: true, data: parsed }));
   } catch (e) {
-    if (e && e.name === 'AbortError') {
-      res.writeHead(504, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
-      res.end(
-        JSON.stringify({
-          ok: false,
-          error: 'Gemini request timed out',
-          keySent: keySentDebug(apiKey),
-        })
-      );
-      return;
-    }
     res.writeHead(500, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(
       JSON.stringify({
@@ -591,106 +677,28 @@ async function handleFinancialPayoff(req, res) {
   }
 
   const model = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim();
-  const geminiUrl =
-    `${GEMINI_API_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  const payoffBody = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.35,
+      maxOutputTokens: 8192,
+    },
+  };
 
   try {
-    const r = await fetchGeminiWithTimeout(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.35,
-          maxOutputTokens: 8192,
-        },
-      }),
-    });
-
-    const text = await r.text();
-    if (!r.ok) {
-      const gemini = summarizeGeminiFailure(r.status, text);
-      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
-      res.end(
-        JSON.stringify({
-          ok: false,
-          error: 'Gemini request failed',
-          gemini,
-          keySent: keySentDebug(apiKey),
-        })
-      );
-      return;
-    }
-
-    let data;
-    try {
-      data = JSON.parse(text);
-    } catch {
-      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
-      res.end(
-        JSON.stringify({
-          ok: false,
-          error: 'Gemini returned non-JSON',
-          detail: text.slice(0, 800),
-          keySent: keySentDebug(apiKey),
-        })
-      );
-      return;
-    }
-
-    if (data.error) {
-      const gemini = summarizeGeminiFailure(r.status, text);
-      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
-      res.end(
-        JSON.stringify({
-          ok: false,
-          error: 'Gemini returned an error object',
-          gemini,
-          keySent: keySentDebug(apiKey),
-        })
-      );
-      return;
-    }
-
-    const extracted = extractGeminiText(data);
-    if (extracted.error) {
-      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
-      res.end(
-        JSON.stringify({
-          ok: false,
-          error: extracted.error,
-          gemini: summarizeGeminiFailure(200, text),
-          keySent: keySentDebug(apiKey),
-        })
-      );
-      return;
-    }
-
-    const finishReason =
-      data.candidates && data.candidates[0] && data.candidates[0].finishReason;
-    const truncated = finishReason === 'MAX_TOKENS';
+    const g = await geminiGenerateContentEnvelope(model, apiKey, payoffBody);
+    if (sendGeminiEnvelopeError(res, cors, apiKey, g)) return;
 
     res.writeHead(200, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(
       JSON.stringify({
         ok: true,
-        text: extracted.text,
-        truncated,
-        finishReason: finishReason || null,
+        text: g.extractedText,
+        truncated: g.truncated,
+        finishReason: g.finishReason,
       })
     );
   } catch (e) {
-    if (e && e.name === 'AbortError') {
-      res.writeHead(504, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
-      res.end(
-        JSON.stringify({
-          ok: false,
-          error: 'Gemini request timed out',
-          keySent: keySentDebug(apiKey),
-        })
-      );
-      return;
-    }
     res.writeHead(500, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(
       JSON.stringify({

@@ -53,7 +53,7 @@
       if (e.key === 'Escape') closeMenu(menu, trigger);
     });
 
-    ['btn-print', 'btn-wipe-all-data', 'btn-open-appearance'].forEach(function (id) {
+    ['btn-print', 'btn-wipe-all-data', 'btn-open-appearance', 'btn-dev-lock'].forEach(function (id) {
       var el = document.getElementById(id);
       if (!el) return;
       el.addEventListener('click', function () {

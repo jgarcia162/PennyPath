@@ -1,12 +1,23 @@
 /**
  * "How We Get There" sub-tabs: original plan vs Gemini-generated debt payoff suggestions.
- * API key and last generated text are stored in localStorage (browser-only).
+ * Last generated plan text is cached in localStorage; requests go to POST /api/financial-payoff.
  */
 
-const LS_KEY_CACHE = 'pennypath.aiPayoffPlan.v1';
+import { AI_PAYOFF_PLAN_CACHE_LS_KEY } from './storage-keys.js';
 
-/** Same override as real-estate-plan.html (dev): custom API origin in localStorage. */
+const LS_KEY_CACHE = AI_PAYOFF_PLAN_CACHE_LS_KEY;
+
+/** Optional override for API origin (shared with real-estate-plan.html). */
 const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
+
+function isDevTechnical() {
+  return (
+    typeof window !== 'undefined' &&
+    window.PennypathDev &&
+    typeof window.PennypathDev.isTechnical === 'function' &&
+    window.PennypathDev.isTechnical()
+  );
+}
 
 function getPayoffApiBase() {
   if (
@@ -340,7 +351,7 @@ function showError(scrollEl, toolbarEl, expandBtn, outputRoot, msg) {
 }
 
 /**
- * Calls the local dev server (or same-origin deploy) which holds GEMINI_API_KEY — see server/market-research.mjs.
+ * Calls the app server POST /api/financial-payoff (see server/market-research.mjs).
  */
 async function callFinancialPayoffApi(prompt) {
   const base = getPayoffApiBase();
@@ -352,22 +363,35 @@ async function callFinancialPayoffApi(prompt) {
       body: JSON.stringify({ prompt: prompt }),
     });
   } catch (e) {
+    if (isDevTechnical()) {
+      throw new Error(
+        'Could not reach the AI server. Run `npm run research-server`, set GEMINI_API_KEY in .env, and open this page from http://127.0.0.1:8787/ or the same host as the API.'
+      );
+    }
     throw new Error(
-      'Could not reach the AI server. Run `npm run research-server` from the project folder, set GEMINI_API_KEY in .env, and open this page at http://127.0.0.1:8787/financial-plan-v3-aggressive.html (or serve the app from the same host as the API).'
+      'We couldn’t reach the AI service. Check your internet connection and try again.'
     );
   }
   const data = await res.json().catch(function () {
     return {};
   });
   if (!res.ok || data.ok === false) {
-    const msg =
-      (data.gemini && data.gemini.message) ||
-      (typeof data.error === 'string' && data.error) ||
-      'Request failed (' + res.status + ').';
-    throw new Error(msg);
+    if (isDevTechnical()) {
+      const msg =
+        (data.gemini && data.gemini.message) ||
+        (typeof data.error === 'string' && data.error) ||
+        'Request failed (' + res.status + ').';
+      throw new Error(msg);
+    }
+    throw new Error(
+      'The AI service couldn’t complete your request. Please try again in a moment.'
+    );
   }
   if (typeof data.text !== 'string' || !data.text.trim()) {
-    throw new Error('Empty response from the model. Try again.');
+    if (isDevTechnical()) {
+      throw new Error('Empty response from the model. Try again.');
+    }
+    throw new Error('We couldn’t generate a plan. Please try again.');
   }
   return { text: data.text.trim(), truncated: !!data.truncated };
 }
