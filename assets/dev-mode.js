@@ -1,5 +1,5 @@
 /**
- * Developer mode (easter egg): tap the footer app version 7× within ~4.5s to unlock.
+ * Developer mode (easter egg): tap the footer version row (#footer-meta) 7× within ~12s to unlock.
  * Shows a toast, Appearance → Developer, and Settings → Sample data. Keys: pennypath.developer.*
  */
 (function () {
@@ -8,7 +8,7 @@
   var APP_VERSION = '1.0.0';
   var LS_UNLOCKED = 'pennypath.developer.unlocked';
   var LS_TECHNICAL = 'pennypath.developer.technical';
-  var TAP_WINDOW_MS = 4500;
+  var TAP_WINDOW_MS = 12000;
   var TAPS_REQUIRED = 7;
 
   function getItem(key) {
@@ -125,8 +125,11 @@
   }
 
   function wireEasterEgg() {
-    var el = document.getElementById('footer-app-version');
-    if (!el) return;
+    /** Whole strip is tappable (not only the small label) so the gesture is discoverable. */
+    var hit =
+      document.getElementById('footer-meta') || document.getElementById('footer-app-version');
+    var btn = document.getElementById('footer-app-version');
+    if (!hit) return;
 
     var firstTap = 0;
     var count = 0;
@@ -136,7 +139,8 @@
       count = 0;
     }
 
-    function onActivate() {
+    function onActivate(e) {
+      if (e && typeof e.button === 'number' && e.button !== 0) return;
       var now = Date.now();
       if (!firstTap || now - firstTap > TAP_WINDOW_MS) {
         firstTap = now;
@@ -152,13 +156,23 @@
       }
     }
 
-    el.addEventListener('click', onActivate);
-    el.addEventListener('keydown', function (e) {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        onActivate();
-      }
-    });
+    hit.addEventListener('click', onActivate);
+
+    if (btn && btn !== hit) {
+      btn.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onActivate();
+        }
+      });
+    } else if (hit && hit.tagName === 'BUTTON') {
+      hit.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onActivate();
+        }
+      });
+    }
   }
 
   function wireAppearanceToggle() {

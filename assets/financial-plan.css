@@ -3253,13 +3253,24 @@ body.financial-plan-demo-mode #checkin-form {
 .footer strong { display: block; color: var(--gold); font-family: 'Playfair Display', serif; font-size: 22px; margin-bottom: 6px; }
 .footer-meta {
   margin-top: 14px;
-  padding-top: 12px;
+  padding: 10px 16px 8px;
   border-top: 1px solid rgba(250, 246, 244, 0.08);
+  display: flex;
+  justify-content: center;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: min(100%, 420px);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.footer-meta:hover {
+  background: rgba(250, 246, 244, 0.05);
 }
 .footer-version {
   appearance: none;
   margin: 0;
-  padding: 4px 8px;
+  padding: 10px 16px;
   font: inherit;
   font-size: 11px;
   letter-spacing: 0.06em;
@@ -3267,14 +3278,18 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(250, 246, 244, 0.45);
   background: transparent;
   border: none;
-  border-radius: 6px;
-  cursor: default;
+  border-radius: 8px;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: min(100%, 300px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transition: color 0.15s ease, background 0.15s ease;
 }
 .footer-version:hover {
-  color: rgba(250, 246, 244, 0.65);
-  background: rgba(250, 246, 244, 0.06);
-  cursor: pointer;
+  color: rgba(250, 246, 244, 0.75);
+  background: rgba(250, 246, 244, 0.08);
 }
 .footer-version:focus-visible {
   outline: 2px solid rgba(196, 176, 128, 0.55);
