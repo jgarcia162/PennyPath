@@ -1,6 +1,6 @@
 /**
  * Developer mode (easter egg): tap the footer app version 7× within ~4.5s to unlock.
- * Toggle “technical” copy in Appearance → Developer. Keys: pennypath.developer.*
+ * Shows a toast, Appearance → Developer, and Settings → Sample data. Keys: pennypath.developer.*
  */
 (function () {
   'use strict';
@@ -71,6 +71,47 @@
     for (var i = 0; i < devBits.length; i++) {
       devBits[i].hidden = !isTechnical();
     }
+
+    var sampleSections = document.querySelectorAll('[data-dev-only="sample-data"]');
+    for (var s = 0; s < sampleSections.length; s++) {
+      sampleSections[s].hidden = !isUnlocked();
+    }
+  }
+
+  function showDevUnlockToast() {
+    var existing = document.getElementById('dev-mode-toast');
+    if (existing) existing.remove();
+
+    var t = document.createElement('div');
+    t.id = 'dev-mode-toast';
+    t.className = 'dev-mode-toast';
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+
+    var icon = document.createElement('span');
+    icon.className = 'dev-mode-toast__icon';
+    icon.setAttribute('aria-hidden', 'true');
+    icon.textContent = '✓';
+
+    var msg = document.createElement('span');
+    msg.className = 'dev-mode-toast__msg';
+    msg.textContent = 'Developer options unlocked — check Settings and Appearance';
+
+    t.appendChild(icon);
+    t.appendChild(msg);
+    document.body.appendChild(t);
+
+    requestAnimationFrame(function () {
+      t.classList.add('dev-mode-toast--visible');
+    });
+
+    var hideMs = 3800;
+    setTimeout(function () {
+      t.classList.remove('dev-mode-toast--visible');
+      setTimeout(function () {
+        if (t.parentNode) t.parentNode.removeChild(t);
+      }, 420);
+    }, hideMs);
   }
 
   function unlockFromEasterEgg() {
@@ -80,6 +121,7 @@
     }
     syncDom();
     dispatchChange();
+    showDevUnlockToast();
   }
 
   function wireEasterEgg() {

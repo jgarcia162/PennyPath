@@ -190,6 +190,65 @@ body {
   border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
+/* Toast when developer options unlock (footer version easter egg) */
+.dev-mode-toast {
+  position: fixed;
+  z-index: 100500;
+  left: 50%;
+  bottom: 28px;
+  transform: translate3d(-50%, 20px, 0);
+  max-width: min(92vw, 420px);
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: rgba(60, 68, 82, 0.95);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(235, 225, 208, 0.98));
+  border: 1px solid rgba(196, 176, 128, 0.55);
+  border-radius: 14px;
+  box-shadow:
+    0 10px 40px rgba(60, 68, 82, 0.18),
+    0 2px 8px rgba(0, 0, 0, 0.06);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.35s ease,
+    transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dev-mode-toast--visible {
+  opacity: 1;
+  transform: translate3d(-50%, 0, 0);
+  pointer-events: auto;
+}
+.dev-mode-toast__icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(143, 176, 160, 0.35);
+  border-radius: 50%;
+  font-size: 14px;
+}
+:root[data-theme='dark'] .dev-mode-toast {
+  color: rgba(233, 233, 246, 0.95);
+  background: linear-gradient(135deg, rgba(30, 36, 51, 0.98), rgba(40, 48, 64, 0.98));
+  border-color: rgba(225, 195, 106, 0.35);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dev-mode-toast {
+    transition: opacity 0.2s ease;
+  }
+  .dev-mode-toast--visible {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
 .site-settings-demo-toggle {
   display: flex;
   align-items: flex-start;
