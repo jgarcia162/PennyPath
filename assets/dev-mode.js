@@ -1,6 +1,7 @@
 /**
  * Developer mode (easter egg): tap the footer version row (#footer-meta) 7× within ~12s to unlock.
- * Shows a toast, Appearance → Developer, and Settings → Sample data. Keys: pennypath.developer.*
+ * Settings → Lock developer options clears keys. Test reset: add ?resetDeveloper=1 to the URL once.
+ * Keys: pennypath.developer.unlocked, pennypath.developer.technical
  */
 (function () {
   'use strict';
@@ -76,6 +77,57 @@
     for (var s = 0; s < sampleSections.length; s++) {
       sampleSections[s].hidden = !isUnlocked();
     }
+
+    var devSettingsRows = document.querySelectorAll('[data-dev-only="developer-settings"]');
+    for (var r = 0; r < devSettingsRows.length; r++) {
+      devSettingsRows[r].hidden = !isUnlocked();
+    }
+  }
+
+  /** Clear unlock (for Settings or testing). */
+  function lockDeveloperMode() {
+    try {
+      localStorage.removeItem(LS_UNLOCKED);
+      localStorage.removeItem(LS_TECHNICAL);
+    } catch (e) {}
+    syncDom();
+    dispatchChange();
+    showLockToast();
+  }
+
+  function showLockToast() {
+    var existing = document.getElementById('dev-mode-toast');
+    if (existing) existing.remove();
+    var t = document.createElement('div');
+    t.id = 'dev-mode-toast';
+    t.className = 'dev-mode-toast';
+    t.setAttribute('role', 'status');
+    var msg = document.createElement('span');
+    msg.className = 'dev-mode-toast__msg';
+    msg.textContent = 'Developer options locked. Tap the footer version 7× to unlock again.';
+    t.appendChild(msg);
+    document.body.appendChild(t);
+    requestAnimationFrame(function () {
+      t.classList.add('dev-mode-toast--visible');
+    });
+    setTimeout(function () {
+      t.classList.remove('dev-mode-toast--visible');
+      setTimeout(function () {
+        if (t.parentNode) t.parentNode.removeChild(t);
+      }, 420);
+    }, 3200);
+  }
+
+  /** Testing: `?resetDeveloper=1` clears keys once, then removes the query param. */
+  function resetDeveloperFromQuery() {
+    try {
+      var q = new URLSearchParams(window.location.search).get('resetDeveloper');
+      if (q !== '1' && q !== 'true') return;
+      localStorage.removeItem(LS_UNLOCKED);
+      localStorage.removeItem(LS_TECHNICAL);
+      var url = window.location.pathname + (window.location.hash || '');
+      window.history.replaceState({}, '', url);
+    } catch (e) {}
   }
 
   function showDevUnlockToast() {
@@ -156,7 +208,8 @@
       }
     }
 
-    hit.addEventListener('click', onActivate);
+    /** Capture phase so nested controls or late listeners cannot swallow the gesture. */
+    hit.addEventListener('click', onActivate, true);
 
     if (btn && btn !== hit) {
       btn.addEventListener('keydown', function (e) {
@@ -196,13 +249,24 @@
     isTechnical: isTechnical,
     setTechnical: setTechnical,
     syncDom: syncDom,
+    lock: lockDeveloperMode,
   };
 
+  function wireLockButton() {
+    var btn = document.getElementById('btn-dev-lock');
+    if (!btn) return;
+    btn.addEventListener('click', function () {
+      lockDeveloperMode();
+    });
+  }
+
   function init() {
+    resetDeveloperFromQuery();
     setFooterLabel();
     syncDom();
     wireEasterEgg();
     wireAppearanceToggle();
+    wireLockButton();
   }
 
   if (document.readyState === 'loading') {

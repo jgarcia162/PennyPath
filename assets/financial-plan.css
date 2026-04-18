@@ -137,6 +137,13 @@ body {
   color: rgba(245, 240, 232, 0.4);
   margin-bottom: 8px;
 }
+.site-settings-dev-hint {
+  margin: 8px 0 0;
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 500;
+  color: rgba(245, 240, 232, 0.45);
+}
 .site-settings-item {
   display: block;
   width: 100%;
