@@ -87,8 +87,22 @@
     syncReminderBar();
   }
 
+  /** One sticky column so the nav + dev reminder scroll away together and stay in view. */
+  function ensureHeaderStickyShell() {
+    var header = document.querySelector('.site-header');
+    if (!header) return;
+    var p = header.parentElement;
+    if (p && p.classList && p.classList.contains('site-header-sticky-shell')) return;
+    var shell = document.createElement('div');
+    shell.className = 'site-header-sticky-shell no-print';
+    shell.id = 'site-header-sticky-shell';
+    header.parentNode.insertBefore(shell, header);
+    shell.appendChild(header);
+  }
+
   /** Banner under the site header whenever dev is unlocked (hard to miss before a screen share). */
   function syncReminderBar() {
+    ensureHeaderStickyShell();
     var header = document.querySelector('.site-header');
     if (!header) return;
 
@@ -124,6 +138,8 @@
 
   /** Clear unlock (for Settings or testing). */
   function lockDeveloperMode() {
+    var reminder = document.getElementById('dev-mode-reminder');
+    if (reminder) reminder.setAttribute('hidden', '');
     try {
       localStorage.removeItem(LS_UNLOCKED);
       localStorage.removeItem(LS_TECHNICAL);
@@ -301,6 +317,7 @@
   function init() {
     resetDeveloperFromQuery();
     setFooterLabel();
+    ensureHeaderStickyShell();
     syncDom();
     wireEasterEgg();
     wireAppearanceToggle();

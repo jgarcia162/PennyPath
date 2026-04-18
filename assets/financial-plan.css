@@ -46,6 +46,15 @@ body {
   border-bottom: 1px solid rgba(196, 168, 110, 0.28);
   box-shadow: 0 2px 14px rgba(90, 100, 120, 0.12);
 }
+/* Injected by dev-mode.js: header + dev reminder share one sticky stack at the top. */
+.site-header-sticky-shell {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.site-header-sticky-shell .site-header {
+  position: static;
+}
 .site-header .site-nav {
   flex: 1;
   min-width: 0;
@@ -256,7 +265,10 @@ body {
   }
 }
 
-/* Developer unlock: persistent reminder under site header */
+/* Developer unlock: persistent reminder under site header (must respect [hidden]; display:flex wins otherwise) */
+.dev-mode-reminder[hidden] {
+  display: none !important;
+}
 .dev-mode-reminder {
   display: flex;
   align-items: center;
@@ -272,7 +284,6 @@ body {
   background: linear-gradient(90deg, rgba(143, 176, 160, 0.28), rgba(196, 176, 128, 0.22));
   border-bottom: 1px solid rgba(90, 122, 106, 0.25);
   text-align: center;
-  z-index: 120;
 }
 .dev-mode-reminder__text {
   max-width: 52rem;
