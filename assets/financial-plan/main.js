@@ -6,7 +6,8 @@
  */
 
 import { PLAN } from './plan-data.js';
-import { render } from './render-page.js';
+import { render as renderPlanPage } from './render-page.js';
+import { wireAiPayoffPlan } from './ai-payoff-plan-wire.js';
 import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
 import {
   applyPlanOverrides,
@@ -24,6 +25,15 @@ import { wireBadges, renderBadges } from './features.js';
 import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage.js';
 import { wipeAllUserData } from './wipe-user-data.js';
 import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap.js';
+
+const aiPayoffUi = wireAiPayoffPlan(PLAN);
+
+function render() {
+  renderPlanPage();
+  if (aiPayoffUi && aiPayoffUi.refreshAfterPlanChange) {
+    aiPayoffUi.refreshAfterPlanChange();
+  }
+}
 
 /** Preserve real list() when toggling sample-data mode or after reset. */
 let origCheckInList = null;

@@ -287,10 +287,22 @@
   </div>
 
   <!-- SECTION 03: HOW WE GET THERE -->
-  <div class="section">
+  <div class="section" id="section-how-we-get-there">
     <div class="section-eyebrow">Section 03</div>
     <div class="section-title">How We Get There</div>
 
+    <div class="how-we-get-there__tabs-row no-print">
+      <div class="page-tabs" role="tablist" aria-label="How we get there">
+        <button type="button" class="page-tab-btn" role="tab" id="tab-how-original" aria-selected="true" aria-controls="panel-how-original">Original plan</button>
+        <button type="button" class="page-tab-btn" role="tab" id="tab-how-ai" aria-selected="false" tabindex="-1" aria-controls="panel-how-ai">AI payoff plan</button>
+      </div>
+      <div class="how-we-get-there__generate-wrap">
+        <button type="button" class="ai-payoff-generate-btn" id="btn-ai-payoff-generate">Generate plan</button>
+        <span class="ai-payoff-status" id="ai-payoff-status" role="status"></span>
+      </div>
+    </div>
+
+    <div id="panel-how-original" role="tabpanel" aria-labelledby="tab-how-original">
     <div class="plan-phases">
       <div class="phase-card p1">
         <div class="phase-num">Phase 1 · October 2026 - December 2026</div>
@@ -355,6 +367,29 @@
     <div class="callout" id="callout-phase2"></div>
 
     <div class="callout blue" id="callout-fun"></div>
+    </div>
+
+    <div id="panel-how-ai" role="tabpanel" aria-labelledby="tab-how-ai" hidden>
+      <div class="ai-payoff-setup no-print">
+        <p class="ai-payoff-intro">
+          Get a suggested payoff order and monthly allocation from Google Gemini using your current debts, APRs, and any deferred-interest promos. The app uses the same server-side Gemini key as the rest of PennyPath (see <code class="ai-payoff-code">GEMINI_API_KEY</code> in <code class="ai-payoff-code">.env</code>).
+          For local development, run <code class="ai-payoff-code">npm run research-server</code> and open this page at
+          <a href="http://127.0.0.1:8787/financial-plan-v3-aggressive.html" target="_blank" rel="noopener noreferrer">http://127.0.0.1:8787/financial-plan-v3-aggressive.html</a>.
+        </p>
+      </div>
+      <div class="ai-payoff-output" id="ai-payoff-output" aria-live="polite">
+        <div class="ai-payoff-output__toolbar no-print" id="ai-payoff-toolbar" hidden>
+          <button type="button" class="ai-payoff-expand-btn" id="btn-ai-payoff-expand" aria-expanded="false">
+            Expand full plan
+          </button>
+        </div>
+        <div class="ai-payoff-scroll" id="ai-payoff-scroll" tabindex="0">
+          <p class="ai-payoff-placeholder section-sub" id="ai-payoff-placeholder-default">
+            Switch here and generate to see an AI-suggested payoff strategy.
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- SECTION 04: PAYOFF TIMELINE -->
@@ -730,6 +765,7 @@
   </div>
 </dialog>
 
+<script src="assets/safe-api-origin.js"></script>
 <script src="assets/theme-service.js" defer></script>
 <script src="assets/color-palette-service.js" defer></script>
 <script src="assets/site-settings.js" defer></script>
