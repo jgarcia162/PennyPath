@@ -6,7 +6,8 @@
 const LS_KEY_API = 'pennypath.gemini.apiKey';
 const LS_KEY_CACHE = 'pennypath.aiPayoffPlan.v1';
 
-const GEMINI_MODEL = 'gemini-2.0-flash';
+/** See https://ai.google.dev/gemini-api/docs/models — 2.0-flash is not available to new API keys. */
+const GEMINI_MODEL = 'gemini-2.5-flash';
 
 function setSelected(tabEl, selected) {
   if (!tabEl) return;
