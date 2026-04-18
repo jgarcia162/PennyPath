@@ -102,10 +102,11 @@ function applyCorsToHeaders(cors, headers) {
 }
 
 async function readRequestBodyWithLimit(req, res, cors) {
+  const chunks = [];
   let total = 0;
-  let body = '';
   for await (const chunk of req) {
-    total += chunk.length;
+    const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    total += buf.length;
     if (total > MAX_BODY_BYTES) {
       res.writeHead(413, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
       res.end(JSON.stringify({ ok: false, error: 'Request body too large' }));
@@ -116,9 +117,9 @@ async function readRequestBodyWithLimit(req, res, cors) {
       }
       return null;
     }
-    body += chunk;
+    chunks.push(buf);
   }
-  return body;
+  return Buffer.concat(chunks).toString('utf8');
 }
 
 /**

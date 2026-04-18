@@ -50,6 +50,26 @@ function setPanelVisible(panelEl, visible) {
   panelEl.hidden = !visible;
 }
 
+/** Stable subset of phase1/phase2 for cache fingerprint (matches plan-data shapes). */
+function fingerprintPhase1(phase1) {
+  if (!phase1 || typeof phase1 !== 'object') {
+    return { ccPayment: 0, hysaDeposit: 0 };
+  }
+  return {
+    ccPayment: Number(phase1.ccPayment),
+    hysaDeposit: Number(phase1.hysaDeposit),
+  };
+}
+
+function fingerprintPhase2(phase2) {
+  if (!phase2 || typeof phase2 !== 'object') {
+    return { hysaDeposit: 0 };
+  }
+  return {
+    hysaDeposit: Number(phase2.hysaDeposit),
+  };
+}
+
 function buildFingerprint(plan) {
   if (!plan || typeof plan !== 'object') return '';
   try {
@@ -70,8 +90,8 @@ function buildFingerprint(plan) {
       debts: debts,
       monthlyTakeHome: Number(plan.monthlyTakeHome),
       monthlyFixedExpenses: Number(plan.monthlyFixedExpenses),
-      phase1: plan.phase1,
-      phase2: plan.phase2,
+      phase1: fingerprintPhase1(plan.phase1),
+      phase2: fingerprintPhase2(plan.phase2),
       funBudget: Number(plan.funBudget),
       monthsDebtPayoff: Number(plan.monthsDebtPayoff),
       ccApr: Number(plan.ccApr),
@@ -350,19 +370,35 @@ function showError(scrollEl, toolbarEl, expandBtn, outputRoot, msg) {
   scrollEl.appendChild(p);
 }
 
+/** Client-side ceiling for POST /api/financial-payoff (server has its own Gemini timeout). */
+const CLIENT_PAYOFF_FETCH_TIMEOUT_MS = 15000;
+
 /**
  * Calls the app server POST /api/financial-payoff (see server/market-research.mjs).
  */
 async function callFinancialPayoffApi(prompt) {
   const base = getPayoffApiBase();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(function () {
+    controller.abort();
+  }, CLIENT_PAYOFF_FETCH_TIMEOUT_MS);
   let res;
   try {
     res = await fetch(base + '/api/financial-payoff', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt: prompt }),
+      signal: controller.signal,
     });
   } catch (e) {
+    if (e && e.name === 'AbortError') {
+      if (isDevTechnical()) {
+        throw new Error(
+          'The AI payoff request timed out. Ensure `npm run research-server` is running and try again.'
+        );
+      }
+      throw new Error('The AI request took too long. Please try again.');
+    }
     if (isDevTechnical()) {
       throw new Error(
         'Could not reach the AI server. Run `npm run research-server`, set GEMINI_API_KEY in .env, and open this page from http://127.0.0.1:8787/ or the same host as the API.'
@@ -371,6 +407,8 @@ async function callFinancialPayoffApi(prompt) {
     throw new Error(
       'We couldn’t reach the AI service. Check your internet connection and try again.'
     );
+  } finally {
+    clearTimeout(timeoutId);
   }
   const data = await res.json().catch(function () {
     return {};
