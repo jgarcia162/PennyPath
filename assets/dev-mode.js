@@ -2,6 +2,7 @@
  * Developer mode (easter egg): tap the footer version row (#footer-meta) 7× within ~12s to unlock.
  * Settings → Lock developer options clears keys. Test reset: add ?resetDeveloper=1 to the URL once.
  * Keys: pennypath.developer.unlocked, pennypath.developer.technical
+ * When unlocked, a reminder strip appears under the header so you don’t forget to lock before demos.
  */
 (function () {
   'use strict';
@@ -82,6 +83,43 @@
     for (var r = 0; r < devSettingsRows.length; r++) {
       devSettingsRows[r].hidden = !isUnlocked();
     }
+
+    syncReminderBar();
+  }
+
+  /** Banner under the site header whenever dev is unlocked (hard to miss before a screen share). */
+  function syncReminderBar() {
+    var header = document.querySelector('.site-header');
+    if (!header) return;
+
+    var bar = document.getElementById('dev-mode-reminder');
+    if (!isUnlocked()) {
+      if (bar) bar.hidden = true;
+      return;
+    }
+
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'dev-mode-reminder';
+      bar.className = 'dev-mode-reminder no-print';
+      bar.setAttribute('role', 'status');
+      var text = document.createElement('span');
+      text.className = 'dev-mode-reminder__text';
+      text.textContent =
+        'Developer options are on — sample data controls and technical hints may be visible on this device.';
+      var lockBtn = document.createElement('button');
+      lockBtn.type = 'button';
+      lockBtn.id = 'btn-dev-reminder-lock';
+      lockBtn.className = 'dev-mode-reminder__lock';
+      lockBtn.textContent = 'Lock developer mode';
+      lockBtn.addEventListener('click', function () {
+        lockDeveloperMode();
+      });
+      bar.appendChild(text);
+      bar.appendChild(lockBtn);
+      header.parentNode.insertBefore(bar, header.nextSibling);
+    }
+    bar.hidden = false;
   }
 
   /** Clear unlock (for Settings or testing). */
