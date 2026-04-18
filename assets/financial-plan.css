@@ -569,7 +569,62 @@ body.financial-plan-demo-mode #checkin-form {
   display: none;
 }
 
-/* Section 03 — Original vs AI payoff sub-tabs (reuses .page-tabs / .page-tab-btn) */
+/* Section 03 — tab strip + compact Generate (aligned with .page-tab-btn sizing) */
+.how-we-get-there__tabs-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin: 0 0 18px;
+}
+.how-we-get-there__tabs-row .page-tabs {
+  margin: 0;
+}
+.how-we-get-there__generate-wrap {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+}
+.ai-payoff-generate-btn {
+  appearance: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(196, 176, 128, 0.42);
+  background: rgba(196, 176, 128, 0.2);
+  color: rgba(60, 68, 82, 0.88);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, opacity 0.15s ease;
+}
+.ai-payoff-generate-btn:hover:not(:disabled) {
+  background: rgba(196, 176, 128, 0.3);
+  border-color: rgba(196, 176, 128, 0.55);
+  color: rgba(60, 68, 82, 0.95);
+}
+.ai-payoff-generate-btn:focus-visible {
+  outline: 2px solid rgba(196, 176, 128, 0.55);
+  outline-offset: 2px;
+}
+.ai-payoff-generate-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+:root[data-theme="dark"] .ai-payoff-generate-btn {
+  border-color: rgba(225, 195, 106, 0.32);
+  background: rgba(225, 195, 106, 0.14);
+  color: rgba(233, 233, 246, 0.9);
+}
+:root[data-theme="dark"] .ai-payoff-generate-btn:hover:not(:disabled) {
+  background: rgba(225, 195, 106, 0.22);
+  border-color: rgba(225, 195, 106, 0.45);
+  color: rgba(233, 233, 246, 0.96);
+}
+
 #panel-how-ai {
   margin-top: 4px;
 }
@@ -594,13 +649,6 @@ body.financial-plan-demo-mode #checkin-form {
 :root[data-theme="dark"] .ai-payoff-code {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(255, 255, 255, 0.12);
-}
-.ai-payoff-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 16px;
-  margin-bottom: 8px;
 }
 .ai-payoff-status {
   font-size: 13px;
