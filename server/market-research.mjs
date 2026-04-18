@@ -13,6 +13,10 @@
  * Open: http://127.0.0.1:8787/real-estate-plan.html
  *       http://127.0.0.1:8787/financial-plan-v3-aggressive.html
  *
+ * CORS: loopback origins are allowed; add comma-separated full origins in CORS_ALLOWED_ORIGINS
+ * (e.g. https://user.github.io) for hosted pages. Requests without an Origin header are allowed
+ * (e.g. curl); disallowed browser origins get 403.
+ *
  * Failed requests include keySent (length + prefix + suffix). Set DEBUG_API_KEY_IN_ERRORS=1
  * in .env to also include the full key in keySent.full (local debugging only).
  */
@@ -28,6 +32,107 @@ const ROOT = path.resolve(__dirname, '..');
 const PORT = Number(process.env.PORT) || 8787;
 
 const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
+
+const MAX_BODY_BYTES = 1_000_000;
+const GEMINI_FETCH_TIMEOUT_MS = 30_000;
+
+function parseTrustedOriginsFromEnv() {
+  const set = new Set();
+  const raw = process.env.CORS_ALLOWED_ORIGINS || '';
+  for (const part of raw.split(',')) {
+    const t = part.trim();
+    if (!t) continue;
+    try {
+      set.add(new URL(t).origin);
+    } catch {
+      /* skip invalid */
+    }
+  }
+  return set;
+}
+const TRUSTED_CORS_EXTRA = parseTrustedOriginsFromEnv();
+
+function isLoopbackHostname(hostname) {
+  if (!hostname) return false;
+  const h = String(hostname).toLowerCase();
+  return h === 'localhost' || h === '127.0.0.1' || h === '[::1]' || h === '::1';
+}
+
+function isTrustedBrowserOrigin(origin) {
+  try {
+    const u = new URL(origin);
+    if (isLoopbackHostname(u.hostname)) return true;
+    if (TRUSTED_CORS_EXTRA.has(origin)) return true;
+  } catch {
+    return false;
+  }
+  return false;
+}
+
+/**
+ * @returns {{ mode: 'allow', origin: string } | { mode: 'no-origin' } | { mode: 'reject' }}
+ */
+function resolveCorsForApiRequest(req) {
+  const raw = req.headers.origin;
+  if (raw == null || raw === '') {
+    return { mode: 'no-origin' };
+  }
+  if (raw === 'null') {
+    return { mode: 'reject' };
+  }
+  let o;
+  try {
+    o = new URL(raw).origin;
+  } catch {
+    return { mode: 'reject' };
+  }
+  if (isTrustedBrowserOrigin(o)) {
+    return { mode: 'allow', origin: o };
+  }
+  return { mode: 'reject' };
+}
+
+function applyCorsToHeaders(cors, headers) {
+  const h = { ...headers };
+  if (cors.mode === 'allow' && cors.origin) {
+    h['Access-Control-Allow-Origin'] = cors.origin;
+    h.Vary = 'Origin';
+  }
+  return h;
+}
+
+async function readRequestBodyWithLimit(req, res, cors) {
+  let total = 0;
+  let body = '';
+  for await (const chunk of req) {
+    total += chunk.length;
+    if (total > MAX_BODY_BYTES) {
+      res.writeHead(413, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+      res.end(JSON.stringify({ ok: false, error: 'Request body too large' }));
+      try {
+        req.destroy();
+      } catch {
+        /* ignore */
+      }
+      return null;
+    }
+    body += chunk;
+  }
+  return body;
+}
+
+async function fetchGeminiWithTimeout(url, fetchInit) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), GEMINI_FETCH_TIMEOUT_MS);
+  try {
+    const r = await fetch(url, { ...fetchInit, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return r;
+  } catch (e) {
+    clearTimeout(timeoutId);
+    throw e;
+  }
+}
 
 /**
  * Parse selected keys from .env file contents (first matching line wins per key).
@@ -229,10 +334,20 @@ function extractGeminiText(data) {
 }
 
 async function handleGeocode(req, res) {
+  const cors = resolveCorsForApiRequest(req);
+  if (cors.mode === 'reject') {
+    res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: false, error: 'Origin not allowed' }));
+    return;
+  }
+
   const url = new URL(req.url || '/', 'http://127.0.0.1');
   const q = url.searchParams.get('q') || '';
   if (!q.trim()) {
-    res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.writeHead(
+      400,
+      applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' })
+    );
     res.end(JSON.stringify({ error: 'Missing q' }));
     return;
   }
@@ -253,21 +368,31 @@ async function handleGeocode(req, res) {
       },
     });
     const text = await r.text();
-    res.writeHead(r.ok ? 200 : 502, {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
-    });
+    res.writeHead(
+      r.ok ? 200 : 502,
+      applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' })
+    );
     res.end(text);
   } catch (e) {
-    res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.writeHead(
+      502,
+      applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' })
+    );
     res.end(JSON.stringify({ error: String(e.message || e) }));
   }
 }
 
 async function handleResearch(req, res) {
+  const cors = resolveCorsForApiRequest(req);
+  if (cors.mode === 'reject') {
+    res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: false, error: 'Origin not allowed' }));
+    return;
+  }
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.writeHead(503, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(
       JSON.stringify({
         error: 'GEMINI_API_KEY is not set. Add it to .env or export it and restart the server. See https://aistudio.google.com/apikey',
@@ -278,13 +403,14 @@ async function handleResearch(req, res) {
 
   const model = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim();
 
-  let body = '';
-  for await (const chunk of req) body += chunk;
+  const bodyRaw = await readRequestBodyWithLimit(req, res, cors);
+  if (bodyRaw === null) return;
+
   let payload;
   try {
-    payload = JSON.parse(body || '{}');
+    payload = JSON.parse(bodyRaw || '{}');
   } catch {
-    res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.writeHead(400, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(JSON.stringify({ error: 'Invalid JSON body' }));
     return;
   }
@@ -300,7 +426,7 @@ Return the JSON object only.`;
     `${GEMINI_API_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   try {
-    const r = await fetch(geminiUrl, {
+    const r = await fetchGeminiWithTimeout(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -324,7 +450,7 @@ Return the JSON object only.`;
     const text = await r.text();
     if (!r.ok) {
       const gemini = summarizeGeminiFailure(r.status, text);
-      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
       res.end(
         JSON.stringify({
           ok: false,
@@ -340,7 +466,7 @@ Return the JSON object only.`;
     try {
       data = JSON.parse(text);
     } catch (e) {
-      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
       res.end(
         JSON.stringify({
           ok: false,
@@ -354,7 +480,7 @@ Return the JSON object only.`;
 
     if (data.error) {
       const gemini = summarizeGeminiFailure(r.status, text);
-      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
       res.end(
         JSON.stringify({
           ok: false,
@@ -368,7 +494,7 @@ Return the JSON object only.`;
 
     const extracted = extractGeminiText(data);
     if (extracted.error) {
-      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
       res.end(
         JSON.stringify({
           ok: false,
@@ -385,7 +511,7 @@ Return the JSON object only.`;
     try {
       parsed = JSON.parse(content);
     } catch (e) {
-      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
       res.end(
         JSON.stringify({
           ok: false,
@@ -396,13 +522,21 @@ Return the JSON object only.`;
       );
       return;
     }
-    res.writeHead(200, {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
-    });
+    res.writeHead(200, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(JSON.stringify({ ok: true, data: parsed }));
   } catch (e) {
-    res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    if (e && e.name === 'AbortError') {
+      res.writeHead(504, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: 'Gemini request timed out',
+          keySent: keySentDebug(apiKey),
+        })
+      );
+      return;
+    }
+    res.writeHead(500, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(
       JSON.stringify({
         ok: false,
@@ -417,9 +551,16 @@ Return the JSON object only.`;
  * Financial Plan: debt payoff narrative (markdown-ish text). Same GEMINI_API_KEY as /api/research.
  */
 async function handleFinancialPayoff(req, res) {
+  const cors = resolveCorsForApiRequest(req);
+  if (cors.mode === 'reject') {
+    res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: false, error: 'Origin not allowed' }));
+    return;
+  }
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.writeHead(503, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(
       JSON.stringify({
         ok: false,
@@ -430,20 +571,21 @@ async function handleFinancialPayoff(req, res) {
     return;
   }
 
-  let body = '';
-  for await (const chunk of req) body += chunk;
+  const bodyRaw = await readRequestBodyWithLimit(req, res, cors);
+  if (bodyRaw === null) return;
+
   let payload;
   try {
-    payload = JSON.parse(body || '{}');
+    payload = JSON.parse(bodyRaw || '{}');
   } catch {
-    res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.writeHead(400, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(JSON.stringify({ ok: false, error: 'Invalid JSON body' }));
     return;
   }
 
   const prompt = String(payload.prompt || '').trim();
   if (!prompt) {
-    res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    res.writeHead(400, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(JSON.stringify({ ok: false, error: 'Missing prompt' }));
     return;
   }
@@ -453,7 +595,7 @@ async function handleFinancialPayoff(req, res) {
     `${GEMINI_API_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
   try {
-    const r = await fetch(geminiUrl, {
+    const r = await fetchGeminiWithTimeout(geminiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -468,7 +610,7 @@ async function handleFinancialPayoff(req, res) {
     const text = await r.text();
     if (!r.ok) {
       const gemini = summarizeGeminiFailure(r.status, text);
-      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
       res.end(
         JSON.stringify({
           ok: false,
@@ -484,7 +626,7 @@ async function handleFinancialPayoff(req, res) {
     try {
       data = JSON.parse(text);
     } catch {
-      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
       res.end(
         JSON.stringify({
           ok: false,
@@ -498,7 +640,7 @@ async function handleFinancialPayoff(req, res) {
 
     if (data.error) {
       const gemini = summarizeGeminiFailure(r.status, text);
-      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
       res.end(
         JSON.stringify({
           ok: false,
@@ -512,7 +654,7 @@ async function handleFinancialPayoff(req, res) {
 
     const extracted = extractGeminiText(data);
     if (extracted.error) {
-      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
       res.end(
         JSON.stringify({
           ok: false,
@@ -528,10 +670,7 @@ async function handleFinancialPayoff(req, res) {
       data.candidates && data.candidates[0] && data.candidates[0].finishReason;
     const truncated = finishReason === 'MAX_TOKENS';
 
-    res.writeHead(200, {
-      'Content-Type': 'application/json; charset=utf-8',
-      'Access-Control-Allow-Origin': '*',
-    });
+    res.writeHead(200, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(
       JSON.stringify({
         ok: true,
@@ -541,7 +680,18 @@ async function handleFinancialPayoff(req, res) {
       })
     );
   } catch (e) {
-    res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8', 'Access-Control-Allow-Origin': '*' });
+    if (e && e.name === 'AbortError') {
+      res.writeHead(504, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: 'Gemini request timed out',
+          keySent: keySentDebug(apiKey),
+        })
+      );
+      return;
+    }
+    res.writeHead(500, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
     res.end(
       JSON.stringify({
         ok: false,
@@ -556,23 +706,27 @@ const server = http.createServer((req, res) => {
   const u = req.url || '';
 
   if (req.method === 'OPTIONS' && u.startsWith('/api/')) {
-    res.writeHead(204, {
-      'Access-Control-Allow-Origin': '*',
+    const cors = resolveCorsForApiRequest(req);
+    if (cors.mode === 'reject') {
+      res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: 'Origin not allowed' }));
+      return;
+    }
+    const headers = applyCorsToHeaders(cors, {
       'Access-Control-Allow-Methods': 'POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     });
+    res.writeHead(204, headers);
     res.end();
     return;
   }
 
   if (req.method === 'POST' && u === '/api/research') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
     handleResearch(req, res);
     return;
   }
 
   if (req.method === 'POST' && u === '/api/financial-payoff') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
     handleFinancialPayoff(req, res);
     return;
   }
