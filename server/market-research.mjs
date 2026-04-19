@@ -50,7 +50,6 @@ function parseTrustedOriginsFromEnv() {
   }
   return set;
 }
-const TRUSTED_CORS_EXTRA = parseTrustedOriginsFromEnv();
 
 function isLoopbackHostname(hostname) {
   if (!hostname) return false;
@@ -292,6 +291,7 @@ function parseEnvFile(text) {
     GEMINI_API_KEY: null,
     GEMINI_MODEL: null,
     DEBUG_API_KEY_IN_ERRORS: null,
+    CORS_ALLOWED_ORIGINS: null,
   };
   if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
   for (const line of text.split(/\r?\n/)) {
@@ -310,6 +310,7 @@ function parseEnvFile(text) {
     if (key === 'GEMINI_API_KEY' && val) out.GEMINI_API_KEY = val.trim();
     if (key === 'GEMINI_MODEL' && val) out.GEMINI_MODEL = val.trim();
     if (key === 'DEBUG_API_KEY_IN_ERRORS' && val !== '') out.DEBUG_API_KEY_IN_ERRORS = val.trim();
+    if (key === 'CORS_ALLOWED_ORIGINS' && val !== '') out.CORS_ALLOWED_ORIGINS = val.trim();
   }
   return out;
 }
@@ -348,6 +349,9 @@ function loadEnvFromDotEnv() {
       if (parsed.DEBUG_API_KEY_IN_ERRORS != null) {
         process.env.DEBUG_API_KEY_IN_ERRORS = parsed.DEBUG_API_KEY_IN_ERRORS;
       }
+      if (parsed.CORS_ALLOWED_ORIGINS) {
+        process.env.CORS_ALLOWED_ORIGINS = parsed.CORS_ALLOWED_ORIGINS;
+      }
     }
   } catch {
     /* ignore */
@@ -368,6 +372,7 @@ function loadEnvFromDotEnv() {
 }
 
 const dotEnvStatus = loadEnvFromDotEnv();
+const TRUSTED_CORS_EXTRA = parseTrustedOriginsFromEnv();
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -722,7 +727,7 @@ const server = http.createServer((req, res) => {
       return;
     }
     const headers = applyCorsToHeaders(cors, {
-      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
       'Access-Control-Allow-Headers': 'Content-Type',
     });
     res.writeHead(204, headers);
