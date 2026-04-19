@@ -535,6 +535,14 @@ export function wireAiPayoffPlan(plan) {
         const prompt = buildPrompt(plan);
         const fp = buildFingerprint(plan);
         const result = await callFinancialPayoffApi(prompt);
+        const fpAfter = buildFingerprint(plan);
+        if (fpAfter !== fp) {
+          applyCacheToOutput();
+          if (statusEl) {
+            statusEl.textContent = 'Plan changed while generating — generate again.';
+          }
+          return;
+        }
         const text = result.text;
         saveCache(fp, text, result.truncated);
         displayPlanInScroll(scrollEl, outRoot, toolbarEl, expandBtn, text, {
