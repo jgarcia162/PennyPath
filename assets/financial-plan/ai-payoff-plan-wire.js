@@ -19,6 +19,17 @@ function isDevTechnical() {
   );
 }
 
+/** True when storage/cache failures should surface in the console (prod stays silent). */
+function shouldLogLocalStorageErrors() {
+  if (isDevTechnical()) return true;
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
+      return true;
+    }
+  } catch (e) {}
+  return typeof window !== 'undefined' && !!window.__PENNYPATH_DEBUG__;
+}
+
 function getPayoffApiBase() {
   if (
     typeof window !== 'undefined' &&
@@ -125,7 +136,11 @@ function saveCache(fingerprint, text, truncated) {
         at: new Date().toISOString(),
       })
     );
-  } catch (e) {}
+  } catch (e) {
+    if (shouldLogLocalStorageErrors() && typeof console !== 'undefined' && console.warn) {
+      console.warn('[PennyPath] AI payoff plan cache: localStorage.setItem failed', e);
+    }
+  }
 }
 
 function buildPrompt(plan) {
