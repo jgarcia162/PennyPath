@@ -19,6 +19,17 @@ function isDevTechnical() {
   );
 }
 
+/** True when storage/cache failures should surface in the console (prod stays silent). */
+function shouldLogLocalStorageErrors() {
+  if (isDevTechnical()) return true;
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
+      return true;
+    }
+  } catch (e) {}
+  return typeof window !== 'undefined' && !!window.__PENNYPATH_DEBUG__;
+}
+
 function getPayoffApiBase() {
   if (
     typeof window !== 'undefined' &&
@@ -125,7 +136,11 @@ function saveCache(fingerprint, text, truncated) {
         at: new Date().toISOString(),
       })
     );
-  } catch (e) {}
+  } catch (e) {
+    if (shouldLogLocalStorageErrors() && typeof console !== 'undefined' && console.warn) {
+      console.warn('[PennyPath] AI payoff plan cache: localStorage.setItem failed', e);
+    }
+  }
 }
 
 function buildPrompt(plan) {
@@ -222,21 +237,26 @@ function appendBodyLines(parent, bodyText) {
       return l.trim();
     });
     const listLines = lines.filter(Boolean);
-    const isList =
+    const isUnorderedList =
       listLines.length > 0 &&
       listLines.every(function (l) {
-        return /^[-*]\s+/.test(l) || /^\d+[.)]\s+/.test(l);
+        return /^[-*]\s+/.test(l);
       });
-    if (isList && listLines.length) {
-      const ul = document.createElement('ul');
-      ul.className = 'ai-payoff-ul';
+    const isOrderedList =
+      listLines.length > 0 &&
+      listLines.every(function (l) {
+        return /^\d+[.)]\s+/.test(l);
+      });
+    if ((isUnorderedList || isOrderedList) && listLines.length) {
+      const listEl = document.createElement(isOrderedList ? 'ol' : 'ul');
+      listEl.className = 'ai-payoff-ul';
       listLines.forEach(function (l) {
         const li = document.createElement('li');
         li.className = 'ai-payoff-li';
         li.textContent = l.replace(/^[-*]\s+/, '').replace(/^\d+[.)]\s+/, '');
-        ul.appendChild(li);
+        listEl.appendChild(li);
       });
-      parent.appendChild(ul);
+      parent.appendChild(listEl);
       return;
     }
     const p = document.createElement('p');
@@ -370,8 +390,8 @@ function showError(scrollEl, toolbarEl, expandBtn, outputRoot, msg) {
   scrollEl.appendChild(p);
 }
 
-/** Client-side ceiling for POST /api/financial-payoff (server has its own Gemini timeout). */
-const CLIENT_PAYOFF_FETCH_TIMEOUT_MS = 15000;
+/** Client-side ceiling for POST /api/financial-payoff (server GEMINI_FETCH_TIMEOUT_MS is 30s). */
+const CLIENT_PAYOFF_FETCH_TIMEOUT_MS = 60000;
 
 /**
  * Calls the app server POST /api/financial-payoff (see server/market-research.mjs).
@@ -507,18 +527,28 @@ export function wireAiPayoffPlan(plan) {
 
   if (btn) {
     btn.addEventListener('click', async function () {
-      if (statusEl) statusEl.textContent = '';
+      activateAi();
+      if (statusEl) statusEl.textContent = 'Generating payoff plan…';
       showLoading(scrollEl, toolbarEl, expandBtn, outRoot);
       btn.disabled = true;
       try {
         const prompt = buildPrompt(plan);
         const fp = buildFingerprint(plan);
         const result = await callFinancialPayoffApi(prompt);
+        const fpAfter = buildFingerprint(plan);
+        if (fpAfter !== fp) {
+          applyCacheToOutput();
+          if (statusEl) {
+            statusEl.textContent = 'Plan changed while generating — generate again.';
+          }
+          return;
+        }
         const text = result.text;
         saveCache(fp, text, result.truncated);
         displayPlanInScroll(scrollEl, outRoot, toolbarEl, expandBtn, text, {
           truncated: result.truncated,
         });
+        if (statusEl) statusEl.textContent = '';
       } catch (err) {
         const msg = err && err.message ? String(err.message) : 'Something went wrong.';
         if (statusEl) statusEl.textContent = '';

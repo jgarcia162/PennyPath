@@ -175,12 +175,17 @@
   /** Testing: `?resetDeveloper=1` clears keys once, then removes the query param. */
   function resetDeveloperFromQuery() {
     try {
-      var q = new URLSearchParams(window.location.search).get('resetDeveloper');
+      var currentUrl = new URL(window.location.href);
+      var q = currentUrl.searchParams.get('resetDeveloper');
       if (q !== '1' && q !== 'true') return;
       localStorage.removeItem(LS_UNLOCKED);
       localStorage.removeItem(LS_TECHNICAL);
-      var url = window.location.pathname + (window.location.hash || '');
-      window.history.replaceState({}, '', url);
+      currentUrl.searchParams.delete('resetDeveloper');
+      var next =
+        currentUrl.pathname +
+        (currentUrl.searchParams.toString() ? '?' + currentUrl.searchParams.toString() : '') +
+        (currentUrl.hash || '');
+      window.history.replaceState({}, '', next);
     } catch (e) {}
   }
 

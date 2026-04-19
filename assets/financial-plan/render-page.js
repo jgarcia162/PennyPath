@@ -319,7 +319,12 @@ export function render(opts) {
   if (hasDebts) {
     setTextDash(
       'monthly-debt-goal-meta',
-      d.dashboardViewMonthLabel + ' · Goal ' + money(d.monthlyDebtGoal) + '/mo'
+      d.dashboardViewMonthLabel +
+        ' · Goal ' +
+        money(d.monthlyDebtGoal) +
+        '/mo · ' +
+        money(d.monthlyDebtBudgetRemaining) +
+        ' left'
     );
     setTextDash('monthly-debt-paid-label', moneyExact(d.monthlyDebtPaid) + ' / ' + moneyExact(d.monthlyDebtGoal));
     setHtmlDash(
