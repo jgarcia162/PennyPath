@@ -200,9 +200,10 @@ export function derived(plan) {
   const viewYm = getDashboardViewMonthYm(plan);
   const monthlyDebtPaidAuto = sumPaymentsInYyyyMm(plan, viewYm);
   const monthlyDebtPaid = monthlyDebtPaidAuto;
+  const monthlyDebtPaidNonNeg = Math.max(0, monthlyDebtPaid);
   const monthlyDebtPct =
-    monthlyDebtGoal > 0 ? Math.min(100, (Math.max(0, monthlyDebtPaid) / monthlyDebtGoal) * 100) : 0;
-  const monthlyDebtBudgetRemaining = Math.max(0, monthlyDebtGoal - monthlyDebtPaid);
+    monthlyDebtGoal > 0 ? Math.min(100, (monthlyDebtPaidNonNeg / monthlyDebtGoal) * 100) : 0;
+  const monthlyDebtBudgetRemaining = Math.max(0, monthlyDebtGoal - monthlyDebtPaidNonNeg);
   const dashboardFollowsWorking =
     !(typeof plan.dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test(plan.dashboardViewMonthYm));
 
