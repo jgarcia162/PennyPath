@@ -387,6 +387,24 @@
           <code class="ai-payoff-code">http://127.0.0.1:8787/financial-plan-v3-aggressive.html</code>.
         </p>
       </div>
+      <div class="ai-payoff-refine no-print">
+        <label class="ai-payoff-refine__label" for="ai-payoff-refine-input">Ask for changes</label>
+        <p class="ai-payoff-refine__hint" id="ai-payoff-refine-hint">
+          After a plan appears below, describe what you want different (for example: prioritize the car loan, use snowball order, or add a shorter summary).
+        </p>
+        <textarea
+          id="ai-payoff-refine-input"
+          class="ai-payoff-refine__input"
+          rows="3"
+          maxlength="8000"
+          placeholder="Your feedback or instructions for the AI…"
+          aria-describedby="ai-payoff-refine-hint"
+          disabled
+        ></textarea>
+        <button type="button" class="ai-payoff-refine-btn" id="btn-ai-payoff-refine" disabled>
+          Refine plan
+        </button>
+      </div>
       <div class="ai-payoff-output" id="ai-payoff-output" aria-live="polite">
         <div class="ai-payoff-output__toolbar no-print" id="ai-payoff-toolbar" hidden>
           <button type="button" class="ai-payoff-expand-btn" id="btn-ai-payoff-expand" aria-expanded="false">
