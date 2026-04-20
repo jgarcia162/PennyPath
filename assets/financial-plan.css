@@ -835,7 +835,6 @@ body.financial-plan-demo-mode #checkin-form {
 .ai-payoff-refine__input {
   display: block;
   width: 100%;
-  box-sizing: border-box;
   margin: 0 0 10px;
   padding: 10px 12px;
   font-family: 'DM Sans', sans-serif;
@@ -1060,12 +1059,12 @@ body.financial-plan-demo-mode #checkin-form {
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: #fff;
-  border: 4px solid rgba(74, 111, 168, 0.42);
-  box-shadow: 0 3px 12px rgba(60, 68, 82, 0.12);
+  background: var(--paper);
+  border: 4px solid color-mix(in srgb, var(--blue) 42%, transparent);
+  box-shadow: 0 3px 12px color-mix(in srgb, var(--md-on-surface) 12%, transparent);
   font-size: 13px;
   font-weight: 800;
-  color: rgba(60, 68, 82, 0.88);
+  color: var(--md-on-surface);
   flex-shrink: 0;
 }
 .ai-payoff-timeline__card {
@@ -1132,10 +1131,10 @@ body.financial-plan-demo-mode #checkin-form {
 }
 
 :root[data-theme="dark"] .ai-payoff-timeline__dot {
-  background: rgba(32, 34, 42, 0.95);
-  border-color: rgba(143, 176, 160, 0.45);
-  color: rgba(233, 233, 246, 0.92);
-  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.35);
+  background: color-mix(in srgb, var(--paper) 6%, #12141a);
+  border-color: color-mix(in srgb, var(--sage) 45%, transparent);
+  color: color-mix(in srgb, var(--cream) 90%, var(--text));
+  box-shadow: 0 3px 14px color-mix(in srgb, var(--text) 35%, transparent);
 }
 :root[data-theme="dark"] .ai-payoff-timeline__card {
   border-color: rgba(255, 255, 255, 0.1);
@@ -1504,6 +1503,10 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .ai-bill-cal-prompt-dialog__close:hover {
   background: rgba(255, 255, 255, 0.14);
+}
+.ai-bill-cal-prompt-dialog__close:focus-visible {
+  outline: 2px solid rgba(196, 176, 128, 0.55);
+  outline-offset: 2px;
 }
 .ai-bill-cal-prompt-dialog__body {
   padding: 14px 16px 18px;

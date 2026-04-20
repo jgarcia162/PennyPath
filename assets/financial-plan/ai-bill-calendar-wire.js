@@ -32,13 +32,46 @@ function getApiBase() {
   return 'http://127.0.0.1:8787';
 }
 
-/** Split a simple CSV line (commas; no embedded commas in fields for MVP). */
+/**
+ * RFC 4180-style single-line parse: commas inside double-quoted fields, "" for literal quote.
+ */
 function splitCsvLine(line) {
-  return String(line || '')
-    .split(',')
-    .map(function (s) {
-      return s.trim().replace(/^"|"$/g, '');
-    });
+  const s = String(line || '');
+  const row = [];
+  let cur = '';
+  let i = 0;
+  let inQuotes = false;
+  while (i < s.length) {
+    const c = s[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (s[i + 1] === '"') {
+          cur += '"';
+          i += 2;
+          continue;
+        }
+        inQuotes = false;
+        i++;
+        continue;
+      }
+      cur += c;
+      i++;
+    } else {
+      if (c === '"') {
+        inQuotes = true;
+        i++;
+      } else if (c === ',') {
+        row.push(cur.trim());
+        cur = '';
+        i++;
+      } else {
+        cur += c;
+        i++;
+      }
+    }
+  }
+  row.push(cur.trim());
+  return row;
 }
 
 const DEFAULT_BILL_CSV_COLS = {
@@ -383,10 +416,12 @@ function downloadBlobAsFile(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-function renderCalendar(host, data) {
+/**
+ * @param {{ notes?: string, events: Array }} norm - result of normalizeEvents(); callers must pass normalized data
+ */
+function renderCalendar(host, norm) {
   host.textContent = '';
-  const norm = normalizeEvents(data);
-  if (!norm.events.length) {
+  if (!norm || !Array.isArray(norm.events) || !norm.events.length) {
     const p = document.createElement('p');
     p.className = 'ai-bill-cal__empty';
     p.textContent = 'No calendar events returned.';
