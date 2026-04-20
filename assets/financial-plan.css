@@ -805,6 +805,104 @@ body.financial-plan-demo-mode #checkin-form {
 :root[data-theme="dark"] .ai-payoff-dev-label {
   color: rgba(233, 233, 246, 0.5);
 }
+
+.ai-payoff-refine {
+  margin-top: 18px;
+  margin-bottom: 4px;
+  max-width: 640px;
+}
+.ai-payoff-refine__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(60, 68, 82, 0.65);
+  margin-bottom: 6px;
+}
+:root[data-theme="dark"] .ai-payoff-refine__label {
+  color: rgba(233, 233, 246, 0.55);
+}
+.ai-payoff-refine__hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(60, 68, 82, 0.62);
+  margin: 0 0 10px;
+}
+:root[data-theme="dark"] .ai-payoff-refine__hint {
+  color: rgba(233, 233, 246, 0.58);
+}
+.ai-payoff-refine__input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(60, 68, 82, 0.92);
+  border-radius: 10px;
+  border: 1px solid rgba(60, 68, 82, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+  resize: vertical;
+  min-height: 72px;
+}
+.ai-payoff-refine__input::placeholder {
+  color: rgba(60, 68, 82, 0.42);
+}
+.ai-payoff-refine__input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  resize: none;
+}
+.ai-payoff-refine__input:focus-visible {
+  outline: 2px solid rgba(196, 176, 128, 0.55);
+  outline-offset: 2px;
+}
+:root[data-theme="dark"] .ai-payoff-refine__input {
+  color: rgba(233, 233, 246, 0.92);
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(30, 32, 40, 0.65);
+}
+:root[data-theme="dark"] .ai-payoff-refine__input::placeholder {
+  color: rgba(233, 233, 246, 0.38);
+}
+.ai-payoff-refine-btn {
+  appearance: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(143, 176, 160, 0.45);
+  background: rgba(143, 176, 160, 0.18);
+  color: rgba(60, 68, 82, 0.88);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.ai-payoff-refine-btn:hover:not(:disabled) {
+  background: rgba(143, 176, 160, 0.28);
+  border-color: rgba(143, 176, 160, 0.55);
+}
+.ai-payoff-refine-btn:focus-visible {
+  outline: 2px solid rgba(143, 176, 160, 0.5);
+  outline-offset: 2px;
+}
+.ai-payoff-refine-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+:root[data-theme="dark"] .ai-payoff-refine-btn {
+  border-color: rgba(143, 176, 160, 0.35);
+  background: rgba(143, 176, 160, 0.12);
+  color: rgba(233, 233, 246, 0.88);
+}
+:root[data-theme="dark"] .ai-payoff-refine-btn:hover:not(:disabled) {
+  background: rgba(143, 176, 160, 0.2);
+}
+
 .ai-payoff-status {
   font-size: 13px;
   color: rgba(60, 68, 82, 0.72);

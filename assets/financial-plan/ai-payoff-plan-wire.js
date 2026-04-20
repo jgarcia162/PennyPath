@@ -208,6 +208,39 @@ function buildPrompt(plan) {
   );
 }
 
+/** Max chars of prior plan embedded in a refinement prompt (model context limits). */
+const MAX_REFINEMENT_PREVIOUS_CHARS = 28000;
+
+/**
+ * Follow-up prompt: same financial snapshot as buildPrompt, plus prior output and user request.
+ * @param {object} plan
+ * @param {string} previousPlanText - raw markdown from last generation
+ * @param {string} userFeedback - user instructions to change the plan
+ */
+function buildRefinementPrompt(plan, previousPlanText, userFeedback) {
+  const base = buildPrompt(plan);
+  let prev = String(previousPlanText || '').trim();
+  if (prev.length > MAX_REFINEMENT_PREVIOUS_CHARS) {
+    prev =
+      prev.slice(0, MAX_REFINEMENT_PREVIOUS_CHARS) +
+      '\n\n[…truncated for length; the full prior plan was longer.]';
+  }
+  const ask = String(userFeedback || '').trim();
+  return (
+    base +
+    '\n\n--- REFINEMENT ---\n' +
+    'You already produced a debt payoff plan for this snapshot (shown below under “Previous plan”). ' +
+    'Revise that plan according to the user’s follow-up. Keep the same Markdown structure ' +
+    '(### headings and numbered sections as before). If their request conflicts with the numbers, ' +
+    'explain the tradeoff briefly.\n\n' +
+    '### Previous plan\n' +
+    prev +
+    '\n\n### User follow-up request\n' +
+    ask +
+    '\n\nRespond with a complete updated plan (all sections), not a short diff.'
+  );
+}
+
 function headingEmoji(title) {
   const t = String(title || '').toLowerCase();
   if (t.includes('summary')) return '✨';
@@ -361,7 +394,7 @@ function showPlaceholder(scrollEl, toolbarEl, expandBtn, outputRoot, msg) {
   setExpandedState(outputRoot, scrollEl, expandBtn, false);
 }
 
-function showLoading(scrollEl, toolbarEl, expandBtn, outputRoot) {
+function showLoading(scrollEl, toolbarEl, expandBtn, outputRoot, opts) {
   if (!scrollEl) return;
   clearScrollEl(scrollEl);
   setToolbarVisible(toolbarEl, false);
@@ -373,7 +406,8 @@ function showLoading(scrollEl, toolbarEl, expandBtn, outputRoot) {
   spin.setAttribute('aria-hidden', 'true');
   const label = document.createElement('p');
   label.className = 'ai-payoff-loading__label';
-  label.textContent = 'Crafting your payoff plan…';
+  label.textContent =
+    opts && opts.message ? String(opts.message) : 'Crafting your payoff plan…';
   wrap.appendChild(spin);
   wrap.appendChild(label);
   scrollEl.appendChild(wrap);
@@ -468,18 +502,35 @@ export function wireAiPayoffPlan(plan) {
   const scrollEl = document.getElementById('ai-payoff-scroll');
   const toolbarEl = document.getElementById('ai-payoff-toolbar');
   const expandBtn = document.getElementById('btn-ai-payoff-expand');
+  const refineInput = document.getElementById('ai-payoff-refine-input');
+  const refineBtn = document.getElementById('btn-ai-payoff-refine');
 
   if (!tabOriginal || !tabAi || !panelOriginal || !panelAi || !outRoot || !scrollEl) return;
+
+  /** Raw markdown last shown or loaded from cache; used for refinement prompts. */
+  let lastAiPlanText = '';
+
+  function syncRefineControls() {
+    if (!refineInput && !refineBtn) return;
+    const hasPlan = !!String(lastAiPlanText || '').trim();
+    if (refineInput) {
+      refineInput.disabled = !hasPlan;
+      if (!hasPlan) refineInput.value = '';
+    }
+    if (refineBtn) refineBtn.disabled = !hasPlan;
+  }
 
   function applyCacheToOutput() {
     const cache = loadCache();
     const fp = buildFingerprint(plan);
     if (cache && cache.text && cache.fingerprint === fp) {
+      lastAiPlanText = cache.text;
       displayPlanInScroll(scrollEl, outRoot, toolbarEl, expandBtn, cache.text, {
         truncated: !!cache.truncated,
       });
       if (statusEl) statusEl.textContent = '';
     } else if (cache && cache.text) {
+      lastAiPlanText = cache.text;
       displayPlanInScroll(scrollEl, outRoot, toolbarEl, expandBtn, cache.text, {
         truncated: !!cache.truncated,
       });
@@ -488,6 +539,7 @@ export function wireAiPayoffPlan(plan) {
           'Showing saved plan; data changed — generate again to refresh.';
       }
     } else {
+      lastAiPlanText = '';
       showPlaceholder(
         scrollEl,
         toolbarEl,
@@ -497,6 +549,7 @@ export function wireAiPayoffPlan(plan) {
       );
       if (statusEl) statusEl.textContent = '';
     }
+    syncRefineControls();
   }
 
   applyCacheToOutput();
@@ -531,6 +584,7 @@ export function wireAiPayoffPlan(plan) {
       if (statusEl) statusEl.textContent = 'Generating payoff plan…';
       showLoading(scrollEl, toolbarEl, expandBtn, outRoot);
       btn.disabled = true;
+      if (refineBtn) refineBtn.disabled = true;
       try {
         const prompt = buildPrompt(plan);
         const fp = buildFingerprint(plan);
@@ -544,10 +598,64 @@ export function wireAiPayoffPlan(plan) {
           return;
         }
         const text = result.text;
+        lastAiPlanText = text;
         saveCache(fp, text, result.truncated);
         displayPlanInScroll(scrollEl, outRoot, toolbarEl, expandBtn, text, {
           truncated: result.truncated,
         });
+        if (statusEl) statusEl.textContent = '';
+        syncRefineControls();
+      } catch (err) {
+        const msg = err && err.message ? String(err.message) : 'Something went wrong.';
+        if (statusEl) statusEl.textContent = '';
+        showError(scrollEl, toolbarEl, expandBtn, outRoot, msg);
+      } finally {
+        btn.disabled = false;
+        syncRefineControls();
+      }
+    });
+  }
+
+  if (refineBtn && refineInput) {
+    refineBtn.addEventListener('click', async function () {
+      const feedback = String(refineInput.value || '').trim();
+      if (!String(lastAiPlanText || '').trim()) {
+        if (statusEl) statusEl.textContent = 'Generate a plan first, then ask for changes.';
+        return;
+      }
+      if (!feedback) {
+        if (statusEl) statusEl.textContent = 'Write what you’d like changed, then tap Refine plan.';
+        try {
+          refineInput.focus();
+        } catch (e) {}
+        return;
+      }
+
+      activateAi();
+      if (statusEl) statusEl.textContent = 'Updating your plan…';
+      showLoading(scrollEl, toolbarEl, expandBtn, outRoot, { message: 'Updating your plan…' });
+      btn.disabled = true;
+      refineBtn.disabled = true;
+      if (refineInput) refineInput.disabled = true;
+      try {
+        const prompt = buildRefinementPrompt(plan, lastAiPlanText, feedback);
+        const fp = buildFingerprint(plan);
+        const result = await callFinancialPayoffApi(prompt);
+        const fpAfter = buildFingerprint(plan);
+        if (fpAfter !== fp) {
+          applyCacheToOutput();
+          if (statusEl) {
+            statusEl.textContent = 'Plan changed while updating — try again.';
+          }
+          return;
+        }
+        const text = result.text;
+        lastAiPlanText = text;
+        saveCache(fp, text, result.truncated);
+        displayPlanInScroll(scrollEl, outRoot, toolbarEl, expandBtn, text, {
+          truncated: result.truncated,
+        });
+        refineInput.value = '';
         if (statusEl) statusEl.textContent = '';
       } catch (err) {
         const msg = err && err.message ? String(err.message) : 'Something went wrong.';
@@ -555,6 +663,7 @@ export function wireAiPayoffPlan(plan) {
         showError(scrollEl, toolbarEl, expandBtn, outRoot, msg);
       } finally {
         btn.disabled = false;
+        syncRefineControls();
       }
     });
   }
