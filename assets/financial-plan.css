@@ -1025,7 +1025,8 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .ai-payoff-timeline__row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 52px minmax(0, 1fr);
+  /* Side columns need a floor so cards never land in the 52px rail track when a cell is “empty”. */
+  grid-template-columns: minmax(120px, 1fr) 52px minmax(120px, 1fr);
   align-items: start;
   margin-bottom: 28px;
   position: relative;
@@ -1037,9 +1038,8 @@ body.financial-plan-demo-mode #checkin-form {
 .ai-payoff-timeline__cell {
   min-width: 0;
 }
-.ai-payoff-timeline__cell:empty {
-  display: none;
-}
+/* Do not hide empty cells: display:none drops them from the grid and the next item
+   can jump into the narrow rail column, squashing the card to ~52px wide. */
 .ai-payoff-timeline__row--left .ai-payoff-timeline__cell:first-child {
   display: flex;
   justify-content: flex-end;
@@ -1069,8 +1069,11 @@ body.financial-plan-demo-mode #checkin-form {
   flex-shrink: 0;
 }
 .ai-payoff-timeline__card {
-  width: 100%;
+  box-sizing: border-box;
+  width: min(100%, 400px);
   max-width: 400px;
+  min-width: 0;
+  flex-shrink: 0;
   border-radius: 14px;
   overflow: hidden;
   box-shadow: 0 8px 26px rgba(60, 68, 82, 0.1);
@@ -1086,6 +1089,9 @@ body.financial-plan-demo-mode #checkin-form {
   font-weight: 800;
   letter-spacing: 0.01em;
   line-height: 1.3;
+  flex-wrap: nowrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 .ai-payoff-timeline__card-emoji {
   flex-shrink: 0;
@@ -1095,7 +1101,7 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .ai-payoff-timeline__card-title {
   flex: 1;
-  min-width: 0;
+  min-width: 3em;
 }
 .ai-payoff-timeline__row:nth-child(6n + 1) .ai-payoff-timeline__card-head {
   background: linear-gradient(135deg, #2a5244 0%, #3d7360 100%);
