@@ -1218,6 +1218,251 @@ body.financial-plan-demo-mode #checkin-form {
   font-weight: 700;
 }
 
+/* AI bill + debt payment calendar (CSV + Gemini JSON) */
+.ai-bill-cal {
+  margin-top: 28px;
+  padding-top: 22px;
+  border-top: 1px dashed rgba(196, 176, 128, 0.35);
+  max-width: 920px;
+}
+.ai-bill-cal__heading {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgba(60, 68, 82, 0.92);
+}
+:root[data-theme="dark"] .ai-bill-cal__heading {
+  color: rgba(233, 233, 246, 0.94);
+}
+.ai-bill-cal__intro,
+.ai-bill-cal__format {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(60, 68, 82, 0.76);
+  margin: 0 0 10px;
+  max-width: 640px;
+}
+.ai-bill-cal__format {
+  margin-bottom: 14px;
+  font-size: 12px;
+  color: rgba(60, 68, 82, 0.65);
+}
+:root[data-theme="dark"] .ai-bill-cal__intro,
+:root[data-theme="dark"] .ai-bill-cal__format {
+  color: rgba(233, 233, 246, 0.72);
+}
+.ai-bill-cal__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  margin-bottom: 16px;
+}
+.ai-bill-cal__file-label {
+  position: relative;
+  cursor: pointer;
+}
+.ai-bill-cal__file-input {
+  position: absolute;
+  width: 0.1px;
+  height: 0.1px;
+  opacity: 0;
+  overflow: hidden;
+  z-index: -1;
+}
+.ai-bill-cal__file-btn {
+  display: inline-block;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(60, 68, 82, 0.18);
+  background: rgba(255, 255, 255, 0.75);
+  color: rgba(60, 68, 82, 0.88);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.ai-bill-cal__file-label:hover .ai-bill-cal__file-btn {
+  background: rgba(143, 176, 160, 0.2);
+  border-color: rgba(143, 176, 160, 0.45);
+}
+:root[data-theme="dark"] .ai-bill-cal__file-btn {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(233, 233, 246, 0.9);
+}
+.ai-bill-cal-generate-btn {
+  appearance: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(196, 176, 128, 0.42);
+  background: rgba(196, 176, 128, 0.22);
+  color: rgba(60, 68, 82, 0.9);
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+.ai-bill-cal-generate-btn:hover:not(:disabled) {
+  background: rgba(196, 176, 128, 0.32);
+}
+.ai-bill-cal-generate-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+:root[data-theme="dark"] .ai-bill-cal-generate-btn {
+  border-color: rgba(225, 195, 106, 0.3);
+  background: rgba(225, 195, 106, 0.14);
+  color: rgba(233, 233, 246, 0.92);
+}
+.ai-bill-cal__status {
+  font-size: 13px;
+  color: rgba(60, 68, 82, 0.7);
+  flex: 1 1 200px;
+}
+:root[data-theme="dark"] .ai-bill-cal__status {
+  color: rgba(233, 233, 246, 0.68);
+}
+.ai-bill-cal-host {
+  min-height: 40px;
+}
+.ai-bill-cal__notes {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(60, 68, 82, 0.78);
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(143, 176, 160, 0.12);
+  border: 1px solid rgba(143, 176, 160, 0.22);
+}
+:root[data-theme="dark"] .ai-bill-cal__notes {
+  color: rgba(233, 233, 246, 0.82);
+  background: rgba(143, 176, 160, 0.1);
+}
+.ai-bill-cal__empty,
+.ai-bill-cal__error {
+  font-size: 13px;
+  margin: 0;
+  color: rgba(60, 68, 82, 0.75);
+}
+.ai-bill-cal__error {
+  color: rgba(180, 60, 60, 0.95);
+}
+.ai-bill-cal-month {
+  margin-bottom: 28px;
+}
+.ai-bill-cal-month:last-child {
+  margin-bottom: 0;
+}
+.ai-bill-cal-month__title {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 800;
+  color: rgba(60, 68, 82, 0.88);
+}
+:root[data-theme="dark"] .ai-bill-cal-month__title {
+  color: rgba(233, 233, 246, 0.9);
+}
+.ai-bill-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  font-size: 11px;
+}
+.ai-bill-cal-grid__dow {
+  text-align: center;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(60, 68, 82, 0.55);
+  padding: 6px 2px;
+}
+:root[data-theme="dark"] .ai-bill-cal-grid__dow {
+  color: rgba(233, 233, 246, 0.5);
+}
+.ai-bill-cal-grid__cell {
+  min-height: 72px;
+  border-radius: 8px;
+  border: 1px solid rgba(60, 68, 82, 0.1);
+  background: rgba(255, 255, 255, 0.65);
+  padding: 4px 5px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ai-bill-cal-grid__cell--pad {
+  border: none;
+  background: transparent;
+  min-height: 0;
+}
+:root[data-theme="dark"] .ai-bill-cal-grid__cell {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(28, 30, 38, 0.55);
+}
+.ai-bill-cal-grid__daynum {
+  font-weight: 800;
+  color: rgba(60, 68, 82, 0.55);
+  font-size: 11px;
+}
+:root[data-theme="dark"] .ai-bill-cal-grid__daynum {
+  color: rgba(233, 233, 246, 0.45);
+}
+.ai-bill-cal-grid__stack {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-height: 0;
+}
+.ai-bill-cal-chip {
+  display: block;
+  font-size: 10px;
+  line-height: 1.25;
+  padding: 3px 5px;
+  border-radius: 5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ai-bill-cal-chip--bill {
+  background: rgba(74, 111, 168, 0.2);
+  color: rgba(40, 55, 95, 0.95);
+  border: 1px solid rgba(74, 111, 168, 0.35);
+}
+.ai-bill-cal-chip--debt {
+  background: rgba(196, 176, 128, 0.35);
+  color: rgba(60, 55, 40, 0.95);
+  border: 1px solid rgba(196, 176, 128, 0.5);
+}
+:root[data-theme="dark"] .ai-bill-cal-chip--bill {
+  background: rgba(120, 160, 220, 0.18);
+  color: rgba(220, 230, 255, 0.92);
+  border-color: rgba(120, 160, 220, 0.35);
+}
+:root[data-theme="dark"] .ai-bill-cal-chip--debt {
+  background: rgba(225, 195, 106, 0.18);
+  color: rgba(255, 245, 220, 0.92);
+  border-color: rgba(225, 195, 106, 0.35);
+}
+@media (max-width: 640px) {
+  .ai-bill-cal-grid__cell {
+    min-height: 64px;
+    padding: 3px 3px 5px;
+  }
+  .ai-bill-cal-chip {
+    font-size: 9px;
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
 .ai-payoff-loading {
   display: flex;
   flex-direction: column;
