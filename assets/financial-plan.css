@@ -1405,6 +1405,37 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(233, 233, 246, 0.88);
 }
 
+.ai-bill-cal-ics-bar {
+  margin: 0 0 14px;
+  max-width: 640px;
+}
+.ai-bill-cal-ics-btn {
+  appearance: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(143, 176, 160, 0.45);
+  background: rgba(143, 176, 160, 0.18);
+  color: rgba(60, 68, 82, 0.9);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.ai-bill-cal-ics-btn:hover {
+  background: rgba(143, 176, 160, 0.28);
+  border-color: rgba(143, 176, 160, 0.55);
+}
+:root[data-theme="dark"] .ai-bill-cal-ics-btn {
+  border-color: rgba(143, 176, 160, 0.35);
+  background: rgba(143, 176, 160, 0.12);
+  color: rgba(233, 233, 246, 0.92);
+}
+:root[data-theme="dark"] .ai-bill-cal-ics-btn:hover {
+  background: rgba(143, 176, 160, 0.2);
+}
+
 /* Native dialog: do not set display on base (breaks [open] / close()) */
 .ai-bill-cal-prompt-dialog {
   position: fixed;

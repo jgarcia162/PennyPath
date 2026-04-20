@@ -277,6 +277,94 @@ function parseYmd(s) {
   return dt;
 }
 
+/** iCalendar TEXT escaping (RFC 5545). */
+function icsEscapeText(s) {
+  return String(s || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\n/g, '\\n')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,');
+}
+
+function ymdToIcsDate(ymd) {
+  return String(ymd || '').replace(/-/g, '');
+}
+
+/** Next calendar day as YYYYMMDD for all-day DTEND (exclusive). */
+function icsEndDateExclusive(ymd) {
+  const d = parseYmd(ymd);
+  if (!d) return ymdToIcsDate(ymd);
+  d.setDate(d.getDate() + 1);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return String(y) + m + day;
+}
+
+function icsDtStampUtc() {
+  const n = new Date();
+  const y = n.getUTCFullYear();
+  const mo = String(n.getUTCMonth() + 1).padStart(2, '0');
+  const d = String(n.getUTCDate()).padStart(2, '0');
+  const h = String(n.getUTCHours()).padStart(2, '0');
+  const mi = String(n.getUTCMinutes()).padStart(2, '0');
+  const s = String(n.getUTCSeconds()).padStart(2, '0');
+  return String(y) + mo + d + 'T' + h + mi + s + 'Z';
+}
+
+/**
+ * @param {{ notes: string, events: Array<{ date: string, kind: string, label: string, amount: number|null, debtName: string }> }} norm
+ * @returns {string}
+ */
+function buildPaymentCalendarIcs(norm) {
+  const dtstamp = icsDtStampUtc();
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//PennyPath//Payment Calendar//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-CALNAME:PennyPath bills and debt',
+  ];
+  norm.events.forEach(function (ev, idx) {
+    const start = ymdToIcsDate(ev.date);
+    const end = icsEndDateExclusive(ev.date);
+    let summary = String(ev.label || (ev.kind === 'debt' ? 'Debt payment' : 'Bill'));
+    if (ev.amount != null && Number.isFinite(ev.amount)) {
+      summary += ' — $' + Math.round(ev.amount).toLocaleString('en-US');
+    }
+    const descParts = [
+      ev.kind === 'debt' ? 'Debt payment' : 'Bill',
+      ev.debtName ? 'Account: ' + ev.debtName : '',
+    ].filter(Boolean);
+    const description = descParts.join('\n');
+    const uid =
+      'pennypath-paycal-' + ev.date + '-' + idx + '-' + ev.kind + '@local';
+    lines.push('BEGIN:VEVENT');
+    lines.push('UID:' + uid);
+    lines.push('DTSTAMP:' + dtstamp);
+    lines.push('DTSTART;VALUE=DATE:' + start);
+    lines.push('DTEND;VALUE=DATE:' + end);
+    lines.push('SUMMARY:' + icsEscapeText(summary));
+    lines.push('DESCRIPTION:' + icsEscapeText(description));
+    lines.push('END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n') + '\r\n';
+}
+
+function downloadBlobAsFile(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'download';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 function renderCalendar(host, data) {
   host.textContent = '';
   const norm = normalizeEvents(data);
@@ -287,6 +375,23 @@ function renderCalendar(host, data) {
     host.appendChild(p);
     return;
   }
+
+  const icsBar = document.createElement('div');
+  icsBar.className = 'ai-bill-cal-ics-bar';
+  const icsBtn = document.createElement('button');
+  icsBtn.type = 'button';
+  icsBtn.className = 'ai-bill-cal-ics-btn';
+  icsBtn.textContent = 'Download .ics (add to calendar)';
+  icsBtn.title = 'Import into Apple Calendar, Google Calendar, Outlook, etc.';
+  icsBtn.addEventListener('click', function () {
+    const ics = buildPaymentCalendarIcs(norm);
+    downloadBlobAsFile(
+      new Blob([ics], { type: 'text/calendar;charset=utf-8' }),
+      'pennypath-payment-calendar.ics',
+    );
+  });
+  icsBar.appendChild(icsBtn);
+  host.appendChild(icsBar);
 
   if (norm.notes) {
     const note = document.createElement('p');
