@@ -417,6 +417,116 @@
           </p>
         </div>
       </div>
+
+      <div class="ai-bill-cal no-print">
+        <h3 class="ai-bill-cal__heading">Payment &amp; bill calendar</h3>
+        <p class="ai-bill-cal__intro">
+          Upload a CSV with your monthly bills. The AI places each bill on its due day and suggests dates to make debt payments using your plan budget and (when available) the generated payoff strategy above.
+        </p>
+        <p class="ai-bill-cal__format">
+          The first row must be headers. Enter the exact header names from your file for bill name, amount, and due day (day of month 1–31, recurring each month). Matching is not case-sensitive.
+        </p>
+        <div class="ai-bill-cal__columns" role="group" aria-label="CSV column mapping">
+          <label class="ai-bill-cal__col-field">
+            <span class="ai-bill-cal__col-label">Name column</span>
+            <input
+              type="text"
+              id="ai-bill-cal-col-name"
+              class="ai-bill-cal__col-input"
+              value="name"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </label>
+          <label class="ai-bill-cal__col-field">
+            <span class="ai-bill-cal__col-label">Amount column</span>
+            <input
+              type="text"
+              id="ai-bill-cal-col-amount"
+              class="ai-bill-cal__col-input"
+              value="amount"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </label>
+          <label class="ai-bill-cal__col-field">
+            <span class="ai-bill-cal__col-label">Due day column</span>
+            <input
+              type="text"
+              id="ai-bill-cal-col-due"
+              class="ai-bill-cal__col-input"
+              value="due_day"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </label>
+        </div>
+        <div class="ai-bill-cal__row">
+          <label class="ai-bill-cal__file-label">
+            <span class="ai-bill-cal__file-btn">Choose CSV</span>
+            <input type="file" id="ai-bill-cal-file" accept=".csv,text/csv" class="ai-bill-cal__file-input" />
+          </label>
+          <button type="button" class="ai-bill-cal-generate-btn" id="btn-ai-bill-cal-generate" disabled>
+            Generate calendar
+          </button>
+          <button
+            type="button"
+            class="ai-bill-cal-prompt-btn"
+            id="btn-ai-bill-cal-open-prompt"
+            disabled
+            title="Load a CSV with at least one valid bill first"
+          >
+            View prompt
+          </button>
+          <span class="ai-bill-cal__status" id="ai-bill-cal-status" role="status"></span>
+        </div>
+        <div id="ai-bill-cal-host" class="ai-bill-cal-host" aria-live="polite"></div>
+      </div>
+
+      <dialog
+        id="ai-bill-cal-prompt-dialog"
+        class="ai-bill-cal-prompt-dialog"
+        aria-labelledby="ai-bill-cal-prompt-dialog-title"
+      >
+        <div class="ai-bill-cal-prompt-dialog__chrome">
+          <header class="ai-bill-cal-prompt-dialog__header">
+            <h3 id="ai-bill-cal-prompt-dialog-title" class="ai-bill-cal-prompt-dialog__title">Calendar prompt</h3>
+            <button
+              type="button"
+              class="ai-bill-cal-prompt-dialog__close"
+              id="btn-ai-bill-cal-prompt-close"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+          </header>
+          <div class="ai-bill-cal-prompt-dialog__body">
+            <p class="ai-bill-cal-prompt-dialog__hint">
+              Use this with the in-app generator or on its own. Paste into an AI assistant and ask it to reply with only the JSON object (no markdown fences) as specified at the end of the prompt.
+            </p>
+            <label class="ai-bill-cal-prompt-dialog__label" for="ai-bill-cal-prompt-text">Prompt</label>
+            <textarea
+              id="ai-bill-cal-prompt-text"
+              class="ai-bill-cal-prompt-dialog__textarea"
+              readonly
+              rows="16"
+              spellcheck="false"
+            ></textarea>
+            <p class="ai-bill-cal-prompt-dialog__feedback" id="ai-bill-cal-prompt-feedback" aria-live="polite"></p>
+            <div class="ai-bill-cal-prompt-dialog__actions">
+              <button type="button" class="ai-bill-cal-prompt-dialog__action" id="btn-ai-bill-cal-prompt-copy">
+                Copy
+              </button>
+              <button type="button" class="ai-bill-cal-prompt-dialog__action" id="btn-ai-bill-cal-prompt-share">
+                Share
+              </button>
+              <button type="button" class="ai-bill-cal-prompt-dialog__action" id="btn-ai-bill-cal-prompt-download">
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      </dialog>
     </div>
   </div>
 

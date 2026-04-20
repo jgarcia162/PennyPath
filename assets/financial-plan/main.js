@@ -8,6 +8,7 @@
 import { PLAN } from './plan-data.js';
 import { render as renderPlanPage } from './render-page.js';
 import { wireAiPayoffPlan } from './ai-payoff-plan-wire.js';
+import { wireBillPaymentCalendar } from './ai-bill-calendar-wire.js';
 import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
 import {
   applyPlanOverrides,
@@ -27,11 +28,15 @@ import { wipeAllUserData } from './wipe-user-data.js';
 import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap.js';
 
 const aiPayoffUi = wireAiPayoffPlan(PLAN);
+const billCalUi = wireBillPaymentCalendar(PLAN);
 
 function render() {
   renderPlanPage();
   if (aiPayoffUi && aiPayoffUi.refreshAfterPlanChange) {
     aiPayoffUi.refreshAfterPlanChange();
+  }
+  if (billCalUi && billCalUi.refreshAfterPlanChange) {
+    billCalUi.refreshAfterPlanChange();
   }
 }
 

@@ -3,6 +3,7 @@
  *
  * - POST /api/research — real-estate market JSON
  * - POST /api/financial-payoff — Financial Plan “AI payoff plan” (plain text)
+ * - POST /api/financial-calendar — bills + debt payment dates (JSON)
  *
  * Create .env in the project root with: GEMINI_API_KEY=... (wins over shell)
  * Or: export GEMINI_API_KEY=... && npm run research-server
@@ -716,6 +717,101 @@ async function handleFinancialPayoff(req, res) {
   }
 }
 
+/**
+ * Financial Plan: bill due dates + suggested debt payment dates (JSON only).
+ */
+async function handleFinancialCalendar(req, res) {
+  const cors = resolveCorsForApiRequest(req);
+  if (cors.mode === 'reject') {
+    res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: false, error: 'Origin not allowed' }));
+    return;
+  }
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    res.writeHead(503, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+    res.end(
+      JSON.stringify({
+        ok: false,
+        error:
+          'GEMINI_API_KEY is not set on the server. Add it to .env next to package.json and restart npm run research-server.',
+      })
+    );
+    return;
+  }
+
+  const bodyRaw = await readRequestBodyWithLimit(req, res, cors);
+  if (bodyRaw === null) return;
+
+  let payload;
+  try {
+    payload = JSON.parse(bodyRaw || '{}');
+  } catch {
+    res.writeHead(400, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+    res.end(JSON.stringify({ ok: false, error: 'Invalid JSON body' }));
+    return;
+  }
+
+  const prompt = String(payload.prompt || '').trim();
+  if (!prompt) {
+    res.writeHead(400, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+    res.end(JSON.stringify({ ok: false, error: 'Missing prompt' }));
+    return;
+  }
+
+  const model = (process.env.GEMINI_MODEL || 'gemini-2.5-flash').trim();
+  const calBody = {
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+    generationConfig: {
+      temperature: 0.25,
+      maxOutputTokens: 8192,
+      responseMimeType: 'application/json',
+    },
+  };
+
+  try {
+    const g = await geminiGenerateContentEnvelope(model, apiKey, calBody);
+    if (sendGeminiEnvelopeError(res, cors, apiKey, g)) return;
+
+    const raw = g.extractedText;
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch (e) {
+      res.writeHead(502, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+      res.end(
+        JSON.stringify({
+          ok: false,
+          error: 'Model returned non-JSON calendar payload',
+          detail: String(raw).slice(0, 400),
+          keySent: keySentDebug(apiKey),
+        })
+      );
+      return;
+    }
+
+    res.writeHead(200, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+    res.end(
+      JSON.stringify({
+        ok: true,
+        data: data,
+        truncated: g.truncated,
+        finishReason: g.finishReason,
+      })
+    );
+  } catch (e) {
+    res.writeHead(500, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
+    res.end(
+      JSON.stringify({
+        ok: false,
+        error: String(e.message || e),
+        keySent: keySentDebug(apiKey),
+      })
+    );
+  }
+}
+
 const server = http.createServer((req, res) => {
   const u = req.url || '';
 
@@ -745,6 +841,11 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  if (req.method === 'POST' && u === '/api/financial-calendar') {
+    handleFinancialCalendar(req, res);
+    return;
+  }
+
   if (req.method === 'GET' && u.startsWith('/api/geocode')) {
     handleGeocode(req, res);
     return;
@@ -768,7 +869,7 @@ const server = http.createServer((req, res) => {
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`Dev server: http://127.0.0.1:${PORT}/real-estate-plan.html`);
   console.log(`          http://127.0.0.1:${PORT}/financial-plan-v3-aggressive.html`);
-  console.log(`  POST /api/research  ·  POST /api/financial-payoff`);
+  console.log(`  POST /api/research  ·  POST /api/financial-payoff  ·  POST /api/financial-calendar`);
   console.log(`Expected .env path: ${dotEnvStatus.envPath}`);
   console.log(`  .env file exists: ${dotEnvStatus.fileExists}`);
   if (process.env.GEMINI_API_KEY) {
