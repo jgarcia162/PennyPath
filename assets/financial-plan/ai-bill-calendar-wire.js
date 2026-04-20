@@ -54,6 +54,16 @@ function normHeaderCell(s) {
 }
 
 /**
+ * Whole-cell match: optional $, optional thousands commas, optional decimal part.
+ * Rejects partial parses like "12abc" or "3rd".
+ */
+function isValidBillAmountCell(s) {
+  const t = String(s || '').trim();
+  if (!t) return false;
+  return /^\$?\s*(?:(?:\d{1,3}(?:,\d{3})+)(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+)$/.test(t);
+}
+
+/**
  * @param {string} text - raw CSV
  * @param {{ name?: string, amount?: string, due_day?: string }} [columnNames] - header labels to match (case-insensitive)
  * @returns {{ ok: true, bills: Array<{ name: string, amount: number, due_day: number }> } | { ok: false, error: string }}
@@ -99,11 +109,15 @@ export function parseCsvBills(text, columnNames) {
     const cols = splitCsvLine(lines[r]);
     if (cols.length <= maxIdx) continue;
     const name = cols[iName];
-    const amount = numOr(parseFloat(String(cols[iAmount]).replace(/[$,]/g, '')), NaN);
-    const dueDay = parseInt(String(cols[iDue]), 10);
+    const amountRaw = String(cols[iAmount]).trim();
+    const dueRaw = String(cols[iDue]).trim();
     if (!name || !String(name).trim()) continue;
+    if (!isValidBillAmountCell(amountRaw)) continue;
+    if (!/^\d+$/.test(dueRaw)) continue;
+    const amount = Number(amountRaw.replace(/[$,]/g, ''));
+    const dueDay = parseInt(dueRaw, 10);
     if (!Number.isFinite(amount) || amount < 0) continue;
-    if (!Number.isFinite(dueDay) || dueDay < 1 || dueDay > 31) continue;
+    if (dueDay < 1 || dueDay > 31) continue;
     bills.push({ name: String(name).trim(), amount: amount, due_day: dueDay });
   }
   if (!bills.length) {
@@ -214,16 +228,20 @@ async function callFinancialCalendarApi(prompt) {
       signal: controller.signal,
     });
   } catch (e) {
+    clearTimeout(tid);
     if (e && e.name === 'AbortError') {
       throw new Error('Calendar request timed out. Try again or shorten the CSV.');
     }
     throw new Error('Could not reach the server. Run npm run research-server for local use.');
+  }
+  let data;
+  try {
+    data = await res.json().catch(function () {
+      return {};
+    });
   } finally {
     clearTimeout(tid);
   }
-  const data = await res.json().catch(function () {
-    return {};
-  });
   if (!res.ok || data.ok === false) {
     const msg =
       (typeof data.error === 'string' && data.error) ||
