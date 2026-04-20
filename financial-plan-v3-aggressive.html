@@ -471,8 +471,61 @@
           </button>
           <span class="ai-bill-cal__status" id="ai-bill-cal-status" role="status"></span>
         </div>
+        <div id="ai-bill-cal-fallback" class="ai-bill-cal-fallback" hidden>
+          <p class="ai-bill-cal-fallback__text">
+            If the server timed out or returned an error, you can copy the full prompt and paste it into ChatGPT, Claude, Gemini, or another assistant.
+          </p>
+          <button type="button" class="ai-bill-cal-fallback__btn" id="btn-ai-bill-cal-open-prompt">
+            View &amp; copy prompt
+          </button>
+        </div>
         <div id="ai-bill-cal-host" class="ai-bill-cal-host" aria-live="polite"></div>
       </div>
+
+      <dialog
+        id="ai-bill-cal-prompt-dialog"
+        class="ai-bill-cal-prompt-dialog"
+        aria-labelledby="ai-bill-cal-prompt-dialog-title"
+      >
+        <div class="ai-bill-cal-prompt-dialog__chrome">
+          <header class="ai-bill-cal-prompt-dialog__header">
+            <h3 id="ai-bill-cal-prompt-dialog-title" class="ai-bill-cal-prompt-dialog__title">Calendar prompt</h3>
+            <button
+              type="button"
+              class="ai-bill-cal-prompt-dialog__close"
+              id="btn-ai-bill-cal-prompt-close"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+          </header>
+          <div class="ai-bill-cal-prompt-dialog__body">
+            <p class="ai-bill-cal-prompt-dialog__hint">
+              Copy this text into an AI assistant. Ask it to reply with only the JSON object (no markdown fences) as specified at the end of the prompt.
+            </p>
+            <label class="ai-bill-cal-prompt-dialog__label" for="ai-bill-cal-prompt-text">Prompt</label>
+            <textarea
+              id="ai-bill-cal-prompt-text"
+              class="ai-bill-cal-prompt-dialog__textarea"
+              readonly
+              rows="16"
+              spellcheck="false"
+            ></textarea>
+            <p class="ai-bill-cal-prompt-dialog__feedback" id="ai-bill-cal-prompt-feedback" aria-live="polite"></p>
+            <div class="ai-bill-cal-prompt-dialog__actions">
+              <button type="button" class="ai-bill-cal-prompt-dialog__action" id="btn-ai-bill-cal-prompt-copy">
+                Copy
+              </button>
+              <button type="button" class="ai-bill-cal-prompt-dialog__action" id="btn-ai-bill-cal-prompt-share">
+                Share
+              </button>
+              <button type="button" class="ai-bill-cal-prompt-dialog__action" id="btn-ai-bill-cal-prompt-download">
+                Download
+              </button>
+            </div>
+          </div>
+        </div>
+      </dialog>
     </div>
   </div>
 

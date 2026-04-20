@@ -1377,6 +1377,208 @@ body.financial-plan-demo-mode #checkin-form {
 .ai-bill-cal-host {
   min-height: 40px;
 }
+.ai-bill-cal-fallback {
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px dashed rgba(196, 176, 128, 0.45);
+  background: rgba(196, 176, 128, 0.08);
+  max-width: 640px;
+}
+.ai-bill-cal-fallback[hidden] {
+  display: none !important;
+}
+.ai-bill-cal-fallback__text {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(60, 68, 82, 0.82);
+}
+:root[data-theme="dark"] .ai-bill-cal-fallback__text {
+  color: rgba(233, 233, 246, 0.82);
+}
+.ai-bill-cal-fallback__btn {
+  appearance: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(60, 68, 82, 0.2);
+  background: rgba(255, 255, 255, 0.85);
+  color: rgba(60, 68, 82, 0.9);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+.ai-bill-cal-fallback__btn:hover {
+  background: rgba(143, 176, 160, 0.18);
+  border-color: rgba(143, 176, 160, 0.4);
+}
+:root[data-theme="dark"] .ai-bill-cal-fallback__btn {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(233, 233, 246, 0.92);
+}
+
+/* Native dialog: do not set display on base (breaks [open] / close()) */
+.ai-bill-cal-prompt-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(640px, calc(100vw - 32px));
+  height: fit-content;
+  max-height: min(90vh, 880px);
+  margin: auto;
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: none;
+}
+.ai-bill-cal-prompt-dialog::backdrop {
+  background: rgba(10, 12, 20, 0.55);
+}
+.ai-bill-cal-prompt-dialog__chrome {
+  width: 100%;
+  background: var(--paper, #f9f7f2);
+  border: 1px solid rgba(60, 68, 82, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+  max-height: min(90vh, 880px);
+  display: flex;
+  flex-direction: column;
+}
+:root[data-theme="dark"] .ai-bill-cal-prompt-dialog__chrome {
+  background: var(--paper, #1c1e26);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.5);
+}
+.ai-bill-cal-prompt-dialog__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid rgba(60, 68, 82, 0.08);
+  background: var(--ink, #2c3140);
+  color: var(--cream, #f5f0e6);
+  flex-shrink: 0;
+}
+:root[data-theme="dark"] .ai-bill-cal-prompt-dialog__header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+.ai-bill-cal-prompt-dialog__title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+.ai-bill-cal-prompt-dialog__close {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ai-bill-cal-prompt-dialog__close:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.ai-bill-cal-prompt-dialog__body {
+  padding: 14px 16px 18px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+.ai-bill-cal-prompt-dialog__hint {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(60, 68, 82, 0.75);
+}
+:root[data-theme="dark"] .ai-bill-cal-prompt-dialog__hint {
+  color: rgba(233, 233, 246, 0.72);
+}
+.ai-bill-cal-prompt-dialog__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(60, 68, 82, 0.55);
+}
+:root[data-theme="dark"] .ai-bill-cal-prompt-dialog__label {
+  color: rgba(233, 233, 246, 0.55);
+}
+.ai-bill-cal-prompt-dialog__textarea {
+  width: 100%;
+  min-height: 220px;
+  max-height: min(48vh, 420px);
+  box-sizing: border-box;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(60, 68, 82, 0.16);
+  background: rgba(255, 255, 255, 0.9);
+  color: rgba(40, 44, 52, 0.95);
+  resize: vertical;
+}
+:root[data-theme="dark"] .ai-bill-cal-prompt-dialog__textarea {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  color: rgba(233, 233, 246, 0.92);
+}
+.ai-bill-cal-prompt-dialog__feedback {
+  margin: 0;
+  min-height: 1.2em;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(143, 176, 160, 0.95);
+}
+.ai-bill-cal-prompt-dialog__feedback:empty {
+  display: none;
+}
+.ai-bill-cal-prompt-dialog__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+.ai-bill-cal-prompt-dialog__action {
+  appearance: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(196, 176, 128, 0.42);
+  background: rgba(196, 176, 128, 0.2);
+  color: rgba(60, 68, 82, 0.92);
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ai-bill-cal-prompt-dialog__action:hover {
+  background: rgba(196, 176, 128, 0.32);
+}
+:root[data-theme="dark"] .ai-bill-cal-prompt-dialog__action {
+  border-color: rgba(225, 195, 106, 0.3);
+  background: rgba(225, 195, 106, 0.14);
+  color: rgba(233, 233, 246, 0.92);
+}
+.ai-bill-cal-prompt-dialog__action[hidden] {
+  display: none !important;
+}
+
 .ai-bill-cal__notes {
   font-size: 13px;
   line-height: 1.5;

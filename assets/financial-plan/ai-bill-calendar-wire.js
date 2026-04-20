@@ -393,6 +393,66 @@ function loadCalendarCache() {
   }
 }
 
+function copyTextToClipboard(text) {
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    return navigator.clipboard.writeText(text).then(function () {
+      return true;
+    });
+  }
+  return new Promise(function (resolve, reject) {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.left = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      resolve(true);
+    } catch (err) {
+      reject(err);
+    } finally {
+      document.body.removeChild(ta);
+    }
+  });
+}
+
+function downloadTextAsFile(text, filename) {
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename || 'pennypath-calendar-prompt.txt';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function canShareText(text) {
+  if (typeof navigator.share !== 'function') return false;
+  if (typeof navigator.canShare === 'function') {
+    try {
+      return navigator.canShare({ text: text });
+    } catch (e) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function shareTextIfSupported(text) {
+  if (typeof navigator.share !== 'function') {
+    return Promise.reject(new Error('Sharing is not available in this browser.'));
+  }
+  return navigator.share({
+    title: 'PennyPath — payment calendar prompt',
+    text: text,
+  });
+}
+
 /**
  * @param {object} plan - PLAN
  */
@@ -478,10 +538,98 @@ export function wireBillPaymentCalendar(plan) {
   colAmount.addEventListener('input', onColumnChange);
   colDue.addEventListener('input', onColumnChange);
 
+  const fallbackEl = document.getElementById('ai-bill-cal-fallback');
+  const btnOpenPrompt = document.getElementById('btn-ai-bill-cal-open-prompt');
+  const promptDialogEl = document.getElementById('ai-bill-cal-prompt-dialog');
+  const promptTextarea = document.getElementById('ai-bill-cal-prompt-text');
+  const promptFeedback = document.getElementById('ai-bill-cal-prompt-feedback');
+  const btnPromptClose = document.getElementById('btn-ai-bill-cal-prompt-close');
+  const btnPromptCopy = document.getElementById('btn-ai-bill-cal-prompt-copy');
+  const btnPromptShare = document.getElementById('btn-ai-bill-cal-prompt-share');
+  const btnPromptDownload = document.getElementById('btn-ai-bill-cal-prompt-download');
+
+  let storedManualPrompt = '';
+
+  function hidePromptFallback() {
+    storedManualPrompt = '';
+    if (fallbackEl) fallbackEl.hidden = true;
+  }
+
+  function showPromptFallback(promptText) {
+    storedManualPrompt = String(promptText || '');
+    if (fallbackEl) fallbackEl.hidden = false;
+  }
+
+  function openManualPromptDialog() {
+    if (!promptDialogEl || !promptTextarea) return;
+    promptTextarea.value = storedManualPrompt;
+    if (promptFeedback) promptFeedback.textContent = '';
+    if (btnPromptShare) {
+      btnPromptShare.hidden = !canShareText(storedManualPrompt);
+    }
+    if (typeof promptDialogEl.showModal === 'function') {
+      promptDialogEl.showModal();
+    } else if (typeof promptDialogEl.show === 'function') {
+      promptDialogEl.show();
+    }
+  }
+
+  if (btnOpenPrompt) {
+    btnOpenPrompt.addEventListener('click', openManualPromptDialog);
+  }
+  if (btnPromptClose && promptDialogEl) {
+    btnPromptClose.addEventListener('click', function () {
+      promptDialogEl.close();
+    });
+  }
+  if (promptDialogEl) {
+    promptDialogEl.addEventListener('click', function (e) {
+      if (e.target === promptDialogEl) promptDialogEl.close();
+    });
+  }
+  if (btnPromptCopy && promptTextarea) {
+    btnPromptCopy.addEventListener('click', function () {
+      const t = storedManualPrompt || promptTextarea.value;
+      copyTextToClipboard(t)
+        .then(function () {
+          if (promptFeedback) promptFeedback.textContent = 'Copied to clipboard.';
+        })
+        .catch(function () {
+          if (promptFeedback) {
+            promptFeedback.textContent =
+              'Could not copy automatically. Select the text in the box and use your browser’s copy command.';
+          }
+        });
+    });
+  }
+  if (btnPromptShare) {
+    btnPromptShare.addEventListener('click', function () {
+      const t = storedManualPrompt || '';
+      shareTextIfSupported(t)
+        .then(function () {
+          if (promptFeedback) promptFeedback.textContent = 'Shared.';
+        })
+        .catch(function (err) {
+          if (promptFeedback) {
+            promptFeedback.textContent =
+              err && err.message ? String(err.message) : 'Share was cancelled or failed.';
+          }
+        });
+    });
+  }
+  if (btnPromptDownload) {
+    btnPromptDownload.addEventListener('click', function () {
+      const t = storedManualPrompt || '';
+      downloadTextAsFile(t, 'pennypath-calendar-prompt.txt');
+      if (promptFeedback) promptFeedback.textContent = 'Download started.';
+    });
+  }
+
   fileInput.addEventListener('change', function () {
     parsedRows = null;
     lastCsvText = '';
     fileName = '';
+    hidePromptFallback();
     setStatus('');
     host.textContent = '';
     const f = fileInput.files && fileInput.files[0];
@@ -505,11 +653,13 @@ export function wireBillPaymentCalendar(plan) {
   btn.addEventListener('click', async function () {
     if (!parsedRows || !parsedRows.length) return;
     btn.disabled = true;
+    hidePromptFallback();
     setStatus('Generating calendar…');
     host.textContent = '';
+    let calendarPrompt = '';
     try {
-      const prompt = buildCalendarPrompt(plan, parsedRows, 3);
-      const data = await callFinancialCalendarApi(prompt);
+      calendarPrompt = buildCalendarPrompt(plan, parsedRows, 3);
+      const data = await callFinancialCalendarApi(calendarPrompt);
       const norm = normalizeEvents(data);
       renderCalendar(host, norm);
       saveCalendarCache({ at: new Date().toISOString(), data: norm });
@@ -521,6 +671,9 @@ export function wireBillPaymentCalendar(plan) {
       p.className = 'ai-bill-cal__error';
       p.textContent = msg;
       host.appendChild(p);
+      if (calendarPrompt) {
+        showPromptFallback(calendarPrompt);
+      }
     } finally {
       syncButton();
     }
