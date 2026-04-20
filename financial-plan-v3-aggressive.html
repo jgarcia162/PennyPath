@@ -424,8 +424,43 @@
           Upload a CSV with your monthly bills. The AI places each bill on its due day and suggests dates to make debt payments using your plan budget and (when available) the generated payoff strategy above.
         </p>
         <p class="ai-bill-cal__format">
-          CSV columns: <code class="ai-payoff-code">name</code>, <code class="ai-payoff-code">amount</code>, <code class="ai-payoff-code">due_day</code> (day of month 1–31, recurring each month).
+          The first row must be headers. Enter the exact header names from your file for bill name, amount, and due day (day of month 1–31, recurring each month). Matching is not case-sensitive.
         </p>
+        <div class="ai-bill-cal__columns" role="group" aria-label="CSV column mapping">
+          <label class="ai-bill-cal__col-field">
+            <span class="ai-bill-cal__col-label">Name column</span>
+            <input
+              type="text"
+              id="ai-bill-cal-col-name"
+              class="ai-bill-cal__col-input"
+              value="name"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </label>
+          <label class="ai-bill-cal__col-field">
+            <span class="ai-bill-cal__col-label">Amount column</span>
+            <input
+              type="text"
+              id="ai-bill-cal-col-amount"
+              class="ai-bill-cal__col-input"
+              value="amount"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </label>
+          <label class="ai-bill-cal__col-field">
+            <span class="ai-bill-cal__col-label">Due day column</span>
+            <input
+              type="text"
+              id="ai-bill-cal-col-due"
+              class="ai-bill-cal__col-input"
+              value="due_day"
+              autocomplete="off"
+              spellcheck="false"
+            />
+          </label>
+        </div>
         <div class="ai-bill-cal__row">
           <label class="ai-bill-cal__file-label">
             <span class="ai-bill-cal__file-btn">Choose CSV</span>

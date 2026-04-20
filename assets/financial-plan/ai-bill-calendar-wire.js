@@ -2,7 +2,11 @@
  * CSV bills + AI-generated payment calendar (bills + debt payment dates as JSON from Gemini).
  */
 
-import { AI_PAYOFF_PLAN_CACHE_LS_KEY, AI_BILL_CALENDAR_CACHE_LS_KEY } from './storage-keys.js';
+import {
+  AI_PAYOFF_PLAN_CACHE_LS_KEY,
+  AI_BILL_CALENDAR_CACHE_LS_KEY,
+  AI_BILL_CALENDAR_COLUMNS_LS_KEY,
+} from './storage-keys.js';
 import { numOr } from './utils.js';
 
 const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
@@ -37,11 +41,31 @@ function splitCsvLine(line) {
     });
 }
 
+const DEFAULT_BILL_CSV_COLS = {
+  name: 'name',
+  amount: 'amount',
+  due_day: 'due_day',
+};
+
+function normHeaderCell(s) {
+  return String(s || '')
+    .trim()
+    .toLowerCase();
+}
+
 /**
- * Expected header: name, amount, due_day (1–31, day of month for recurring bills).
+ * @param {string} text - raw CSV
+ * @param {{ name?: string, amount?: string, due_day?: string }} [columnNames] - header labels to match (case-insensitive)
  * @returns {{ ok: true, bills: Array<{ name: string, amount: number, due_day: number }> } | { ok: false, error: string }}
  */
-export function parseCsvBills(text) {
+export function parseCsvBills(text, columnNames) {
+  const c = columnNames || {};
+  const wantName = normHeaderCell(c.name != null ? c.name : DEFAULT_BILL_CSV_COLS.name);
+  const wantAmount = normHeaderCell(c.amount != null ? c.amount : DEFAULT_BILL_CSV_COLS.amount);
+  const wantDue = normHeaderCell(c.due_day != null ? c.due_day : DEFAULT_BILL_CSV_COLS.due_day);
+  if (!wantName || !wantAmount || !wantDue) {
+    return { ok: false, error: 'Enter a column name for bill name, amount, and due day.' };
+  }
   const raw = String(text || '').replace(/^\uFEFF/, '');
   const lines = raw.split(/\r?\n/).filter(function (l) {
     return l.trim().length > 0;
@@ -49,32 +73,41 @@ export function parseCsvBills(text) {
   if (!lines.length) {
     return { ok: false, error: 'The file is empty.' };
   }
-  const header = splitCsvLine(lines[0]).map(function (h) {
-    return h.toLowerCase();
-  });
-  const iName = header.indexOf('name');
-  const iAmount = header.indexOf('amount');
-  const iDue = header.indexOf('due_day');
-  if (iName === -1 || iAmount === -1 || iDue === -1) {
+  const header = splitCsvLine(lines[0]).map(normHeaderCell);
+  const iName = header.indexOf(wantName);
+  const iAmount = header.indexOf(wantAmount);
+  const iDue = header.indexOf(wantDue);
+  const missing = [];
+  if (iName === -1) missing.push('"' + wantName + '" (name)');
+  if (iAmount === -1) missing.push('"' + wantAmount + '" (amount)');
+  if (iDue === -1) missing.push('"' + wantDue + '" (due day)');
+  if (missing.length) {
     return {
       ok: false,
-      error: 'CSV must include a header row with columns: name, amount, due_day',
+      error:
+        'The header row does not include: ' +
+        missing.join(', ') +
+        '. Match the spelling to your CSV or adjust the column fields.',
     };
   }
+  if (iName === iAmount || iName === iDue || iAmount === iDue) {
+    return { ok: false, error: 'Name, amount, and due day must map to three different columns.' };
+  }
+  const maxIdx = Math.max(iName, iAmount, iDue);
   const bills = [];
   for (let r = 1; r < lines.length; r++) {
     const cols = splitCsvLine(lines[r]);
-    if (cols.length < 3) continue;
+    if (cols.length <= maxIdx) continue;
     const name = cols[iName];
     const amount = numOr(parseFloat(String(cols[iAmount]).replace(/[$,]/g, '')), NaN);
     const dueDay = parseInt(String(cols[iDue]), 10);
-    if (!name) continue;
+    if (!name || !String(name).trim()) continue;
     if (!Number.isFinite(amount) || amount < 0) continue;
     if (!Number.isFinite(dueDay) || dueDay < 1 || dueDay > 31) continue;
-    bills.push({ name: name, amount: amount, due_day: dueDay });
+    bills.push({ name: String(name).trim(), amount: amount, due_day: dueDay });
   }
   if (!bills.length) {
-    return { ok: false, error: 'No valid bill rows found. Check amounts and due_day (1–31).' };
+    return { ok: false, error: 'No valid bill rows found. Check amounts and due day (1–31).' };
   }
   return { ok: true, bills: bills };
 }
@@ -368,10 +401,47 @@ export function wireBillPaymentCalendar(plan) {
   const btn = document.getElementById('btn-ai-bill-cal-generate');
   const statusEl = document.getElementById('ai-bill-cal-status');
   const host = document.getElementById('ai-bill-cal-host');
-  if (!fileInput || !btn || !host) return;
+  const colName = document.getElementById('ai-bill-cal-col-name');
+  const colAmount = document.getElementById('ai-bill-cal-col-amount');
+  const colDue = document.getElementById('ai-bill-cal-col-due');
+  if (!fileInput || !btn || !host || !colName || !colAmount || !colDue) return;
 
   let parsedRows = null;
+  let lastCsvText = '';
   let fileName = '';
+
+  function readColumnMap() {
+    return {
+      name: colName.value,
+      amount: colAmount.value,
+      due_day: colDue.value,
+    };
+  }
+
+  function saveColumnMapToStorage() {
+    try {
+      localStorage.setItem(AI_BILL_CALENDAR_COLUMNS_LS_KEY, JSON.stringify(readColumnMap()));
+    } catch (e) {}
+  }
+
+  function loadColumnMapFromStorage() {
+    try {
+      const raw = localStorage.getItem(AI_BILL_CALENDAR_COLUMNS_LS_KEY);
+      if (!raw) return null;
+      const o = JSON.parse(raw);
+      if (!o || typeof o !== 'object') return null;
+      return o;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  const savedCols = loadColumnMapFromStorage();
+  if (savedCols) {
+    if (typeof savedCols.name === 'string') colName.value = savedCols.name;
+    if (typeof savedCols.amount === 'string') colAmount.value = savedCols.amount;
+    if (typeof savedCols.due_day === 'string') colDue.value = savedCols.due_day;
+  }
 
   function setStatus(t) {
     if (statusEl) statusEl.textContent = t || '';
@@ -381,8 +451,36 @@ export function wireBillPaymentCalendar(plan) {
     btn.disabled = !parsedRows || !parsedRows.length;
   }
 
+  function tryParseFromLastFile() {
+    if (!lastCsvText) {
+      parsedRows = null;
+      syncButton();
+      return;
+    }
+    const pr = parseCsvBills(lastCsvText, readColumnMap());
+    if (!pr.ok) {
+      parsedRows = null;
+      setStatus(pr.error);
+      syncButton();
+      return;
+    }
+    parsedRows = pr.bills;
+    setStatus(pr.bills.length + ' bill(s) loaded from ' + fileName + '.');
+    syncButton();
+  }
+
+  function onColumnChange() {
+    saveColumnMapToStorage();
+    tryParseFromLastFile();
+  }
+
+  colName.addEventListener('input', onColumnChange);
+  colAmount.addEventListener('input', onColumnChange);
+  colDue.addEventListener('input', onColumnChange);
+
   fileInput.addEventListener('change', function () {
     parsedRows = null;
+    lastCsvText = '';
     fileName = '';
     setStatus('');
     host.textContent = '';
@@ -394,17 +492,8 @@ export function wireBillPaymentCalendar(plan) {
     fileName = f.name;
     const reader = new FileReader();
     reader.onload = function () {
-      const text = String(reader.result || '');
-      const pr = parseCsvBills(text);
-      if (!pr.ok) {
-        parsedRows = null;
-        setStatus(pr.error);
-        syncButton();
-        return;
-      }
-      parsedRows = pr.bills;
-      setStatus(pr.bills.length + ' bill(s) loaded from ' + fileName + '.');
-      syncButton();
+      lastCsvText = String(reader.result || '');
+      tryParseFromLastFile();
     };
     reader.onerror = function () {
       setStatus('Could not read the file.');

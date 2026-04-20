@@ -1244,13 +1244,61 @@ body.financial-plan-demo-mode #checkin-form {
   max-width: 640px;
 }
 .ai-bill-cal__format {
-  margin-bottom: 14px;
+  margin-bottom: 12px;
   font-size: 12px;
   color: rgba(60, 68, 82, 0.65);
 }
 :root[data-theme="dark"] .ai-bill-cal__intro,
 :root[data-theme="dark"] .ai-bill-cal__format {
   color: rgba(233, 233, 246, 0.72);
+}
+.ai-bill-cal__columns {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px 14px;
+  margin-bottom: 14px;
+  max-width: 720px;
+}
+@media (max-width: 640px) {
+  .ai-bill-cal__columns {
+    grid-template-columns: 1fr;
+  }
+}
+.ai-bill-cal__col-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.ai-bill-cal__col-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(60, 68, 82, 0.55);
+}
+:root[data-theme="dark"] .ai-bill-cal__col-label {
+  color: rgba(233, 233, 246, 0.55);
+}
+.ai-bill-cal__col-input {
+  font-family: 'DM Sans', ui-monospace, monospace;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(60, 68, 82, 0.18);
+  background: rgba(255, 255, 255, 0.85);
+  color: rgba(60, 68, 82, 0.92);
+  width: 100%;
+  box-sizing: border-box;
+}
+.ai-bill-cal__col-input:focus {
+  outline: 2px solid rgba(143, 176, 160, 0.5);
+  outline-offset: 1px;
+}
+:root[data-theme="dark"] .ai-bill-cal__col-input {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(233, 233, 246, 0.92);
 }
 .ai-bill-cal__row {
   display: flex;
