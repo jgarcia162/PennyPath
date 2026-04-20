@@ -469,15 +469,16 @@
           <button type="button" class="ai-bill-cal-generate-btn" id="btn-ai-bill-cal-generate" disabled>
             Generate calendar
           </button>
-          <span class="ai-bill-cal__status" id="ai-bill-cal-status" role="status"></span>
-        </div>
-        <div id="ai-bill-cal-fallback" class="ai-bill-cal-fallback" hidden>
-          <p class="ai-bill-cal-fallback__text">
-            If the server timed out or returned an error, you can copy the full prompt and paste it into ChatGPT, Claude, Gemini, or another assistant.
-          </p>
-          <button type="button" class="ai-bill-cal-fallback__btn" id="btn-ai-bill-cal-open-prompt">
-            View &amp; copy prompt
+          <button
+            type="button"
+            class="ai-bill-cal-prompt-btn"
+            id="btn-ai-bill-cal-open-prompt"
+            disabled
+            title="Load a CSV with at least one valid bill first"
+          >
+            View prompt
           </button>
+          <span class="ai-bill-cal__status" id="ai-bill-cal-status" role="status"></span>
         </div>
         <div id="ai-bill-cal-host" class="ai-bill-cal-host" aria-live="polite"></div>
       </div>
@@ -501,7 +502,7 @@
           </header>
           <div class="ai-bill-cal-prompt-dialog__body">
             <p class="ai-bill-cal-prompt-dialog__hint">
-              Copy this text into an AI assistant. Ask it to reply with only the JSON object (no markdown fences) as specified at the end of the prompt.
+              Use this with the in-app generator or on its own. Paste into an AI assistant and ask it to reply with only the JSON object (no markdown fences) as specified at the end of the prompt.
             </p>
             <label class="ai-bill-cal-prompt-dialog__label" for="ai-bill-cal-prompt-text">Prompt</label>
             <textarea

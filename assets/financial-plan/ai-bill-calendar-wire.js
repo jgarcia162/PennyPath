@@ -508,7 +508,14 @@ export function wireBillPaymentCalendar(plan) {
   }
 
   function syncButton() {
-    btn.disabled = !parsedRows || !parsedRows.length;
+    const ready = !!(parsedRows && parsedRows.length);
+    btn.disabled = !ready;
+    if (btnOpenPrompt) {
+      btnOpenPrompt.disabled = !ready;
+      btnOpenPrompt.title = ready
+        ? 'Open the full calendar prompt to copy, share, or download'
+        : 'Load a CSV with at least one valid bill first';
+    }
   }
 
   function tryParseFromLastFile() {
@@ -538,7 +545,6 @@ export function wireBillPaymentCalendar(plan) {
   colAmount.addEventListener('input', onColumnChange);
   colDue.addEventListener('input', onColumnChange);
 
-  const fallbackEl = document.getElementById('ai-bill-cal-fallback');
   const btnOpenPrompt = document.getElementById('btn-ai-bill-cal-open-prompt');
   const promptDialogEl = document.getElementById('ai-bill-cal-prompt-dialog');
   const promptTextarea = document.getElementById('ai-bill-cal-prompt-text');
@@ -550,18 +556,12 @@ export function wireBillPaymentCalendar(plan) {
 
   let storedManualPrompt = '';
 
-  function hidePromptFallback() {
-    storedManualPrompt = '';
-    if (fallbackEl) fallbackEl.hidden = true;
-  }
-
-  function showPromptFallback(promptText) {
-    storedManualPrompt = String(promptText || '');
-    if (fallbackEl) fallbackEl.hidden = false;
-  }
-
   function openManualPromptDialog() {
     if (!promptDialogEl || !promptTextarea) return;
+    if (!parsedRows || !parsedRows.length) {
+      return;
+    }
+    storedManualPrompt = buildCalendarPrompt(plan, parsedRows, 3);
     promptTextarea.value = storedManualPrompt;
     if (promptFeedback) promptFeedback.textContent = '';
     if (btnPromptShare) {
@@ -629,7 +629,6 @@ export function wireBillPaymentCalendar(plan) {
     parsedRows = null;
     lastCsvText = '';
     fileName = '';
-    hidePromptFallback();
     setStatus('');
     host.textContent = '';
     const f = fileInput.files && fileInput.files[0];
@@ -653,7 +652,6 @@ export function wireBillPaymentCalendar(plan) {
   btn.addEventListener('click', async function () {
     if (!parsedRows || !parsedRows.length) return;
     btn.disabled = true;
-    hidePromptFallback();
     setStatus('Generating calendar…');
     host.textContent = '';
     let calendarPrompt = '';
@@ -671,9 +669,6 @@ export function wireBillPaymentCalendar(plan) {
       p.className = 'ai-bill-cal__error';
       p.textContent = msg;
       host.appendChild(p);
-      if (calendarPrompt) {
-        showPromptFallback(calendarPrompt);
-      }
     } finally {
       syncButton();
     }
