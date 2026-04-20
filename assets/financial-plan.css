@@ -805,6 +805,104 @@ body.financial-plan-demo-mode #checkin-form {
 :root[data-theme="dark"] .ai-payoff-dev-label {
   color: rgba(233, 233, 246, 0.5);
 }
+
+.ai-payoff-refine {
+  margin-top: 18px;
+  margin-bottom: 4px;
+  max-width: 640px;
+}
+.ai-payoff-refine__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(60, 68, 82, 0.65);
+  margin-bottom: 6px;
+}
+:root[data-theme="dark"] .ai-payoff-refine__label {
+  color: rgba(233, 233, 246, 0.55);
+}
+.ai-payoff-refine__hint {
+  font-size: 12px;
+  line-height: 1.45;
+  color: rgba(60, 68, 82, 0.62);
+  margin: 0 0 10px;
+}
+:root[data-theme="dark"] .ai-payoff-refine__hint {
+  color: rgba(233, 233, 246, 0.58);
+}
+.ai-payoff-refine__input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  color: rgba(60, 68, 82, 0.92);
+  border-radius: 10px;
+  border: 1px solid rgba(60, 68, 82, 0.18);
+  background: rgba(255, 255, 255, 0.72);
+  resize: vertical;
+  min-height: 72px;
+}
+.ai-payoff-refine__input::placeholder {
+  color: rgba(60, 68, 82, 0.42);
+}
+.ai-payoff-refine__input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  resize: none;
+}
+.ai-payoff-refine__input:focus-visible {
+  outline: 2px solid rgba(196, 176, 128, 0.55);
+  outline-offset: 2px;
+}
+:root[data-theme="dark"] .ai-payoff-refine__input {
+  color: rgba(233, 233, 246, 0.92);
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(30, 32, 40, 0.65);
+}
+:root[data-theme="dark"] .ai-payoff-refine__input::placeholder {
+  color: rgba(233, 233, 246, 0.38);
+}
+.ai-payoff-refine-btn {
+  appearance: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 9px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(143, 176, 160, 0.45);
+  background: rgba(143, 176, 160, 0.18);
+  color: rgba(60, 68, 82, 0.88);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.ai-payoff-refine-btn:hover:not(:disabled) {
+  background: rgba(143, 176, 160, 0.28);
+  border-color: rgba(143, 176, 160, 0.55);
+}
+.ai-payoff-refine-btn:focus-visible {
+  outline: 2px solid rgba(143, 176, 160, 0.5);
+  outline-offset: 2px;
+}
+.ai-payoff-refine-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+:root[data-theme="dark"] .ai-payoff-refine-btn {
+  border-color: rgba(143, 176, 160, 0.35);
+  background: rgba(143, 176, 160, 0.12);
+  color: rgba(233, 233, 246, 0.88);
+}
+:root[data-theme="dark"] .ai-payoff-refine-btn:hover:not(:disabled) {
+  background: rgba(143, 176, 160, 0.2);
+}
+
 .ai-payoff-status {
   font-size: 13px;
   color: rgba(60, 68, 82, 0.72);
@@ -900,60 +998,196 @@ body.financial-plan-demo-mode #checkin-form {
   border-radius: 99px;
 }
 
-.ai-payoff-section {
-  margin-bottom: 20px;
-  padding-bottom: 16px;
-  border-bottom: 1px dashed rgba(60, 68, 82, 0.12);
+/* AI plan: vertical timeline (alternating cards; inspired by timeline layouts) */
+.ai-payoff-timeline {
+  position: relative;
+  margin: 10px 0 0;
+  padding: 16px 0 8px;
+  z-index: 0;
 }
-.ai-payoff-section:last-child {
+.ai-payoff-timeline::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  margin-left: -2.5px;
+  border-radius: 999px;
+  background: linear-gradient(
+    180deg,
+    rgba(74, 111, 168, 0.88) 0%,
+    rgba(143, 176, 160, 0.72) 48%,
+    rgba(196, 176, 128, 0.82) 100%
+  );
+  z-index: 0;
+  pointer-events: none;
+}
+.ai-payoff-timeline__row {
+  display: grid;
+  /* Side columns need a floor so cards never land in the 52px rail track when a cell is “empty”. */
+  grid-template-columns: minmax(120px, 1fr) 52px minmax(120px, 1fr);
+  align-items: start;
+  margin-bottom: 28px;
+  position: relative;
+  z-index: 1;
+}
+.ai-payoff-timeline__row:last-child {
   margin-bottom: 0;
-  padding-bottom: 0;
-  border-bottom: none;
 }
-:root[data-theme="dark"] .ai-payoff-section {
-  border-bottom-color: rgba(255, 255, 255, 0.1);
+.ai-payoff-timeline__cell {
+  min-width: 0;
 }
-.ai-payoff-h {
+/* Do not hide empty cells: display:none drops them from the grid and the next item
+   can jump into the narrow rail column, squashing the card to ~52px wide. */
+.ai-payoff-timeline__row--left .ai-payoff-timeline__cell:first-child {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  margin: 0 0 12px;
-  font-size: 15px;
+  justify-content: flex-end;
+}
+.ai-payoff-timeline__row--right .ai-payoff-timeline__cell:last-child {
+  display: flex;
+  justify-content: flex-start;
+}
+.ai-payoff-timeline__rail {
+  display: flex;
+  justify-content: center;
+  padding-top: 16px;
+}
+.ai-payoff-timeline__dot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #fff;
+  border: 4px solid rgba(74, 111, 168, 0.42);
+  box-shadow: 0 3px 12px rgba(60, 68, 82, 0.12);
+  font-size: 13px;
   font-weight: 800;
-  line-height: 1.35;
-  color: rgba(60, 68, 82, 0.92);
-  letter-spacing: 0.01em;
-}
-.ai-payoff-h__emoji {
+  color: rgba(60, 68, 82, 0.88);
   flex-shrink: 0;
-  font-size: 1.15em;
-  line-height: 1.2;
-  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.08));
 }
-.ai-payoff-h__title {
+.ai-payoff-timeline__card {
+  box-sizing: border-box;
+  width: min(100%, 400px);
+  max-width: 400px;
+  min-width: 0;
+  flex-shrink: 0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 8px 26px rgba(60, 68, 82, 0.1);
+  border: 1px solid rgba(60, 68, 82, 0.1);
+}
+.ai-payoff-timeline__card-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  flex-wrap: nowrap;
+  overflow-wrap: anywhere;
+}
+.ai-payoff-timeline__card-emoji {
+  flex-shrink: 0;
+  font-size: 1.2em;
+  line-height: 1;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
+}
+.ai-payoff-timeline__card-title {
   flex: 1;
-  padding-top: 1px;
-  border-left: 3px solid var(--gold);
-  padding-left: 12px;
-  margin-left: 2px;
+  min-width: 3em;
 }
-:root[data-theme="dark"] .ai-payoff-h {
-  color: rgba(233, 233, 246, 0.94);
+.ai-payoff-timeline__row:nth-child(6n + 1) .ai-payoff-timeline__card-head {
+  background: linear-gradient(135deg, #2a5244 0%, #3d7360 100%);
 }
-:root[data-theme="dark"] .ai-payoff-h__title {
-  border-left-color: rgba(225, 195, 106, 0.75);
+.ai-payoff-timeline__row:nth-child(6n + 2) .ai-payoff-timeline__card-head {
+  background: linear-gradient(135deg, #354f8f 0%, #4a6bb8 100%);
+}
+.ai-payoff-timeline__row:nth-child(6n + 3) .ai-payoff-timeline__card-head {
+  background: linear-gradient(135deg, #5c4a7a 0%, #7a6499 100%);
+}
+.ai-payoff-timeline__row:nth-child(6n + 4) .ai-payoff-timeline__card-head {
+  background: linear-gradient(135deg, #6b5340 0%, #8b6f52 100%);
+}
+.ai-payoff-timeline__row:nth-child(6n + 5) .ai-payoff-timeline__card-head {
+  background: linear-gradient(135deg, #2f6b63 0%, #4a9e8f 100%);
+}
+.ai-payoff-timeline__row:nth-child(6n + 6) .ai-payoff-timeline__card-head {
+  background: linear-gradient(135deg, #8a6230 0%, #b8893d 100%);
+}
+.ai-payoff-timeline__card-body {
+  padding: 14px 16px 16px;
+  background: rgba(255, 255, 255, 0.97);
+}
+.ai-payoff-timeline__card-body .ai-payoff-p {
+  margin: 0 0 12px;
+}
+.ai-payoff-timeline__card-body .ai-payoff-ul {
+  margin: 0 0 10px;
+}
+
+:root[data-theme="dark"] .ai-payoff-timeline__dot {
+  background: rgba(32, 34, 42, 0.95);
+  border-color: rgba(143, 176, 160, 0.45);
+  color: rgba(233, 233, 246, 0.92);
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="dark"] .ai-payoff-timeline__card {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+:root[data-theme="dark"] .ai-payoff-timeline__card-body {
+  background: rgba(28, 30, 38, 0.92);
+}
+:root[data-theme="dark"] .ai-payoff-timeline::before {
+  opacity: 0.85;
+}
+
+@media (max-width: 700px) {
+  .ai-payoff-timeline::before {
+    display: none;
+  }
+  .ai-payoff-timeline__row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 22px;
+  }
+  .ai-payoff-timeline__rail {
+    order: -1;
+    padding-top: 0;
+    margin-bottom: 10px;
+  }
+  .ai-payoff-timeline__row--left .ai-payoff-timeline__cell:first-child,
+  .ai-payoff-timeline__row--right .ai-payoff-timeline__cell:last-child {
+    justify-content: stretch;
+  }
+  .ai-payoff-timeline__card {
+    max-width: none;
+  }
 }
 
 .ai-payoff-intro-block {
   margin-bottom: 16px;
 }
+.ai-payoff-intro-block--lead {
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: rgba(143, 176, 160, 0.12);
+  border: 1px solid rgba(143, 176, 160, 0.22);
+}
+:root[data-theme="dark"] .ai-payoff-intro-block--lead {
+  background: rgba(143, 176, 160, 0.1);
+  border-color: rgba(143, 176, 160, 0.18);
+}
 .ai-payoff-intro-block:last-child {
   margin-bottom: 0;
-}
-.ai-payoff-section-body .ai-payoff-p:first-child {
-  border-left: 2px solid rgba(143, 176, 160, 0.45);
-  padding-left: 12px;
-  margin-left: 2px;
 }
 .ai-payoff-p {
   margin: 0 0 12px;
