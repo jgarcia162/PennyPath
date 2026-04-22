@@ -250,6 +250,9 @@ export interface DerivedPlanMetrics {
   viewingDifferentFromWorking: boolean;
   dashboardFollowsWorking: boolean;
 
+  debts: Debt[];
+  savingsAccounts: SavingsAccount[];
+
   goalHysa: number;
   personalSavings: number;
   goalSavingsCurrent: number;
@@ -258,6 +261,8 @@ export interface DerivedPlanMetrics {
 
   debtRounded: number;
   totalDebt: number;
+  debtStartTotal: number;
+  debtGoalPct: number;
   assetBarPct: number;
   debtBarPct: number;
 
@@ -275,9 +280,13 @@ export interface DerivedPlanMetrics {
   /** Converts a raw amount into an integer percent of the computed budget. */
   pctOfBudget(amt: number): number;
   phase2Savings: number;
+  totalLiquidEndPlan: number;
+  hysaEndPlan: number;
+  personalEndPlan: number;
 
   // Monthly debt progress
   monthlyDebtGoal: number;
+  monthlyDebtPaidAuto: number;
   monthlyDebtPaid: number;
   monthlyDebtPaidNonNeg: number;
   monthlyDebtPct: number;

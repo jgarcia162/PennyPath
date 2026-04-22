@@ -17,6 +17,27 @@ import { buildMonthCheckpointPayload } from './monthly-export.js';
 import { getWorkingMonthYm } from './plan-derived.js';
 import { monthLabel, yyyyMmFromDate } from './monthly-activity.js';
 
+function isYyyyMm(s: unknown): s is YyyyMm {
+  return typeof s === 'string' && /^\d{4}-\d{2}$/.test(s);
+}
+
+function asFinancialPlan(p: unknown): FinancialPlan {
+  if (!p || typeof p !== 'object') {
+    throw new Error('PLAN is missing');
+  }
+  const o = p as any;
+  if (!o.phase1 || typeof o.phase1 !== 'object') {
+    throw new Error('PLAN.phase1 is missing');
+  }
+  if (!Array.isArray(o.debts)) {
+    throw new Error('PLAN.debts is missing');
+  }
+  if (!Array.isArray(o.savingsAccounts)) {
+    throw new Error('PLAN.savingsAccounts is missing');
+  }
+  return o as FinancialPlan;
+}
+
 function getCheckInService(): CheckInServiceApi | null {
   const s = (window as any).CheckInService;
   if (!s || typeof s !== 'object') return null;
@@ -80,6 +101,19 @@ export interface MonthWrapRollbackPayload {
   createdAt: IsoDateTimeString;
 }
 
+function isMonthWrapRollbackPayload(u: unknown): u is MonthWrapRollbackPayload {
+  if (!u || typeof u !== 'object') return false;
+  const o = u as any;
+  return (
+    o.version === 1 &&
+    typeof o.balancesRaw === 'string' &&
+    typeof o.checkinsRaw === 'string' &&
+    isYyyyMm(o.wrappedYm) &&
+    isYyyyMm(o.nextWorkingYm) &&
+    typeof o.createdAt === 'string'
+  );
+}
+
 /**
  * @param render Optional re-render callback
  */
@@ -89,8 +123,9 @@ export function wrapUpWorkingMonth(render?: () => void): void {
     return;
   }
   applyPlanOverrides();
-  syncLegacySavingsFromAccounts(PLAN as unknown as FinancialPlan);
-  const ym = getWorkingMonthYm(PLAN as unknown as FinancialPlan) as YyyyMm;
+  const plan = asFinancialPlan(PLAN);
+  syncLegacySavingsFromAccounts(plan);
+  const ym = getWorkingMonthYm(plan) as YyyyMm;
   const nextYm = nextYyyyYm(ym);
   const ok = window.confirm(
     'Wrap up ' +
@@ -141,7 +176,7 @@ export function wrapUpWorkingMonth(render?: () => void): void {
   PLAN.workingMonthYm = nextYm;
   PLAN.dashboardViewMonthYm = '';
   savePlanOverrides();
-  syncLegacySavingsFromAccounts(PLAN as unknown as FinancialPlan);
+  syncLegacySavingsFromAccounts(plan);
   if (typeof render === 'function') render();
 }
 
@@ -158,13 +193,14 @@ export function undoLastMonthWrap(render?: () => void): void {
     raw = localStorage.getItem(MONTH_WRAP_ROLLBACK_KEY);
   } catch (e) {}
   if (!raw) return;
-  let rb: any;
+  let parsed: unknown;
   try {
-    rb = JSON.parse(raw);
+    parsed = JSON.parse(raw);
   } catch (e) {
     return;
   }
-  if (!rb || typeof rb.balancesRaw !== 'string') return;
+  if (!isMonthWrapRollbackPayload(parsed)) return;
+  const rb: MonthWrapRollbackPayload = parsed;
 
   const ok = window.confirm(
     'Undo the last month wrap?\n\n' +
@@ -189,7 +225,8 @@ export function undoLastMonthWrap(render?: () => void): void {
   } catch (e) {}
 
   applyPlanOverrides();
-  syncLegacySavingsFromAccounts(PLAN as unknown as FinancialPlan);
+  const plan = asFinancialPlan(PLAN);
+  syncLegacySavingsFromAccounts(plan);
   if (typeof render === 'function') render();
 }
 

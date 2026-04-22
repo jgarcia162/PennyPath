@@ -63,6 +63,11 @@ export function setText(id: string, text: string): void {
   if (el) el.textContent = text;
 }
 
+/**
+ * Inserts raw HTML into the DOM.
+ *
+ * Callers MUST sanitize any untrusted input before calling (see `escapeHtml`).
+ */
 export function setHtml(id: string, html: string): void {
   const el = document.getElementById(id);
   if (el) el.innerHTML = html;
