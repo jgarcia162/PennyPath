@@ -1,0 +1,30 @@
+{
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+  // Environment
+  "types": [],
+
+  // Outputs
+  "sourceMap": true,
+  "outDir": "./dist",
+
+  // Migration-safe strict options (re-enable after migration)
+  // "noUncheckedIndexedAccess": true,
+  // "exactOptionalPropertyTypes": true,
+
+  // Style Options (uncomment as desired)
+  // "noImplicitReturns": true,
+  // "noUnusedLocals": true,
+  // "noUnusedParameters": true,
+
+  // Recommended
+  "moduleDetection": "force",
+  "skipLibCheck": true,
+  "allowJs": true,
+  "checkJs": false,
+  "strict": false,
+  "target": "ES2020",
+  "module": "ESNext",
+  "moduleResolution": "bundler"
+}
+}

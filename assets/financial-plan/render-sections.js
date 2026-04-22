@@ -4,7 +4,7 @@
 
 import { DEFAULT_DEBT_APR_PCT, DEFAULT_SAVINGS_APY_PCT, PLAN } from './plan-data.js';
 import { ensureSavingsGoals, accountContributesToGoal } from './savings-goals.js';
-import { numOr, formatMoneyInput } from './utils.js';
+import { numOr, formatMoneyInput } from './utils';
 
 /** Normalize legacy sort keys for UI + sorting. */
 export function normalizeDebtsEditorSort(mode) {

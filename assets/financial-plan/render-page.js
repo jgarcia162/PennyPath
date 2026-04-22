@@ -5,7 +5,7 @@
 import { PLAN } from './plan-data.js';
 import { derived, getWorkingMonthYm } from './plan-derived.js';
 import { collectDashboardMonthOptions, monthLabel } from './monthly-activity.js';
-import { createMoneyFormatters, setText, setHtml, numOr } from './utils.js';
+import { createMoneyFormatters, setText, setHtml, numOr } from './utils';
 import {
   renderGoal2Debts,
   renderDebtsEditor,
@@ -23,7 +23,7 @@ import {
   hasDebtBalanceForInterest,
   hasDebtsOnFile,
 } from './plan-empty-state.js';
-import { hasMonthWrapRollback } from './month-wrap.js';
+import { hasMonthWrapRollback } from './month-wrap';
 
 const { money, moneyExact } = createMoneyFormatters();
 

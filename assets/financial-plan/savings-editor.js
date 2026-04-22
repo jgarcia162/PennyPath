@@ -3,11 +3,11 @@
  */
 
 import { PLAN, PLAN_DEFAULTS, DEFAULT_SAVINGS_APY_PCT } from './plan-data.js';
-import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils.js';
+import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils';
 import { appendSavingsEditorEmptyState, buildSavingsEditorThead, buildSavingsRowTR } from './render-sections.js';
 import { normalizeDepositHistory, newDepositId } from './persistence.js';
 import { ID_GOAL_HYSA, ensureSavingsGoals, getAccountGoalIds } from './savings-goals.js';
-import { defaultLogAtIsoForEdits } from './default-log-at.js';
+import { defaultLogAtIsoForEdits } from './default-log-at';
 
 export function readSavingsEditorIntoPlan() {
   const host = document.getElementById('savings-editor-list');

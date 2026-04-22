@@ -19,7 +19,7 @@ import {
   renderInsightStrip,
   percentChange,
 } from './history-visuals.js';
-import { createMoneyFormatters, escapeHtml } from './utils.js';
+import { createMoneyFormatters, escapeHtml } from './utils';
 import { buildMonthCsv, buildMonthCheckpointPayload } from './monthly-export.js';
 
 const { moneyExact } = createMoneyFormatters();

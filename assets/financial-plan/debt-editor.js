@@ -3,10 +3,10 @@
  */
 
 import { PLAN, PLAN_DEFAULTS, DEFAULT_DEBT_APR_PCT } from './plan-data.js';
-import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils.js';
+import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils';
 import { appendDebtsEditorEmptyState, buildDebtsEditorThead, buildDebtRowTR } from './render-sections.js';
 import { normalizePaymentHistory, newPaymentId } from './persistence.js';
-import { defaultLogAtIsoForEdits } from './default-log-at.js';
+import { defaultLogAtIsoForEdits } from './default-log-at';
 
 export function readDebtsEditorIntoPlan() {
   const host = document.getElementById('debts-editor-list');

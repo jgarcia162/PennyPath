@@ -6,8 +6,8 @@ import {
   AI_PAYOFF_PLAN_CACHE_LS_KEY,
   AI_BILL_CALENDAR_CACHE_LS_KEY,
   AI_BILL_CALENDAR_COLUMNS_LS_KEY,
-} from './storage-keys.js';
-import { numOr } from './utils.js';
+} from './storage-keys';
+import { numOr } from './utils';
 
 const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
 const CLIENT_CAL_TIMEOUT_MS = 60000;

@@ -3,7 +3,7 @@
  * Last generated plan text is cached in localStorage; requests go to POST /api/financial-payoff.
  */
 
-import { AI_PAYOFF_PLAN_CACHE_LS_KEY } from './storage-keys.js';
+import { AI_PAYOFF_PLAN_CACHE_LS_KEY } from './storage-keys';
 
 const LS_KEY_CACHE = AI_PAYOFF_PLAN_CACHE_LS_KEY;
 

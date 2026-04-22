@@ -10,7 +10,7 @@ import {
   DEFAULT_SAVINGS_APY_PCT,
   DEMO_MODE_STORAGE_KEY,
 } from './plan-data.js';
-import { numOr } from './utils.js';
+import { numOr } from './utils';
 import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
 import { yyyyMmFromDate } from './monthly-activity.js';
 import { ID_GOAL_HYSA, ensureSavingsGoals, normalizeSavingsGoalRow } from './savings-goals.js';

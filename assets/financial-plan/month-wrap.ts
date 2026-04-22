@@ -1,53 +1,59 @@
 /**
  * Month wrap-up: archive working month, advance workingMonthYm, one-step undo.
+ *
+ * Converted from `month-wrap.js` with no logic changes.
  */
 
+import type { CheckInServiceApi, FinancialPlan, IsoDateTimeString, YyyyMm } from '../../types/index.js';
 import {
   PLAN,
   STORAGE_KEY,
   MONTH_WRAP_ROLLBACK_KEY,
   MONTH_WRAP_ARCHIVES_KEY,
 } from './plan-data.js';
-import {
-  applyPlanOverrides,
-  savePlanOverrides,
-  isFinancialPlanDemoMode,
-} from './persistence.js';
+import { applyPlanOverrides, savePlanOverrides, isFinancialPlanDemoMode } from './persistence.js';
 import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
 import { buildMonthCheckpointPayload } from './monthly-export.js';
 import { getWorkingMonthYm } from './plan-derived.js';
 import { monthLabel, yyyyMmFromDate } from './monthly-activity.js';
 
-function checkinStorageKey() {
-  return window.CheckInService && window.CheckInService.STORAGE_KEY
-    ? window.CheckInService.STORAGE_KEY
-    : 'financial-plan-v3-aggressive.checkins';
+function getCheckInService(): CheckInServiceApi | null {
+  const s = (window as any).CheckInService;
+  if (!s || typeof s !== 'object') return null;
+  if (typeof s.list !== 'function') return null;
+  return s as CheckInServiceApi;
 }
 
-function loadCheckinsList() {
+function checkinStorageKey(): string {
+  const svc = getCheckInService();
+  return svc && svc.STORAGE_KEY ? svc.STORAGE_KEY : 'financial-plan-v3-aggressive.checkins';
+}
+
+function loadCheckinsList(): unknown[] {
   try {
-    if (window.CheckInService && typeof window.CheckInService.list === 'function') {
-      return window.CheckInService.list();
+    const svc = getCheckInService();
+    if (svc && typeof svc.list === 'function') {
+      return svc.list();
     }
   } catch (e) {}
   return [];
 }
 
-/** @param {string} ym YYYY-MM */
-function nextYyyyYm(ym) {
+/** @param ym YYYY-MM */
+function nextYyyyYm(ym: string): YyyyMm {
   const p = String(ym).split('-');
   const y = Number(p[0]);
   const m = Number(p[1]);
   if (!Number.isFinite(y) || !Number.isFinite(m) || m < 1 || m > 12) {
-    return yyyyMmFromDate(new Date());
+    return yyyyMmFromDate(new Date()) as YyyyMm;
   }
   const d = new Date(y, m, 1);
-  return yyyyMmFromDate(d);
+  return yyyyMmFromDate(d) as YyyyMm;
 }
 
-function appendMonthArchive(checkpointObj) {
+function appendMonthArchive(checkpointObj: unknown): void {
   try {
-    let arr = [];
+    let arr: unknown[] = [];
     const raw = localStorage.getItem(MONTH_WRAP_ARCHIVES_KEY);
     if (raw) arr = JSON.parse(raw);
     if (!Array.isArray(arr)) arr = [];
@@ -57,7 +63,7 @@ function appendMonthArchive(checkpointObj) {
   } catch (e) {}
 }
 
-export function hasMonthWrapRollback() {
+export function hasMonthWrapRollback(): boolean {
   try {
     return !!localStorage.getItem(MONTH_WRAP_ROLLBACK_KEY);
   } catch (e) {
@@ -65,17 +71,26 @@ export function hasMonthWrapRollback() {
   }
 }
 
+export interface MonthWrapRollbackPayload {
+  version: 1;
+  balancesRaw: string;
+  checkinsRaw: string;
+  wrappedYm: YyyyMm;
+  nextWorkingYm: YyyyMm;
+  createdAt: IsoDateTimeString;
+}
+
 /**
- * @param {() => void} [render]
+ * @param render Optional re-render callback
  */
-export function wrapUpWorkingMonth(render) {
+export function wrapUpWorkingMonth(render?: () => void): void {
   if (isFinancialPlanDemoMode()) {
     window.alert('Turn off sample data in Settings before wrapping up a month.');
     return;
   }
   applyPlanOverrides();
-  syncLegacySavingsFromAccounts(PLAN);
-  const ym = getWorkingMonthYm(PLAN);
+  syncLegacySavingsFromAccounts(PLAN as unknown as FinancialPlan);
+  const ym = getWorkingMonthYm(PLAN as unknown as FinancialPlan) as YyyyMm;
   const nextYm = nextYyyyYm(ym);
   const ok = window.confirm(
     'Wrap up ' +
@@ -107,7 +122,7 @@ export function wrapUpWorkingMonth(render) {
     checkinsRaw = localStorage.getItem(checkinStorageKey()) || '[]';
   } catch (e) {}
 
-  const rollback = {
+  const rollback: MonthWrapRollbackPayload = {
     version: 1,
     balancesRaw: balancesRaw,
     checkinsRaw: checkinsRaw,
@@ -126,24 +141,24 @@ export function wrapUpWorkingMonth(render) {
   PLAN.workingMonthYm = nextYm;
   PLAN.dashboardViewMonthYm = '';
   savePlanOverrides();
-  syncLegacySavingsFromAccounts(PLAN);
+  syncLegacySavingsFromAccounts(PLAN as unknown as FinancialPlan);
   if (typeof render === 'function') render();
 }
 
 /**
- * @param {() => void} [render]
+ * @param render Optional re-render callback
  */
-export function undoLastMonthWrap(render) {
+export function undoLastMonthWrap(render?: () => void): void {
   if (isFinancialPlanDemoMode()) {
     window.alert('Turn off sample data in Settings before undoing.');
     return;
   }
-  let raw = null;
+  let raw: string | null = null;
   try {
     raw = localStorage.getItem(MONTH_WRAP_ROLLBACK_KEY);
   } catch (e) {}
   if (!raw) return;
-  let rb;
+  let rb: any;
   try {
     rb = JSON.parse(raw);
   } catch (e) {
@@ -161,7 +176,10 @@ export function undoLastMonthWrap(render) {
 
   try {
     localStorage.setItem(STORAGE_KEY, rb.balancesRaw);
-    localStorage.setItem(checkinStorageKey(), typeof rb.checkinsRaw === 'string' ? rb.checkinsRaw : '[]');
+    localStorage.setItem(
+      checkinStorageKey(),
+      typeof rb.checkinsRaw === 'string' ? rb.checkinsRaw : '[]'
+    );
   } catch (e) {
     window.alert('Could not restore saved data.');
     return;
@@ -171,21 +189,18 @@ export function undoLastMonthWrap(render) {
   } catch (e) {}
 
   applyPlanOverrides();
-  syncLegacySavingsFromAccounts(PLAN);
+  syncLegacySavingsFromAccounts(PLAN as unknown as FinancialPlan);
   if (typeof render === 'function') render();
 }
 
-/**
- * @param {() => void} render
- */
 let dashboardMonthSelectWired = false;
 
 /**
  * Month dropdown: persist `dashboardViewMonthYm` and re-render (default log dates follow selection).
- * @param {() => void} render
+ * @param render
  */
-export function wireDashboardMonthSelector(render) {
-  const sel = document.getElementById('dashboard-view-month');
+export function wireDashboardMonthSelector(render: () => void): void {
+  const sel = document.getElementById('dashboard-view-month') as HTMLSelectElement | null;
   if (!sel || dashboardMonthSelectWired) return;
   dashboardMonthSelectWired = true;
   sel.addEventListener('change', function () {
@@ -196,11 +211,11 @@ export function wireDashboardMonthSelector(render) {
   });
 }
 
-export function wireMonthWrap(render) {
-  const wrapBtn = document.getElementById('btn-month-wrap-up');
-  const undoBtn = document.getElementById('btn-month-wrap-undo');
+export function wireMonthWrap(render: () => void): void {
+  const wrapBtn = document.getElementById('btn-month-wrap-up') as HTMLButtonElement | null;
+  const undoBtn = document.getElementById('btn-month-wrap-undo') as HTMLButtonElement | null;
 
-  function refreshUndo() {
+  function refreshUndo(): void {
     if (undoBtn) undoBtn.disabled = !hasMonthWrapRollback();
   }
 
@@ -222,3 +237,4 @@ export function wireMonthWrap(render) {
   }
   refreshUndo();
 }
+
