@@ -5,7 +5,7 @@
 import type { Debt, PaymentHistoryItem } from '../../types/index.js';
 import { PLAN, PLAN_DEFAULTS, DEFAULT_DEBT_APR_PCT } from './plan-data';
 import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils';
-import { appendDebtsEditorEmptyState, buildDebtsEditorThead, buildDebtRowTR } from './render-sections.js';
+import { appendDebtsEditorEmptyState, buildDebtsEditorThead, buildDebtRowTR } from './render-sections';
 import { normalizePaymentHistory, newPaymentId } from './persistence';
 import { defaultLogAtIsoForEdits } from './default-log-at';
 

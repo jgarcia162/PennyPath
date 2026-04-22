@@ -233,7 +233,6 @@ export type SavingsGoalId =
   | typeof ID_GOAL_EFUND
   | typeof ID_GOAL_PERSONAL
   | (string & {});
-
 export interface SavingsGoalSummary {
   id: string;
   name: string;

@@ -16,7 +16,7 @@ export function parseMoneyInput(raw: unknown): number | null {
 }
 
 /** Coerce stored/API values; keeps 0 valid (e.g. 0% APR). */
-export function numOr(raw: unknown, fallback: number): number {
+export function numOr<TFallback extends number>(raw: unknown, fallback: TFallback): number | TFallback {
   const v = Number(raw);
   return Number.isFinite(v) ? v : fallback;
 }
