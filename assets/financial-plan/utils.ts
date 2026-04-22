@@ -86,10 +86,6 @@ function toStrPreserveFalsy(v: unknown): string {
   return v == null ? '' : String(v);
 }
 
-function toStrPreserveFalsy(v: unknown): string {
-  return v == null ? '' : String(v);
-}
-
 export function escapeHtml(s: unknown): string {
   return toStrPreserveFalsy(s)
     .replace(/&/g, '&amp;')

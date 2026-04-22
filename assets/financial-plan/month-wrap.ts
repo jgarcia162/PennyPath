@@ -38,27 +38,6 @@ function asFinancialPlan(p: unknown): FinancialPlan {
   return o as FinancialPlan;
 }
 
-function isYyyyMm(s: unknown): s is YyyyMm {
-  return typeof s === 'string' && /^\d{4}-\d{2}$/.test(s);
-}
-
-function asFinancialPlan(p: unknown): FinancialPlan {
-  if (!p || typeof p !== 'object') {
-    throw new Error('PLAN is missing');
-  }
-  const o = p as any;
-  if (!o.phase1 || typeof o.phase1 !== 'object') {
-    throw new Error('PLAN.phase1 is missing');
-  }
-  if (!Array.isArray(o.debts)) {
-    throw new Error('PLAN.debts is missing');
-  }
-  if (!Array.isArray(o.savingsAccounts)) {
-    throw new Error('PLAN.savingsAccounts is missing');
-  }
-  return o as FinancialPlan;
-}
-
 function getCheckInService(): CheckInServiceApi | null {
   const s = (window as any).CheckInService;
   if (!s || typeof s !== 'object') return null;
