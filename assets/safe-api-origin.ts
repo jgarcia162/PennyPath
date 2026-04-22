@@ -8,7 +8,7 @@
 
   var DEFAULT_DEV_ORIGIN = 'http://127.0.0.1:8787';
 
-  function normalizeOrigin(s, base) {
+  function normalizeOrigin(s: unknown, base?: string): string | null {
     try {
       return new URL(String(s).trim(), base || DEFAULT_DEV_ORIGIN).origin;
     } catch (e) {
@@ -16,7 +16,7 @@
     }
   }
 
-  function isLoopbackOrigin(origin) {
+  function isLoopbackOrigin(origin: string): boolean {
     try {
       var u = new URL(origin);
       var h = u.hostname.toLowerCase();
@@ -26,17 +26,17 @@
     }
   }
 
-  function sameDocumentOrigin() {
+  function sameDocumentOrigin(): string | null {
     try {
-      if (global.location && /^https?:$/.test(global.location.protocol)) {
-        return normalizeOrigin(global.location.href);
+      if ((global as any).location && /^https?:$/.test((global as any).location.protocol)) {
+        return normalizeOrigin((global as any).location.href);
       }
     } catch (e) {}
     return null;
   }
 
-  function isExplicitlyListed(origin) {
-    var extra = global.__PENNYPATH_ALLOWED_API_ORIGINS__;
+  function isExplicitlyListed(origin: string): boolean {
+    var extra = (global as any).__PENNYPATH_ALLOWED_API_ORIGINS__;
     if (!Array.isArray(extra)) return false;
     for (var i = 0; i < extra.length; i++) {
       var o = extra[i] != null ? normalizeOrigin(String(extra[i])) : null;
@@ -45,7 +45,7 @@
     return false;
   }
 
-  function isApprovedOrigin(candidate, same) {
+  function isApprovedOrigin(candidate: string | null, same: string | null): boolean {
     if (!candidate) return false;
     if (same && candidate === same) return true;
     if (isLoopbackOrigin(candidate)) return true;
@@ -53,14 +53,14 @@
     return false;
   }
 
-  function getSafeApiBase(lsKey) {
+  function getSafeApiBase(lsKey?: string): string {
     var key = lsKey || 'real-estate-plan.apiBase';
     var same = sameDocumentOrigin();
     var fallback = (same || DEFAULT_DEV_ORIGIN).replace(/\/$/, '');
 
     var custom = null;
     try {
-      if (global.localStorage) custom = global.localStorage.getItem(key);
+      if ((global as any).localStorage) custom = (global as any).localStorage.getItem(key);
     } catch (e) {}
 
     if (!custom || !String(custom).trim()) {
@@ -76,7 +76,7 @@
     return fallback;
   }
 
-  global.PennypathApiOrigin = {
+  (global as any).PennypathApiOrigin = {
     getSafeApiBase: getSafeApiBase,
   };
 })(typeof globalThis !== 'undefined' ? globalThis : window);

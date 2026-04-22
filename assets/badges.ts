@@ -1,11 +1,12 @@
 (function () {
   'use strict';
 
-  function clamp0(n) {
-    return Math.max(0, Number.isFinite(n) ? n : 0);
+  function clamp0(n: unknown): number {
+    const v = Number(n);
+    return Math.max(0, Number.isFinite(v) ? v : 0);
   }
 
-  function todayYyyyMmDd() {
+  function todayYyyyMmDd(): string {
     const d = new Date();
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
@@ -13,7 +14,7 @@
     return yyyy + '-' + mm + '-' + dd;
   }
 
-  function debtStats(plan) {
+  function debtStats(plan: any): { paidOff: number; remaining: number; original: number; pctEliminated: number } {
     const debts = Array.isArray(plan && plan.debts) ? plan.debts : [];
     const paidOff = debts.reduce(function (sum, d) { return sum + clamp0(d && d.paidOff); }, 0);
     const remaining = debts.reduce(function (sum, d) { return sum + clamp0(d && d.current); }, 0);
@@ -22,12 +23,12 @@
     return { paidOff: paidOff, remaining: remaining, original: original, pctEliminated: pctEliminated };
   }
 
-  function checkinCount(checkins) {
+  function checkinCount(checkins: unknown): number {
     const arr = Array.isArray(checkins) ? checkins : [];
     return arr.length;
   }
 
-  function sumTowardGoalHysa(plan) {
+  function sumTowardGoalHysa(plan: any): number {
     const accs = Array.isArray(plan && plan.savingsAccounts) ? plan.savingsAccounts : [];
     var sum = 0;
     accs.forEach(function (a) {
@@ -46,7 +47,7 @@
    * Pure badge evaluation. No IO. No mutation.
    * Returns [{ id, earned, unlockedOn: null }]
    */
-  function evaluateBadges(plan, checkins) {
+  function evaluateBadges(plan: any, checkins: unknown): Array<{ id: string; earned: boolean; unlockedOn: null }> {
     const now = todayYyyyMmDd(); // returned for convenience, but caller controls persistence
     const ds = debtStats(plan || {});
     const hysa = clamp0(plan && plan.hysaBalance);
@@ -80,7 +81,7 @@
     });
   }
 
-  window.Badges = {
+  (window as any).Badges = {
     evaluateBadges: evaluateBadges,
   };
 })();

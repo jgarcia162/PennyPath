@@ -11,7 +11,7 @@ Thanks for helping improve this project. These guidelines keep the codebase appr
 ## JavaScript
 
 - **ES modules** live under `assets/financial-plan/`. Use `import` / `export`; no bundler is required for local dev.
-- **Classic scripts** (`assets/theme-service.js`, `assets/checkin-service.js`, `assets/site-settings.js`, …) attach to `window` and load **before** modules that depend on them. If you add a new global, document it in `docs/ARCHITECTURE.md` and load it in HTML **before** the module that uses it.
+- **Classic scripts** (`assets/theme-service.ts`, `assets/checkin-service.ts`, `assets/site-settings.ts`, …) attach to `window` and load **before** modules that depend on them. If you add a new global, document it in `docs/ARCHITECTURE.md` and load it in HTML **before** the module that uses it.
 - **Storage keys** are centralized in `plan-data.js` (`STORAGE_KEY`, `DEMO_MODE_STORAGE_KEY`, …). Avoid duplicating string literals; if you must (e.g. non-module script), add a comment pointing to the canonical key.
 
 ## HTML & CSS
