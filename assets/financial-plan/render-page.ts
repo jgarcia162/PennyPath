@@ -2,6 +2,7 @@
  * Main page render: binds PLAN + derived metrics to DOM ids.
  */
 
+import type { CheckInServiceApi, DerivedPlanMetrics, SavingsGoal, YyyyMm } from '../../types/index.js';
 import { PLAN } from './plan-data';
 import { derived, getWorkingMonthYm } from './plan-derived';
 import { collectDashboardMonthOptions, monthLabel } from './monthly-activity';
@@ -14,7 +15,7 @@ import {
   renderGoal3SavingsAccounts,
   renderSavingsEditor,
   renderSavingsGoalsStack,
-} from './render-sections.js';
+} from './render-sections';
 import { ensureSavingsGoals } from './savings-goals';
 import { renderPayoffTimeline, renderBadges } from './features.js';
 import { renderCheckIns } from './checkin-log';
@@ -28,19 +29,19 @@ import { hasMonthWrapRollback } from './month-wrap';
 const { money, moneyExact } = createMoneyFormatters();
 
 /** Mirror Goal 2 / Goal 3 cards on the Dashboard (`id` → `dash-${id}`). */
-function setTextDash(id, text) {
+function setTextDash(id: string, text: string): void {
   setText(id, text);
   const dash = document.getElementById('dash-' + id);
   if (dash) dash.textContent = text;
 }
 
-function setHtmlDash(id, html) {
+function setHtmlDash(id: string, html: string): void {
   setHtml(id, html);
   const dash = document.getElementById('dash-' + id);
   if (dash) dash.innerHTML = html;
 }
 
-function setProgWidthDash(id, pct) {
+function setProgWidthDash(id: string, pct: number): void {
   const w = (Number.isFinite(pct) ? Math.min(100, pct).toFixed(2) : String(pct)) + '%';
   const a = document.getElementById(id);
   const b = document.getElementById('dash-' + id);
@@ -48,28 +49,34 @@ function setProgWidthDash(id, pct) {
   if (b) b.style.width = w;
 }
 
-function setSectionHiddenDash(id, hidden) {
+function setSectionHiddenDash(id: string, hidden: boolean): void {
   const a = document.getElementById(id);
   const b = document.getElementById('dash-' + id);
   if (a) a.hidden = hidden;
   if (b) b.hidden = hidden;
 }
 
-function loadCheckinsForMonthPicker() {
+function getCheckInService(): CheckInServiceApi | null {
+  const s = (window as any).CheckInService;
+  if (!s || typeof s !== 'object') return null;
+  if (typeof (s as any).list !== 'function') return null;
+  return s as CheckInServiceApi;
+}
+
+function loadCheckinsForMonthPicker(): unknown[] {
   try {
-    if (window.CheckInService && typeof window.CheckInService.list === 'function') {
-      return window.CheckInService.list();
-    }
+    const svc = getCheckInService();
+    if (svc) return svc.list();
   } catch (e) {}
   return [];
 }
 
-function syncDashboardMonthSelect() {
-  const sel = document.getElementById('dashboard-view-month');
+function syncDashboardMonthSelect(): void {
+  const sel = document.getElementById('dashboard-view-month') as HTMLSelectElement | null;
   if (!sel) return;
   const checkins = loadCheckinsForMonthPicker();
-  const workingYm = getWorkingMonthYm(PLAN);
-  const months = collectDashboardMonthOptions(PLAN, checkins, workingYm);
+  const workingYm = getWorkingMonthYm(PLAN) as unknown as string;
+  const months = collectDashboardMonthOptions(PLAN as any, checkins, workingYm);
   const explicit =
     typeof PLAN.dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test(PLAN.dashboardViewMonthYm)
       ? PLAN.dashboardViewMonthYm
@@ -94,9 +101,9 @@ function syncDashboardMonthSelect() {
   sel.value = explicit;
 }
 
-function renderSavingsGoalsTargetEditor() {
+function renderSavingsGoalsTargetEditor(): void {
   ensureSavingsGoals(PLAN);
-  const host = document.getElementById('savings-goals-target-editor');
+  const host = document.getElementById('savings-goals-target-editor') as HTMLElement | null;
   if (!host) return;
   host.innerHTML = '';
   const table = document.createElement('table');
@@ -124,7 +131,7 @@ function renderSavingsGoalsTargetEditor() {
   thead.appendChild(trh);
   table.appendChild(thead);
   const tbody = document.createElement('tbody');
-  (PLAN.savingsGoals || []).forEach(function (g) {
+  ((PLAN as any).savingsGoals || []).forEach(function (g: SavingsGoal) {
     const row = document.createElement('tr');
     row.className = 'savings-goal-target-row';
     row.setAttribute('data-goal-id', String(g.id));
@@ -157,7 +164,7 @@ function renderSavingsGoalsTargetEditor() {
       typeof g.goalByYm === 'string' && /^\d{4}-\d{2}$/.test(g.goalByYm.trim())
         ? g.goalByYm.trim()
         : '';
-    byIn.value = ym;
+    byIn.value = ym as unknown as string;
     tdBy.appendChild(byIn);
 
     const tdRm = document.createElement('td');
@@ -180,7 +187,7 @@ function renderSavingsGoalsTargetEditor() {
   host.appendChild(table);
 }
 
-function monthlyDebtBarHint(d) {
+function monthlyDebtBarHint(d: DerivedPlanMetrics): string {
   const view = d.dashboardViewMonthLabel;
   if (d.viewingDifferentFromWorking) {
     return (
@@ -201,8 +208,8 @@ function monthlyDebtBarHint(d) {
 /**
  * @param {{ skipDebtsEditor?: boolean }} [opts] — When true, keeps the Goal 2 debts table DOM (draft row / focus) and only refreshes derived totals elsewhere.
  */
-export function render(opts) {
-  const d = derived(PLAN);
+export function render(opts?: { skipDebtsEditor?: boolean }): void {
+  const d = derived(PLAN) as DerivedPlanMetrics;
   syncDashboardMonthSelect();
   const noteWorking = document.getElementById('dashboard-view-working-note');
   if (noteWorking) {
@@ -211,7 +218,7 @@ export function render(opts) {
       ? 'Wrap-up month: ' + d.workingMonthLabel + '. New payments and deposits use dates in ' + d.dashboardViewMonthLabel + ' while this view is selected.'
       : '';
   }
-  const undoWrap = document.getElementById('btn-month-wrap-undo');
+  const undoWrap = document.getElementById('btn-month-wrap-undo') as HTMLButtonElement | null;
   if (undoWrap) undoWrap.disabled = !hasMonthWrapRollback();
   const hasData = hasBalanceDataForProjections(PLAN);
   const hasDebtBal = hasDebtBalanceForInterest(PLAN);
