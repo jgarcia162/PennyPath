@@ -6,18 +6,18 @@
  */
 
 import { PLAN } from './plan-data';
-import { render as renderPlanPage } from './render-page.js';
-import { wireAiPayoffPlan } from './ai-payoff-plan-wire.js';
-import { wireBillPaymentCalendar } from './ai-bill-calendar-wire.js';
+import { render as renderPlanPage } from './render-page';
+import { wireAiPayoffPlan } from './ai-payoff-plan-wire';
+import { wireBillPaymentCalendar } from './ai-bill-calendar-wire';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { applyPlanOverrides, isFinancialPlanDemoMode } from './persistence';
 import {
   initEditorSnapshots,
   wireGoal2DebtEditor,
   wireGoal3SavingsEditor,
-} from './goal-editors-wire.js';
-import { wirePlanTabs } from './tabs-wire.js';
-import { wireGoalTargetsEditor } from './goal-targets-wire.js';
+} from './goal-editors-wire';
+import { wirePlanTabs } from './tabs-wire';
+import { wireGoalTargetsEditor } from './goal-targets-wire';
 import { wireCheckIns } from './checkin-log';
 import { wireBadges, renderBadges } from './features.js';
 import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage';

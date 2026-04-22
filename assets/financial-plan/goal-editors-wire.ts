@@ -2,6 +2,7 @@
  * Goal 2 (debts) and Goal 3 (savings) editors: save / undo / reset, separate last-saved snapshots.
  */
 
+import type { Debt, SavingsAccount } from '../../types/index.js';
 import { PLAN, PLAN_DEFAULTS } from './plan-data';
 import { applyPlanOverrides, savePlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
@@ -20,21 +21,30 @@ import {
   removeSavingsDeposit,
 } from './savings-editor';
 
-let lastSavedDebts = null;
-let lastSavedSavings = null;
+let lastSavedDebts: { debts: Debt[] } | null = null;
+let lastSavedSavings: { savingsAccounts: SavingsAccount[] } | null = null;
 
-function wireHoldToConfirm(rootEl, buttonSelector, opts) {
+function wireHoldToConfirm(
+  rootEl: HTMLElement | null,
+  buttonSelector: string,
+  opts: {
+    holdMs?: number;
+    confirmMessage?: string | ((btn: HTMLElement) => string);
+    onConfirm?: (btn: HTMLElement) => void;
+  }
+): void {
   if (!rootEl) return;
   const holdMs = (opts && Number.isFinite(opts.holdMs) ? opts.holdMs : 2000) || 2000;
   const confirmMessage = (opts && opts.confirmMessage) || 'Delete this item?';
   const onConfirm = (opts && opts.onConfirm) || function () {};
 
-  function getBtnFromEventTarget(t) {
-    if (!t || !t.closest) return null;
-    return t.closest(buttonSelector);
+  function getBtnFromEventTarget(t: unknown): HTMLElement | null {
+    const el = t as HTMLElement | null;
+    if (!el || typeof (el as any).closest !== 'function') return null;
+    return el.closest(buttonSelector) as HTMLElement | null;
   }
 
-  function clearHold(btn) {
+  function clearHold(btn: any): void {
     if (!btn) return;
     const timer = btn._holdDeleteTimer;
     if (timer) clearTimeout(timer);
@@ -49,7 +59,7 @@ function wireHoldToConfirm(rootEl, buttonSelector, opts) {
     if (e.button != null && e.button !== 0) return;
     clearHold(btn);
     btn.classList.add('is-hold-armed');
-    btn._holdDeleteTimer = setTimeout(function () {
+    (btn as any)._holdDeleteTimer = setTimeout(function () {
       clearHold(btn);
       const msg = typeof confirmMessage === 'function' ? confirmMessage(btn) : confirmMessage;
       const ok = window.confirm(String(msg || 'Delete this item?'));
@@ -78,8 +88,8 @@ function wireHoldToConfirm(rootEl, buttonSelector, opts) {
   });
 }
 
-function setSaveNeeds(saveBtnId, needsSave) {
-  const saveBtn = document.getElementById(saveBtnId);
+function setSaveNeeds(saveBtnId: string, needsSave: boolean): void {
+  const saveBtn = document.getElementById(saveBtnId) as HTMLButtonElement | null;
   if (!saveBtn) return;
   saveBtn.disabled = !needsSave;
 }
@@ -88,8 +98,8 @@ function showGoal2Saved() {
   const st = document.getElementById('goal2-save-status');
   if (!st) return;
   st.textContent = 'Saved in this browser';
-  clearTimeout(showGoal2Saved._t);
-  showGoal2Saved._t = setTimeout(function () {
+  clearTimeout((showGoal2Saved as any)._t);
+  (showGoal2Saved as any)._t = setTimeout(function () {
     if (st) st.textContent = '';
   }, 1800);
 }
@@ -98,8 +108,8 @@ function showGoal3Saved() {
   const st = document.getElementById('goal3-save-status');
   if (!st) return;
   st.textContent = 'Saved in this browser';
-  clearTimeout(showGoal3Saved._t);
-  showGoal3Saved._t = setTimeout(function () {
+  clearTimeout((showGoal3Saved as any)._t);
+  (showGoal3Saved as any)._t = setTimeout(function () {
     if (st) st.textContent = '';
   }, 1800);
 }
@@ -119,11 +129,11 @@ function showGoal3Unsaved() {
 }
 
 export function wireGoal2DebtEditor(render) {
-  const sortSel = document.getElementById('debts-editor-sort');
+  const sortSel = document.getElementById('debts-editor-sort') as HTMLSelectElement | null;
   if (sortSel) {
     sortSel.addEventListener('change', function () {
       readDebtsEditorIntoPlan();
-      PLAN.debtsEditorSort = sortSel.value;
+      (PLAN as any).debtsEditorSort = sortSel.value;
       savePlanOverrides();
       render();
       lastSavedDebts = cloneDebtsSnapshot();
@@ -133,11 +143,11 @@ export function wireGoal2DebtEditor(render) {
     });
   }
 
-  const progressSortSel = document.getElementById('debts-progress-sort');
+  const progressSortSel = document.getElementById('debts-progress-sort') as HTMLSelectElement | null;
   if (progressSortSel) {
     progressSortSel.addEventListener('change', function () {
       readDebtsEditorIntoPlan();
-      PLAN.debtsProgressSort = progressSortSel.value;
+      (PLAN as any).debtsProgressSort = progressSortSel.value;
       savePlanOverrides();
       render();
       lastSavedDebts = cloneDebtsSnapshot();
@@ -156,7 +166,7 @@ export function wireGoal2DebtEditor(render) {
     }, 90);
   }
 
-  const addBtn = document.getElementById('btn-add-debt');
+  const addBtn = document.getElementById('btn-add-debt') as HTMLButtonElement | null;
   if (addBtn) {
     addBtn.addEventListener('click', function () {
       addDebtRowDraft(showGoal2Unsaved);
@@ -165,22 +175,22 @@ export function wireGoal2DebtEditor(render) {
     });
   }
 
-  const debtsHost = document.getElementById('debts-editor-list');
+  const debtsHost = document.getElementById('debts-editor-list') as HTMLElement | null;
   if (debtsHost) {
-    function onDebtRowFieldActivity(e) {
-      const t = e.target;
-      if (!t || !t.closest || !t.matches) return;
+    function onDebtRowFieldActivity(e: Event): void {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function' || typeof (t as any).matches !== 'function') return;
       const row = t.closest('.debt-row');
       if (!row || !debtsHost.contains(row)) return;
-      if (!t.matches('input, textarea, select')) return;
+      if (!(t as any).matches('input, textarea, select')) return;
       showGoal2Unsaved();
       scheduleDebtsDraftSyncToPlanAndRender();
     }
     debtsHost.addEventListener('input', onDebtRowFieldActivity);
     debtsHost.addEventListener('change', onDebtRowFieldActivity);
     debtsHost.addEventListener('click', function (e) {
-      const t = e.target;
-      if (!t || !t.getAttribute) return;
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.getAttribute !== 'function') return;
       const action = t.getAttribute('data-action');
       if (action === 'quick-payment') {
         e.preventDefault();
@@ -200,7 +210,7 @@ export function wireGoal2DebtEditor(render) {
       holdMs: 2000,
       confirmMessage: function (btn) {
         const row = btn.closest('.debt-row');
-        const nameEl = row ? row.querySelector('input[data-field="name"]') : null;
+        const nameEl = row ? (row.querySelector('input[data-field="name"]') as HTMLInputElement | null) : null;
         const name = nameEl ? String(nameEl.value || '').trim() : '';
         return 'Delete this debt' + (name ? ' (“' + name + '”)' : '') + '?\n\nThis removes the row from the draft. Click Save to persist.';
       },
@@ -252,8 +262,8 @@ export function wireGoal2DebtEditor(render) {
       render();
       const st = document.getElementById('goal2-save-status');
       if (st) st.textContent = 'Undid changes (not saved)';
-      clearTimeout(wireGoal2DebtEditor._t);
-      wireGoal2DebtEditor._t = setTimeout(function () {
+      clearTimeout((wireGoal2DebtEditor as any)._t);
+      (wireGoal2DebtEditor as any)._t = setTimeout(function () {
         if (st) st.textContent = '';
       }, 2200);
     });
@@ -269,6 +279,12 @@ export function wireGoal2DebtEditor(render) {
             name: d.name,
             current: d.current,
             paidOff: d.paidOff,
+            aprPct: Number.isFinite((d as any).aprPct) ? Number((d as any).aprPct) : 0,
+            deferredAmount: Number.isFinite((d as any).deferredAmount) ? Number((d as any).deferredAmount) : 0,
+            deferredExpiresOn: typeof (d as any).deferredExpiresOn === 'string' ? (d as any).deferredExpiresOn : '',
+            deferredMonthsRemaining: Number.isFinite((d as any).deferredMonthsRemaining)
+              ? Math.max(0, Math.floor(Number((d as any).deferredMonthsRemaining)))
+              : 0,
             paymentHistory: [],
           };
         }),
@@ -276,8 +292,8 @@ export function wireGoal2DebtEditor(render) {
       showGoal2Unsaved();
       const st = document.getElementById('goal2-save-status');
       if (st) st.textContent = 'Reset draft (click Save to apply)';
-      clearTimeout(wireGoal2DebtEditor._t2);
-      wireGoal2DebtEditor._t2 = setTimeout(function () {
+      clearTimeout((wireGoal2DebtEditor as any)._t2);
+      (wireGoal2DebtEditor as any)._t2 = setTimeout(function () {
         if (st) st.textContent = '';
       }, 2400);
     });
@@ -287,22 +303,22 @@ export function wireGoal2DebtEditor(render) {
 }
 
 export function wireGoal3SavingsEditor(render) {
-  const savingsHost = document.getElementById('savings-editor-list');
+  const savingsHost = document.getElementById('savings-editor-list') as HTMLElement | null;
   if (savingsHost) {
-    function onSavingsFieldActivity(e) {
-      const t = e.target;
-      if (!t || !t.closest || !t.matches) return;
+    function onSavingsFieldActivity(e: Event): void {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function' || typeof (t as any).matches !== 'function') return;
       const row = t.closest('.savings-row');
       if (!row || !savingsHost.contains(row)) return;
-      if (!t.matches('input, textarea, select')) return;
+      if (!(t as any).matches('input, textarea, select')) return;
       showGoal3Unsaved();
     }
     savingsHost.addEventListener('input', onSavingsFieldActivity);
     savingsHost.addEventListener('change', onSavingsFieldActivity);
 
     savingsHost.addEventListener('click', function (e) {
-      const t = e.target;
-      if (!t || !t.getAttribute) return;
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.getAttribute !== 'function') return;
       const action = t.getAttribute('data-action');
       if (action === 'quick-deposit') {
         e.preventDefault();
@@ -322,7 +338,7 @@ export function wireGoal3SavingsEditor(render) {
       holdMs: 2000,
       confirmMessage: function (btn) {
         const row = btn.closest('.savings-row');
-        const nameEl = row ? row.querySelector('input[data-field="name"]') : null;
+        const nameEl = row ? (row.querySelector('input[data-field="name"]') as HTMLInputElement | null) : null;
         const name = nameEl ? String(nameEl.value || '').trim() : '';
         return 'Delete this savings account' + (name ? ' (“' + name + '”)' : '') + '?\n\nThis removes the row from the draft. Click Save to persist.';
       },
@@ -334,14 +350,14 @@ export function wireGoal3SavingsEditor(render) {
     });
   }
 
-  const addBtn = document.getElementById('btn-add-savings');
+  const addBtn = document.getElementById('btn-add-savings') as HTMLButtonElement | null;
   if (addBtn) {
     addBtn.addEventListener('click', function () {
       addSavingsRowDraft(showGoal3Unsaved);
     });
   }
 
-  const goal3Host = document.getElementById('goal3-savings');
+  const goal3Host = document.getElementById('goal3-savings') as HTMLElement | null;
   if (goal3Host) {
     wireHoldToConfirm(goal3Host, '.goal3-remove-deposit', {
       holdMs: 2000,
@@ -358,7 +374,7 @@ export function wireGoal3SavingsEditor(render) {
     });
   }
 
-  const saveBtn = document.getElementById('btn-save-goal3-savings');
+  const saveBtn = document.getElementById('btn-save-goal3-savings') as HTMLButtonElement | null;
   if (saveBtn) {
     saveBtn.addEventListener('click', function () {
       readSavingsEditorIntoPlan();
@@ -371,7 +387,7 @@ export function wireGoal3SavingsEditor(render) {
     });
   }
 
-  const undoBtn = document.getElementById('btn-undo-goal3-savings');
+  const undoBtn = document.getElementById('btn-undo-goal3-savings') as HTMLButtonElement | null;
   if (undoBtn) {
     undoBtn.addEventListener('click', function () {
       if (!lastSavedSavings) return;
@@ -382,8 +398,8 @@ export function wireGoal3SavingsEditor(render) {
       render();
       const st = document.getElementById('goal3-save-status');
       if (st) st.textContent = 'Undid changes (not saved)';
-      clearTimeout(wireGoal3SavingsEditor._t);
-      wireGoal3SavingsEditor._t = setTimeout(function () {
+      clearTimeout((wireGoal3SavingsEditor as any)._t);
+      (wireGoal3SavingsEditor as any)._t = setTimeout(function () {
         if (st) st.textContent = '';
       }, 2200);
     });
@@ -396,8 +412,8 @@ export function wireGoal3SavingsEditor(render) {
       showGoal3Unsaved();
       const st = document.getElementById('goal3-save-status');
       if (st) st.textContent = 'Reset draft (click Save to apply)';
-      clearTimeout(wireGoal3SavingsEditor._t2);
-      wireGoal3SavingsEditor._t2 = setTimeout(function () {
+      clearTimeout((wireGoal3SavingsEditor as any)._t2);
+      (wireGoal3SavingsEditor as any)._t2 = setTimeout(function () {
         if (st) st.textContent = '';
       }, 2400);
     });
@@ -436,15 +452,15 @@ function unlockBodyScrollForGoalDialog() {
 }
 
 /** Centered modal editors (native `<dialog>` + `showModal`). */
-export function wireGoalEditorDialogs() {
+export function wireGoalEditorDialogs(): void {
   ['goal2-editor-dialog', 'goal3-editor-dialog'].forEach(function (id) {
-    const d = document.getElementById(id);
+    const d = document.getElementById(id) as HTMLDialogElement | null;
     if (d && typeof d.close === 'function') d.close();
   });
 
-  function bindDialog(dialogId, btnId) {
-    const dlg = document.getElementById(dialogId);
-    const btn = document.getElementById(btnId);
+  function bindDialog(dialogId: string, btnId: string): void {
+    const dlg = document.getElementById(dialogId) as HTMLDialogElement | null;
+    const btn = document.getElementById(btnId) as HTMLElement | null;
     if (!dlg || !btn) return;
 
     btn.addEventListener('click', function () {
@@ -471,8 +487,9 @@ export function wireGoalEditorDialogs() {
         dlg.close();
         return;
       }
-      const t = e.target;
-      const el = t && t.nodeType === Node.TEXT_NODE ? t.parentElement : t;
+      const t = e.target as Node | null;
+      const el =
+        t && (t as any).nodeType === Node.TEXT_NODE ? (t as any).parentElement : (t as any as HTMLElement | null);
       if (el && typeof el.closest === 'function' && el.closest('[data-close-goal-dialog]')) {
         dlg.close();
       }

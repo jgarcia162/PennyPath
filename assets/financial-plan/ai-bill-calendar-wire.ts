@@ -2,6 +2,7 @@
  * CSV bills + AI-generated payment calendar (bills + debt payment dates as JSON from Gemini).
  */
 
+import type { FinancialCalendarResponse, FinancialPlan } from '../../types/index.js';
 import {
   AI_PAYOFF_PLAN_CACHE_LS_KEY,
   AI_BILL_CALENDAR_CACHE_LS_KEY,
@@ -15,10 +16,10 @@ const CLIENT_CAL_TIMEOUT_MS = 60000;
 function getApiBase() {
   if (
     typeof window !== 'undefined' &&
-    window.PennypathApiOrigin &&
-    typeof window.PennypathApiOrigin.getSafeApiBase === 'function'
+    (window as any).PennypathApiOrigin &&
+    typeof (window as any).PennypathApiOrigin.getSafeApiBase === 'function'
   ) {
-    return window.PennypathApiOrigin.getSafeApiBase(LS_API_BASE_KEY);
+    return (window as any).PennypathApiOrigin.getSafeApiBase(LS_API_BASE_KEY);
   }
   try {
     if (
@@ -614,14 +615,14 @@ function shareTextIfSupported(text) {
 /**
  * @param {object} plan - PLAN
  */
-export function wireBillPaymentCalendar(plan) {
-  const fileInput = document.getElementById('ai-bill-cal-file');
-  const btn = document.getElementById('btn-ai-bill-cal-generate');
-  const statusEl = document.getElementById('ai-bill-cal-status');
-  const host = document.getElementById('ai-bill-cal-host');
-  const colName = document.getElementById('ai-bill-cal-col-name');
-  const colAmount = document.getElementById('ai-bill-cal-col-amount');
-  const colDue = document.getElementById('ai-bill-cal-col-due');
+export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlanChange: () => void } | void {
+  const fileInput = document.getElementById('ai-bill-cal-file') as HTMLInputElement | null;
+  const btn = document.getElementById('btn-ai-bill-cal-generate') as HTMLButtonElement | null;
+  const statusEl = document.getElementById('ai-bill-cal-status') as HTMLElement | null;
+  const host = document.getElementById('ai-bill-cal-host') as HTMLElement | null;
+  const colName = document.getElementById('ai-bill-cal-col-name') as HTMLInputElement | null;
+  const colAmount = document.getElementById('ai-bill-cal-col-amount') as HTMLInputElement | null;
+  const colDue = document.getElementById('ai-bill-cal-col-due') as HTMLInputElement | null;
   if (!fileInput || !btn || !host || !colName || !colAmount || !colDue) return;
 
   let parsedRows = null;
@@ -703,14 +704,14 @@ export function wireBillPaymentCalendar(plan) {
   colAmount.addEventListener('input', onColumnChange);
   colDue.addEventListener('input', onColumnChange);
 
-  const btnOpenPrompt = document.getElementById('btn-ai-bill-cal-open-prompt');
-  const promptDialogEl = document.getElementById('ai-bill-cal-prompt-dialog');
-  const promptTextarea = document.getElementById('ai-bill-cal-prompt-text');
-  const promptFeedback = document.getElementById('ai-bill-cal-prompt-feedback');
-  const btnPromptClose = document.getElementById('btn-ai-bill-cal-prompt-close');
-  const btnPromptCopy = document.getElementById('btn-ai-bill-cal-prompt-copy');
-  const btnPromptShare = document.getElementById('btn-ai-bill-cal-prompt-share');
-  const btnPromptDownload = document.getElementById('btn-ai-bill-cal-prompt-download');
+  const btnOpenPrompt = document.getElementById('btn-ai-bill-cal-open-prompt') as HTMLButtonElement | null;
+  const promptDialogEl = document.getElementById('ai-bill-cal-prompt-dialog') as HTMLDialogElement | null;
+  const promptTextarea = document.getElementById('ai-bill-cal-prompt-text') as HTMLTextAreaElement | null;
+  const promptFeedback = document.getElementById('ai-bill-cal-prompt-feedback') as HTMLElement | null;
+  const btnPromptClose = document.getElementById('btn-ai-bill-cal-prompt-close') as HTMLButtonElement | null;
+  const btnPromptCopy = document.getElementById('btn-ai-bill-cal-prompt-copy') as HTMLButtonElement | null;
+  const btnPromptShare = document.getElementById('btn-ai-bill-cal-prompt-share') as HTMLButtonElement | null;
+  const btnPromptDownload = document.getElementById('btn-ai-bill-cal-prompt-download') as HTMLButtonElement | null;
 
   let storedManualPrompt = '';
 

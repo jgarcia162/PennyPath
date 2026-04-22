@@ -156,6 +156,7 @@ export function addDebtRowDraft(showUnsaved: () => void): void {
     aprPct: DEFAULT_DEBT_APR_PCT,
     deferredAmount: 0,
     deferredExpiresOn: '',
+    deferredMonthsRemaining: 0,
     paymentHistory: [],
   });
   const nameEl = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
