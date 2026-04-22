@@ -119,7 +119,13 @@ export interface FinancialPlan {
 
   // Savings (legacy fields kept in sync with `savingsAccounts`)
   hysaBalance: number;
-  hysaApy: number; // decimal fraction (e.g. 0.0325)
+  /**
+   * Legacy HYSA APY as a decimal fraction (e.g. `0.0325` means 3.25%).
+   * Source-of-truth for APY is `savingsAccounts[].apyPct` (percent).
+   *
+   * Kept for older code paths and migrations; code normalizes between the two.
+   */
+  hysaApy: number;
   joseSavings: number;
   sherlynaSavings: number;
 
@@ -206,7 +212,7 @@ export interface FinancialCalendarEvent {
   label: string;
   /** USD amount; may be null if model omitted it. */
   amount: number | null;
-  /** Present for debt events when available. */
+  /** Debt account label; empty string when not provided / not applicable. */
   debtName: string;
 }
 
@@ -217,12 +223,16 @@ export interface FinancialCalendarResponse {
 
 // --------- Savings goals helpers / derived summaries ----------
 
-export type SavingsGoalId = typeof ID_GOAL_HYSA | typeof ID_GOAL_EFUND | typeof ID_GOAL_PERSONAL | (string & {});
-
 /** IDs used throughout the Financial Plan savings-goals module. */
 export const ID_GOAL_HYSA = 'goal-hysa' as const;
 export const ID_GOAL_EFUND = 'goal-efund' as const;
 export const ID_GOAL_PERSONAL = 'goal-personal' as const;
+
+export type SavingsGoalId =
+  | typeof ID_GOAL_HYSA
+  | typeof ID_GOAL_EFUND
+  | typeof ID_GOAL_PERSONAL
+  | (string & {});
 
 export interface SavingsGoalSummary {
   id: string;

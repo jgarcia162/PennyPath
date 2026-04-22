@@ -14,7 +14,7 @@ export function parseMoneyInput(raw: unknown): number | null {
 }
 
 /** Coerce stored/API values; keeps 0 valid (e.g. 0% APR). */
-export function numOr<TFallback extends number>(raw: unknown, fallback: TFallback): number | TFallback {
+export function numOr(raw: unknown, fallback: number): number {
   const v = Number(raw);
   return Number.isFinite(v) ? v : fallback;
 }
@@ -83,11 +83,34 @@ export function escapeHtml(s: unknown): string {
 }
 
 export function escapeAttr(s: unknown): string {
-  return String(s || '').replace(/"/g, '&quot;');
+  // Safe for quoted/unquoted HTML attribute contexts.
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 export function cssEscape(s: unknown): string {
-  return String(s || '').replace(/"/g, '\\"');
+  const raw = String(s || '');
+  try {
+    // Prefer standards-compliant escaping when available.
+    const esc = (globalThis as any).CSS && typeof (globalThis as any).CSS.escape === 'function'
+      ? (globalThis as any).CSS.escape
+      : null;
+    if (esc) return esc(raw);
+  } catch (e) {}
+  // Fallback: conservative CSS identifier escaping (good enough for attribute selectors in this app).
+  return raw
+    .replace(/\0/g, '\uFFFD')
+    .replace(/^[0-9-]/, function (m) {
+      return '\\' + m;
+    })
+    .replace(/[^a-zA-Z0-9_-]/g, function (ch) {
+      const hex = ch.codePointAt(0)!.toString(16).toUpperCase();
+      return '\\' + hex + ' ';
+    });
 }
 
 export function todayYyyyMmDd(): string {
