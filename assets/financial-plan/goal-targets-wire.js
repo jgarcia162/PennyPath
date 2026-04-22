@@ -3,8 +3,8 @@
  * Keeps edits in the shared PLAN object and persists them.
  */
 
-import { PLAN } from './plan-data.js';
-import { savePlanOverrides } from './persistence.js';
+import { PLAN } from './plan-data';
+import { savePlanOverrides } from './persistence';
 import {
   ensureSavingsGoals,
   syncJointHysaPlanFieldsFromGoals,

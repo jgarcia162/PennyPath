@@ -4,7 +4,7 @@
  * Mirrors dev-mock-storage.js structure (multiple debts & savings accounts).
  */
 
-import { monthLabel, yyyyMmFromDate } from './monthly-activity.js';
+import { monthLabel, yyyyMmFromDate } from './monthly-activity';
 
 function seeded(i, salt) {
   const x = Math.sin(i * 12.9898 + salt * 7.123) * 43758.5453;

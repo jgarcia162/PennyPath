@@ -7,6 +7,10 @@
     "node": ">=18"
   },
   "scripts": {
-    "research-server": "node server/market-research.mjs"
+    "research-server": "node server/market-research.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^6.0.3"
   }
 }

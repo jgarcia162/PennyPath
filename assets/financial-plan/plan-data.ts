@@ -1,13 +1,19 @@
 /**
  * Default plan snapshot and shared `localStorage` key constants.
  *
- * Edit `PLAN` for the shipped defaults; `PLAN_DEFAULTS` must stay aligned for “reset” flows.
- * Other modules import keys from here so string literals are not scattered across the repo.
- * Check-in persistence uses the same key string in `assets/checkin-service.js` (classic script).
+ * Converted from `plan-data.js` with no logic changes.
  */
 
+import type {
+  DebtsEditorSort,
+  DebtsProgressSort,
+  FinancialPlan,
+  SavingsAccount,
+  SavingsGoal,
+} from '../../types/index.js';
+
 /** Edit these values — the rest of the page is derived. */
-export const PLAN = {
+export const PLAN: FinancialPlan = {
   monthlyTakeHome: 7615,
   paycheckAmount: 3807.43,
   paychecksPerMonth: 2,
@@ -17,13 +23,6 @@ export const PLAN = {
   ccApr: 0.22,
   joseSavings: 4103.96,
   sherlynaSavings: 20000,
-  /**
-   * Savings accounts (source of truth). Legacy hysaBalance / joseSavings / sherlynaSavings stay synced.
-   * depositHistory: [{ id, amount, at: ISO }] — log deposits like debt payments.
-   */
-  /**
-   * apyPct: APY as a percent (e.g. 3.25 = 3.25%), same idea as aprPct on debts.
-   */
   savingsAccounts: [
     {
       id: 'hysa',
@@ -53,18 +52,6 @@ export const PLAN = {
       depositHistory: [],
     },
   ],
-  /**
-   * Debts list.
-   * - current: current balance remaining
-   * - paidOff: amount you’ve already paid off (used for progress)
-   * - aprPct: APR as a percent (e.g. 0 = 0%, 22 = 22%)
-   * - deferredAmount: promo balance that accrues 0% while deferredExpiresOn is in the future
-   * - deferredExpiresOn: YYYY-MM-DD (promo end date)
-   * - deferredMonthsRemaining: (legacy) months left for 0% promo (integer)
-   * - paymentHistory: optional [{ id, amount, at: ISO }] for applied payments (last 30 days shown in Goal 2)
-   *
-   * Progress for each debt is paidOff / (current + paidOff).
-   */
   debts: [
     {
       id: 'cc',
@@ -79,10 +66,6 @@ export const PLAN = {
     },
   ],
   goalHysa: 50000,
-  /**
-   * Goal 1 (HYSA) target month in YYYY-MM for editing/persistence.
-   * `hysaGoalBy` remains the human label used throughout the page.
-   */
   hysaGoalByYm: '2027-06',
   monthlyFixedExpenses: 3000,
   efundMonths: 12,
@@ -113,24 +96,10 @@ export const PLAN = {
     goalDebtWhen: 'By December 2026',
     monthsToCloseEfund: '4–5',
   },
-  /** Goal 2 debts editor row order (independent of progress cards). */
   debtsEditorSort: 'saved',
-  /** Goal 2 per-debt progress cards order; includes `paid-desc` | `paid-asc` (lifetime paid toward debt). */
   debtsProgressSort: 'saved',
-  /**
-   * YYYY-MM month used for “this month” debt progress (vs phase1.ccPayment goal).
-   * Advances when you wrap up the month; defaults to the real calendar month if unset.
-   */
   workingMonthYm: '',
-  /**
-   * Optional YYYY-MM: dashboard “view & edit” month (monthly bar + default dates for new logs).
-   * Empty means follow `workingMonthYm`.
-   */
   dashboardViewMonthYm: '',
-  /**
-   * Savings targets (Joint HYSA, emergency fund, etc.). Amounts are dollar targets.
-   * Accounts pick one or more via `goalIds` on each savings account.
-   */
   savingsGoals: [
     { id: 'goal-hysa', name: 'Joint HYSA', targetAmount: 50000, goalByYm: '2027-06' },
     { id: 'goal-efund', name: 'Emergency fund', targetAmount: 36000, goalByYm: '' },
@@ -139,12 +108,15 @@ export const PLAN = {
 };
 
 /** Snapshot for “Reset to original defaults” — keep in sync with PLAN above. */
-export const PLAN_DEFAULTS = {
+export const PLAN_DEFAULTS: Pick<
+  FinancialPlan,
+  'hysaBalance' | 'joseSavings' | 'sherlynaSavings' | 'debtsEditorSort' | 'debtsProgressSort' | 'savingsAccounts' | 'debts' | 'savingsGoals'
+> = {
   hysaBalance: 0,
   joseSavings: 0,
   sherlynaSavings: 0,
-  debtsEditorSort: 'saved',
-  debtsProgressSort: 'saved',
+  debtsEditorSort: 'saved' as DebtsEditorSort,
+  debtsProgressSort: 'saved' as DebtsProgressSort,
   savingsAccounts: [
     {
       id: 'hysa',
@@ -155,32 +127,49 @@ export const PLAN_DEFAULTS = {
       countTowardsGoal: true,
       depositHistory: [],
     },
-    { id: 'jose', name: 'Jose — personal', current: 0, apyPct: 0, goalIds: [], countTowardsGoal: false, depositHistory: [] },
-    { id: 'sher', name: 'Sherlyna — personal', current: 0, apyPct: 0, goalIds: [], countTowardsGoal: false, depositHistory: [] },
-  ],
+    {
+      id: 'jose',
+      name: 'Jose — personal',
+      current: 0,
+      apyPct: 0,
+      goalIds: [],
+      countTowardsGoal: false,
+      depositHistory: [],
+    },
+    {
+      id: 'sher',
+      name: 'Sherlyna — personal',
+      current: 0,
+      apyPct: 0,
+      goalIds: [],
+      countTowardsGoal: false,
+      depositHistory: [],
+    },
+  ] as SavingsAccount[],
   debts: [],
   savingsGoals: [
     { id: 'goal-hysa', name: 'Joint HYSA', targetAmount: 0, goalByYm: '' },
     { id: 'goal-efund', name: 'Emergency fund', targetAmount: 0, goalByYm: '' },
     { id: 'goal-personal', name: 'Personal savings', targetAmount: 0, goalByYm: '' },
-  ],
+  ] as SavingsGoal[],
 };
 
-export const STORAGE_KEY = 'financial-plan-v3-aggressive.balances';
+export const STORAGE_KEY = 'financial-plan-v3-aggressive.balances' as const;
 /** Month wrap-up: one-step undo + optional archives list (JSON strings). */
-export const MONTH_WRAP_ROLLBACK_KEY = 'financial-plan-v3-aggressive.month-wrap-rollback';
-export const MONTH_WRAP_ARCHIVES_KEY = 'financial-plan-v3-aggressive.month-wrap-archives';
-export const TOGGLE_GOAL2_EDITOR_KEY = 'financial-plan-v3-aggressive.goal2-editor-open';
-export const TOGGLE_GOAL3_EDITOR_KEY = 'financial-plan-v3-aggressive.goal3-editor-open';
-export const BADGES_STORAGE_KEY = 'financial-plan.badges';
+export const MONTH_WRAP_ROLLBACK_KEY = 'financial-plan-v3-aggressive.month-wrap-rollback' as const;
+export const MONTH_WRAP_ARCHIVES_KEY = 'financial-plan-v3-aggressive.month-wrap-archives' as const;
+export const TOGGLE_GOAL2_EDITOR_KEY = 'financial-plan-v3-aggressive.goal2-editor-open' as const;
+export const TOGGLE_GOAL3_EDITOR_KEY = 'financial-plan-v3-aggressive.goal3-editor-open' as const;
+export const BADGES_STORAGE_KEY = 'financial-plan.badges' as const;
 
 /** Shared with History page: sample-data (demo) mode without persisting mock into storage. */
-export const DEMO_MODE_STORAGE_KEY = 'financial-plan.historyDemo';
+export const DEMO_MODE_STORAGE_KEY = 'financial-plan.historyDemo' as const;
 
 /** Default APR % for a debt when unspecified (new row / missing field). */
-export const DEFAULT_DEBT_APR_PCT = 0;
+export const DEFAULT_DEBT_APR_PCT = 0 as const;
 /** Default APY % for a savings account when unspecified. */
-export const DEFAULT_SAVINGS_APY_PCT = 0;
+export const DEFAULT_SAVINGS_APY_PCT = 0 as const;
 
 const HYSA_STARTING_DEFAULT = PLAN.hysaBalance;
 PLAN._hysaStartingDefault = HYSA_STARTING_DEFAULT;
+

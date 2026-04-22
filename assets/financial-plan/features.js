@@ -4,8 +4,8 @@
  * Depends on globals: `window.PayoffTimeline`, `window.Badges` (classic scripts).
  */
 
-import { PLAN, BADGES_STORAGE_KEY } from './plan-data.js';
-import { isFinancialPlanDemoMode } from './persistence.js';
+import { PLAN, BADGES_STORAGE_KEY } from './plan-data';
+import { isFinancialPlanDemoMode } from './persistence';
 import { getCheckinEntriesForBadges } from './checkin-log.js';
 import {
   escapeHtml,

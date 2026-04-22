@@ -2,7 +2,7 @@
  * Multiple savings targets; accounts can count toward one or more goals (full balance per goal).
  */
 
-import { monthLabel } from './monthly-activity.js';
+import { monthLabel } from './monthly-activity';
 import { numOr } from './utils';
 
 export const ID_GOAL_HYSA = 'goal-hysa';

@@ -10,12 +10,12 @@ import {
   STORAGE_KEY,
   MONTH_WRAP_ROLLBACK_KEY,
   MONTH_WRAP_ARCHIVES_KEY,
-} from './plan-data.js';
-import { applyPlanOverrides, savePlanOverrides, isFinancialPlanDemoMode } from './persistence.js';
+} from './plan-data';
+import { applyPlanOverrides, savePlanOverrides, isFinancialPlanDemoMode } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
 import { buildMonthCheckpointPayload } from './monthly-export.js';
-import { getWorkingMonthYm } from './plan-derived.js';
-import { monthLabel, yyyyMmFromDate } from './monthly-activity.js';
+import { getWorkingMonthYm } from './plan-derived';
+import { monthLabel, yyyyMmFromDate } from './monthly-activity';
 
 function isYyyyMm(s: unknown): s is YyyyMm {
   return typeof s === 'string' && /^\d{4}-\d{2}$/.test(s);
@@ -242,7 +242,7 @@ export function wireDashboardMonthSelector(render: () => void): void {
   dashboardMonthSelectWired = true;
   sel.addEventListener('change', function () {
     const v = sel.value;
-    PLAN.dashboardViewMonthYm = v === '' ? '' : v;
+    PLAN.dashboardViewMonthYm = v === '' ? '' : (v as any);
     savePlanOverrides();
     if (typeof render === 'function') render();
   });

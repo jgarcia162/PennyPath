@@ -3,9 +3,9 @@
  * Preserves theme preference. Does not touch Real Estate keys.
  */
 
-import { PLAN } from './plan-data.js';
-import { savePlanOverrides, applyBlankFinancialBalances } from './persistence.js';
-import { FINANCIAL_PLAN_STORAGE_KEYS, THEME_STORAGE_KEY } from './dev-mock-storage.js';
+import { PLAN } from './plan-data';
+import { savePlanOverrides, applyBlankFinancialBalances } from './persistence';
+import { FINANCIAL_PLAN_STORAGE_KEYS, THEME_STORAGE_KEY } from './dev-mock-storage';
 import {
   AI_PAYOFF_PLAN_CACHE_LS_KEY,
   AI_BILL_CALENDAR_CACHE_LS_KEY,
