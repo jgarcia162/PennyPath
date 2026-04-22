@@ -2,31 +2,32 @@
  * Debts editor DOM ↔ PLAN, snapshots, apply/remove payment helpers.
  */
 
+import type { Debt, PaymentHistoryItem } from '../../types/index.js';
 import { PLAN, PLAN_DEFAULTS, DEFAULT_DEBT_APR_PCT } from './plan-data';
 import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils';
-import { appendDebtsEditorEmptyState, buildDebtsEditorThead, buildDebtRowTR } from './render-sections.js';
+import { appendDebtsEditorEmptyState, buildDebtsEditorThead, buildDebtRowTR } from './render-sections';
 import { normalizePaymentHistory, newPaymentId } from './persistence';
 import { defaultLogAtIsoForEdits } from './default-log-at';
 
-export function readDebtsEditorIntoPlan() {
+export function readDebtsEditorIntoPlan(): void {
   const host = document.getElementById('debts-editor-list');
   if (!host) return;
   const rows = host.querySelectorAll('.debt-row');
-  const next = [];
-  const planDebts = Array.isArray(PLAN.debts) ? PLAN.debts : [];
-  rows.forEach(function (row, rowIdx) {
+  const next: Debt[] = [];
+  const planDebts: Debt[] = Array.isArray((PLAN as any).debts) ? ((PLAN as any).debts as Debt[]) : [];
+  rows.forEach(function (row: Element, rowIdx: number) {
     let id = row.getAttribute('data-debt-id');
     if (id == null || String(id).trim() === '') {
       id = planDebts[rowIdx] ? String(planDebts[rowIdx].id) : 'd_' + rowIdx;
     } else {
       id = String(id).trim();
     }
-    const nameEl = row.querySelector('input[data-field="name"]');
-    const curEl = row.querySelector('input[data-field="current"]');
-    const aprEl = row.querySelector('input[data-field="aprPct"]');
-    const defEl = row.querySelector('input[data-field="deferredAmount"]');
-    const defDateEl = row.querySelector('input[data-field="deferredExpiresOn"]');
-    const payEl = row.querySelector('input[data-field="payment"]');
+    const nameEl = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
+    const curEl = row.querySelector('input[data-field="current"]') as HTMLInputElement | null;
+    const aprEl = row.querySelector('input[data-field="aprPct"]') as HTMLInputElement | null;
+    const defEl = row.querySelector('input[data-field="deferredAmount"]') as HTMLInputElement | null;
+    const defDateEl = row.querySelector('input[data-field="deferredExpiresOn"]') as HTMLInputElement | null;
+    const payEl = row.querySelector('input[data-field="payment"]') as HTMLInputElement | null;
     const name = nameEl ? String(nameEl.value || 'Debt').trim() : 'Debt';
     const rawCurrent = curEl ? parseMoneyInput(curEl.value) : null;
     const aprPct = aprEl ? parseMoneyInput(aprEl.value) : null;
@@ -34,7 +35,7 @@ export function readDebtsEditorIntoPlan() {
     const deferredExpiresOn = defDateEl ? String(defDateEl.value || '').trim() : '';
     const payment = payEl ? parseMoneyInput(payEl.value) : null;
 
-    const prev = planDebts.find(function (d) {
+    const prev = planDebts.find(function (d: Debt) {
       return String(d.id) === String(id);
     });
     const prevByIndex = !prev && planDebts[rowIdx] ? planDebts[rowIdx] : null;
@@ -44,7 +45,7 @@ export function readDebtsEditorIntoPlan() {
         : prevByIndex && Number.isFinite(prevByIndex.paidOff)
           ? prevByIndex.paidOff
           : 0;
-    var currentBal;
+    let currentBal: number;
     if (rawCurrent !== null) {
       currentBal = rawCurrent;
     } else if (prev && Number.isFinite(Number(prev.current))) {
@@ -55,8 +56,8 @@ export function readDebtsEditorIntoPlan() {
       currentBal = 0;
     }
 
-    var paidOffVal = prevPaidOff;
-    var hist = normalizePaymentHistory(prev || prevByIndex);
+    let paidOffVal = prevPaidOff;
+    let hist: PaymentHistoryItem[] = normalizePaymentHistory(prev || prevByIndex);
     if (payment !== null && payment > 0) {
       if (currentBal > 0) {
         const applied = roundMoney(Math.min(payment, currentBal));
@@ -76,7 +77,7 @@ export function readDebtsEditorIntoPlan() {
       paidOff: roundMoney(paidOffVal),
       aprPct: roundMoney(aprPct == null ? DEFAULT_DEBT_APR_PCT : aprPct),
       deferredAmount: roundMoney(deferredAmount == null ? 0 : deferredAmount),
-      deferredExpiresOn: deferredExpiresOn,
+      deferredExpiresOn: deferredExpiresOn as any,
       deferredMonthsRemaining:
         prev && Number.isFinite(prev.deferredMonthsRemaining)
           ? prev.deferredMonthsRemaining
@@ -89,9 +90,9 @@ export function readDebtsEditorIntoPlan() {
   PLAN.debts = next;
 }
 
-export function cloneDebtsSnapshot() {
+export function cloneDebtsSnapshot(): { debts: Debt[] } {
   return {
-    debts: (Array.isArray(PLAN.debts) ? PLAN.debts : []).map(function (d) {
+    debts: (Array.isArray((PLAN as any).debts) ? ((PLAN as any).debts as Debt[]) : []).map(function (d: Debt) {
       return {
         id: String(d.id),
         name: String(d.name || 'Debt'),
@@ -107,7 +108,7 @@ export function cloneDebtsSnapshot() {
   };
 }
 
-export function setDebtsDraftFromSnapshot(snap) {
+export function setDebtsDraftFromSnapshot(snap: { debts: Debt[] } | null | undefined): void {
   if (!snap) return;
 
   const host = document.getElementById('debts-editor-list');
@@ -122,7 +123,7 @@ export function setDebtsDraftFromSnapshot(snap) {
     table.setAttribute('role', 'grid');
     table.appendChild(buildDebtsEditorThead());
     const tbody = document.createElement('tbody');
-    (snap.debts || []).forEach(function (d) {
+    (snap.debts || []).forEach(function (d: Debt) {
       tbody.appendChild(buildDebtRowTR(d));
     });
     table.appendChild(tbody);
@@ -130,7 +131,7 @@ export function setDebtsDraftFromSnapshot(snap) {
   }
 }
 
-export function addDebtRowDraft(showUnsaved) {
+export function addDebtRowDraft(showUnsaved: () => void): void {
   const host = document.getElementById('debts-editor-list');
   if (!host) return;
   const empty = host.querySelector('.editor-empty-state');
@@ -157,18 +158,23 @@ export function addDebtRowDraft(showUnsaved) {
     deferredExpiresOn: '',
     paymentHistory: [],
   });
-  const nameEl = row.querySelector('input[data-field="name"]');
+  const nameEl = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
   if (nameEl) nameEl.placeholder = 'New debt';
   tbody.appendChild(row);
   showUnsaved();
 }
 
-export function removeDebtPayment(debtId, paymentId, onUnsaved, rerender) {
-  const debt = (PLAN.debts || []).find(function (d) {
+export function removeDebtPayment(
+  debtId: string,
+  paymentId: string,
+  onUnsaved: () => void,
+  rerender: () => void
+): void {
+  const debt = (((PLAN as any).debts || []) as Debt[]).find(function (d: Debt) {
     return String(d.id) === String(debtId);
   });
   if (!debt || !Array.isArray(debt.paymentHistory)) return;
-  const idx = debt.paymentHistory.findIndex(function (p) {
+  const idx = debt.paymentHistory.findIndex(function (p: PaymentHistoryItem) {
     return String(p.id) === String(paymentId);
   });
   if (idx === -1) return;

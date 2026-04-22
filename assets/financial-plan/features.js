@@ -7,6 +7,7 @@
 import { PLAN, BADGES_STORAGE_KEY } from './plan-data';
 import { isFinancialPlanDemoMode } from './persistence';
 import { getCheckinEntriesForBadges } from './checkin-log.js';
+import { getCheckinEntriesForBadges } from './checkin-log';
 import {
   escapeHtml,
   escapeAttr,

@@ -4,21 +4,21 @@
 
 import { PLAN, PLAN_DEFAULTS } from './plan-data';
 import { applyPlanOverrides, savePlanOverrides } from './persistence';
-import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
+import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import {
   readDebtsEditorIntoPlan,
   cloneDebtsSnapshot,
   setDebtsDraftFromSnapshot,
   addDebtRowDraft,
   removeDebtPayment,
-} from './debt-editor.js';
+} from './debt-editor';
 import {
   readSavingsEditorIntoPlan,
   cloneSavingsSnapshot,
   setSavingsDraftFromSnapshot,
   addSavingsRowDraft,
   removeSavingsDeposit,
-} from './savings-editor.js';
+} from './savings-editor';
 
 let lastSavedDebts = null;
 let lastSavedSavings = null;
