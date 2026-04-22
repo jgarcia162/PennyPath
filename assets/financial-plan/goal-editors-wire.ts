@@ -128,7 +128,9 @@ function showGoal3Unsaved() {
   setSaveNeeds('btn-save-goal3-savings', true);
 }
 
-export function wireGoal2DebtEditor(render) {
+type RenderFn = (opts?: any) => void;
+
+export function wireGoal2DebtEditor(render: RenderFn): void {
   const sortSel = document.getElementById('debts-editor-sort') as HTMLSelectElement | null;
   if (sortSel) {
     sortSel.addEventListener('change', function () {
@@ -157,10 +159,10 @@ export function wireGoal2DebtEditor(render) {
     });
   }
 
-  let debtDraftRerenderTimer = null;
-  function scheduleDebtsDraftSyncToPlanAndRender() {
-    clearTimeout(debtDraftRerenderTimer);
-    debtDraftRerenderTimer = setTimeout(function () {
+  let debtDraftRerenderTimer: number | null = null;
+  function scheduleDebtsDraftSyncToPlanAndRender(): void {
+    if (debtDraftRerenderTimer != null) clearTimeout(debtDraftRerenderTimer);
+    debtDraftRerenderTimer = window.setTimeout(function () {
       readDebtsEditorIntoPlan();
       render({ skipDebtsEditor: true });
     }, 90);
@@ -177,11 +179,12 @@ export function wireGoal2DebtEditor(render) {
 
   const debtsHost = document.getElementById('debts-editor-list') as HTMLElement | null;
   if (debtsHost) {
+    const debtsHostEl = debtsHost;
     function onDebtRowFieldActivity(e: Event): void {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function' || typeof (t as any).matches !== 'function') return;
       const row = t.closest('.debt-row');
-      if (!row || !debtsHost.contains(row)) return;
+      if (!row || !debtsHostEl.contains(row)) return;
       if (!(t as any).matches('input, textarea, select')) return;
       showGoal2Unsaved();
       scheduleDebtsDraftSyncToPlanAndRender();
@@ -302,14 +305,15 @@ export function wireGoal2DebtEditor(render) {
   setSaveNeeds('btn-save-goal2-debts', false);
 }
 
-export function wireGoal3SavingsEditor(render) {
+export function wireGoal3SavingsEditor(render: RenderFn): void {
   const savingsHost = document.getElementById('savings-editor-list') as HTMLElement | null;
   if (savingsHost) {
+    const savingsHostEl = savingsHost;
     function onSavingsFieldActivity(e: Event): void {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function' || typeof (t as any).matches !== 'function') return;
       const row = t.closest('.savings-row');
-      if (!row || !savingsHost.contains(row)) return;
+      if (!row || !savingsHostEl.contains(row)) return;
       if (!(t as any).matches('input, textarea, select')) return;
       showGoal3Unsaved();
     }

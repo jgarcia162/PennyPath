@@ -36,9 +36,9 @@ function getApiBase() {
 /**
  * RFC 4180-style single-line parse: commas inside double-quoted fields, "" for literal quote.
  */
-function splitCsvLine(line) {
+function splitCsvLine(line: unknown): string[] {
   const s = String(line || '');
-  const row = [];
+  const row: string[] = [];
   let cur = '';
   let i = 0;
   let inQuotes = false;
@@ -81,7 +81,7 @@ const DEFAULT_BILL_CSV_COLS = {
   due_day: 'due_day',
 };
 
-function normHeaderCell(s) {
+function normHeaderCell(s: unknown): string {
   return String(s || '')
     .trim()
     .toLowerCase();
@@ -91,7 +91,7 @@ function normHeaderCell(s) {
  * Whole-cell match: optional $, optional thousands commas, optional decimal part.
  * Rejects partial parses like "12abc" or "3rd".
  */
-function isValidBillAmountCell(s) {
+function isValidBillAmountCell(s: unknown): boolean {
   const t = String(s || '').trim();
   if (!t) return false;
   return /^\$?\s*(?:(?:\d{1,3}(?:,\d{3})+)(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+)$/.test(t);
@@ -102,7 +102,12 @@ function isValidBillAmountCell(s) {
  * @param {{ name?: string, amount?: string, due_day?: string }} [columnNames] - header labels to match (case-insensitive)
  * @returns {{ ok: true, bills: Array<{ name: string, amount: number, due_day: number }> } | { ok: false, error: string }}
  */
-export function parseCsvBills(text, columnNames) {
+export function parseCsvBills(
+  text: unknown,
+  columnNames?: { name?: string; amount?: string; due_day?: string }
+):
+  | { ok: true; bills: Array<{ name: string; amount: number; due_day: number }> }
+  | { ok: false; error: string } {
   const c = columnNames || {};
   const wantName = normHeaderCell(c.name != null ? c.name : DEFAULT_BILL_CSV_COLS.name);
   const wantAmount = normHeaderCell(c.amount != null ? c.amount : DEFAULT_BILL_CSV_COLS.amount);
@@ -160,9 +165,9 @@ export function parseCsvBills(text, columnNames) {
   return { ok: true, bills: bills };
 }
 
-function planSnapshot(plan) {
+function planSnapshot(plan: FinancialPlan): any {
   const debts = Array.isArray(plan.debts)
-    ? plan.debts.map(function (d) {
+    ? plan.debts.map(function (d: any) {
         return {
           id: String(d.id || ''),
           name: String(d.name || ''),
@@ -196,7 +201,11 @@ function loadAiPayoffExcerpt() {
   }
 }
 
-function buildCalendarPrompt(plan, bills, monthsAhead) {
+function buildCalendarPrompt(
+  plan: FinancialPlan,
+  bills: Array<{ name: string; amount: number; due_day: number }>,
+  monthsAhead: number
+): string {
   const snap = planSnapshot(plan);
   const strat = loadAiPayoffExcerpt();
   const today = new Date();
@@ -204,7 +213,7 @@ function buildCalendarPrompt(plan, bills, monthsAhead) {
   const rangeEnd = new Date(rangeStart);
   rangeEnd.setMonth(rangeEnd.getMonth() + Math.max(1, Math.min(6, monthsAhead)));
 
-  const ymd = function (d) {
+  const ymd = function (d: Date) {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -247,7 +256,7 @@ function buildCalendarPrompt(plan, bills, monthsAhead) {
   );
 }
 
-async function callFinancialCalendarApi(prompt) {
+async function callFinancialCalendarApi(prompt: string): Promise<any> {
   const base = getApiBase();
   const controller = new AbortController();
   const tid = setTimeout(function () {
@@ -263,7 +272,8 @@ async function callFinancialCalendarApi(prompt) {
     });
   } catch (e) {
     clearTimeout(tid);
-    if (e && e.name === 'AbortError') {
+    const err = e as any;
+    if (err && err.name === 'AbortError') {
       throw new Error('Calendar request timed out. Try again or shorten the CSV.');
     }
     throw new Error('Could not reach the server. Run npm run research-server for local use.');
@@ -290,16 +300,19 @@ async function callFinancialCalendarApi(prompt) {
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
-function normalizeEvents(raw) {
-  const list = Array.isArray(raw.events) ? raw.events : [];
-  const out = [];
-  list.forEach(function (ev) {
+function normalizeEvents(raw: any): {
+  notes: string;
+  events: Array<{ date: string; kind: 'bill' | 'debt'; label: string; amount: number | null; debtName: string }>;
+} {
+  const list = Array.isArray(raw && raw.events) ? raw.events : [];
+  const out: Array<{ date: string; kind: 'bill' | 'debt'; label: string; amount: number | null; debtName: string }> = [];
+  list.forEach(function (ev: any) {
     if (!ev || typeof ev !== 'object') return;
     const date = String(ev.date || '').trim();
     if (!DATE_RE.test(date)) return;
     const kind = String(ev.kind || '').toLowerCase() === 'debt' ? 'debt' : 'bill';
     const label = String(ev.label || '').trim() || (kind === 'debt' ? 'Debt payment' : 'Bill');
-    const amount = numOr(ev.amount, null);
+    const amount = numOr(ev.amount, Number.NaN);
     out.push({
       date: date,
       kind: kind,
@@ -311,14 +324,14 @@ function normalizeEvents(raw) {
   out.sort(function (a, b) {
     return a.date.localeCompare(b.date);
   });
-  return { notes: typeof raw.notes === 'string' ? raw.notes : '', events: out };
+  return { notes: typeof (raw && raw.notes) === 'string' ? raw.notes : '', events: out };
 }
 
-function monthKey(y, m0) {
+function monthKey(y: number, m0: number): string {
   return String(y) + '-' + String(m0 + 1).padStart(2, '0');
 }
 
-function parseYmd(s) {
+function parseYmd(s: unknown): Date | null {
   const p = String(s).split('-');
   if (p.length !== 3) return null;
   const y = parseInt(p[0], 10);
@@ -330,7 +343,7 @@ function parseYmd(s) {
 }
 
 /** iCalendar TEXT escaping (RFC 5545). */
-function icsEscapeText(s) {
+function icsEscapeText(s: unknown): string {
   return String(s || '')
     .replace(/\\/g, '\\\\')
     .replace(/\n/g, '\\n')
@@ -338,12 +351,12 @@ function icsEscapeText(s) {
     .replace(/,/g, '\\,');
 }
 
-function ymdToIcsDate(ymd) {
+function ymdToIcsDate(ymd: unknown): string {
   return String(ymd || '').replace(/-/g, '');
 }
 
 /** Next calendar day as YYYYMMDD for all-day DTEND (exclusive). */
-function icsEndDateExclusive(ymd) {
+function icsEndDateExclusive(ymd: unknown): string {
   const d = parseYmd(ymd);
   if (!d) return ymdToIcsDate(ymd);
   d.setDate(d.getDate() + 1);
@@ -368,7 +381,7 @@ function icsDtStampUtc() {
  * @param {{ notes: string, events: Array<{ date: string, kind: string, label: string, amount: number|null, debtName: string }> }} norm
  * @returns {string}
  */
-function buildPaymentCalendarIcs(norm) {
+function buildPaymentCalendarIcs(norm: any): string {
   const dtstamp = icsDtStampUtc();
   const lines = [
     'BEGIN:VCALENDAR',
@@ -378,7 +391,7 @@ function buildPaymentCalendarIcs(norm) {
     'METHOD:PUBLISH',
     'X-WR-CALNAME:PennyPath bills and debt',
   ];
-  norm.events.forEach(function (ev, idx) {
+  norm.events.forEach(function (ev: any, idx: number) {
     const start = ymdToIcsDate(ev.date);
     const end = icsEndDateExclusive(ev.date);
     let summary = String(ev.label || (ev.kind === 'debt' ? 'Debt payment' : 'Bill'));
@@ -405,7 +418,7 @@ function buildPaymentCalendarIcs(norm) {
   return lines.join('\r\n') + '\r\n';
 }
 
-function downloadBlobAsFile(blob, filename) {
+function downloadBlobAsFile(blob: Blob, filename?: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -420,7 +433,7 @@ function downloadBlobAsFile(blob, filename) {
 /**
  * @param {{ notes?: string, events: Array }} norm - result of normalizeEvents(); callers must pass normalized data
  */
-function renderCalendar(host, norm) {
+function renderCalendar(host: HTMLElement, norm: any): void {
   host.textContent = '';
   if (!norm || !Array.isArray(norm.events) || !norm.events.length) {
     const p = document.createElement('p');
@@ -454,14 +467,14 @@ function renderCalendar(host, norm) {
     host.appendChild(note);
   }
 
-  const byDate = {};
-  norm.events.forEach(function (ev) {
+  const byDate: Record<string, any[]> = {};
+  norm.events.forEach(function (ev: any) {
     if (!byDate[ev.date]) byDate[ev.date] = [];
     byDate[ev.date].push(ev);
   });
 
-  const monthSet = {};
-  norm.events.forEach(function (ev) {
+  const monthSet: Record<string, { y: number; m: number }> = {};
+  norm.events.forEach(function (ev: any) {
     const dt = parseYmd(ev.date);
     if (!dt) return;
     const mk = monthKey(dt.getFullYear(), dt.getMonth());
@@ -469,7 +482,7 @@ function renderCalendar(host, norm) {
   });
   const monthKeys = Object.keys(monthSet).sort();
 
-  monthKeys.forEach(function (mk) {
+  monthKeys.forEach(function (mk: string) {
     const info = monthSet[mk];
     const wrap = document.createElement('div');
     wrap.className = 'ai-bill-cal-month';
@@ -513,7 +526,7 @@ function renderCalendar(host, norm) {
       if (evs && evs.length) {
         const stack = document.createElement('div');
         stack.className = 'ai-bill-cal-grid__stack';
-        evs.forEach(function (ev) {
+        evs.forEach(function (ev: any) {
           const chip = document.createElement('span');
           chip.className =
             'ai-bill-cal-chip' +
@@ -536,13 +549,13 @@ function renderCalendar(host, norm) {
   });
 }
 
-function saveCalendarCache(payload) {
+function saveCalendarCache(payload: any): void {
   try {
     localStorage.setItem(AI_BILL_CALENDAR_CACHE_LS_KEY, JSON.stringify(payload));
   } catch (e) {}
 }
 
-function loadCalendarCache() {
+function loadCalendarCache(): any | null {
   try {
     const raw = localStorage.getItem(AI_BILL_CALENDAR_CACHE_LS_KEY);
     if (!raw) return null;
@@ -552,7 +565,7 @@ function loadCalendarCache() {
   }
 }
 
-function copyTextToClipboard(text) {
+function copyTextToClipboard(text: string): Promise<boolean> {
   if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
     return navigator.clipboard.writeText(text).then(function () {
       return true;
@@ -577,7 +590,7 @@ function copyTextToClipboard(text) {
   });
 }
 
-function downloadTextAsFile(text, filename) {
+function downloadTextAsFile(text: string, filename?: string): void {
   const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -590,7 +603,7 @@ function downloadTextAsFile(text, filename) {
   URL.revokeObjectURL(url);
 }
 
-function canShareText(text) {
+function canShareText(text: string): boolean {
   if (typeof navigator.share !== 'function') return false;
   if (typeof navigator.canShare === 'function') {
     try {
@@ -602,7 +615,7 @@ function canShareText(text) {
   return true;
 }
 
-function shareTextIfSupported(text) {
+function shareTextIfSupported(text: string): Promise<void> {
   if (typeof navigator.share !== 'function') {
     return Promise.reject(new Error('Sharing is not available in this browser.'));
   }
@@ -625,15 +638,20 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
   const colDue = document.getElementById('ai-bill-cal-col-due') as HTMLInputElement | null;
   if (!fileInput || !btn || !host || !colName || !colAmount || !colDue) return;
 
-  let parsedRows = null;
+  type ParsedBill = { name: string; amount: number; due_day: number };
+  let parsedRows: ParsedBill[] | null = null;
   let lastCsvText = '';
   let fileName = '';
+  const btnEl = btn;
+  const colNameEl = colName;
+  const colAmountEl = colAmount;
+  const colDueEl = colDue;
 
   function readColumnMap() {
     return {
-      name: colName.value,
-      amount: colAmount.value,
-      due_day: colDue.value,
+      name: colNameEl.value,
+      amount: colAmountEl.value,
+      due_day: colDueEl.value,
     };
   }
 
@@ -649,7 +667,7 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
       if (!raw) return null;
       const o = JSON.parse(raw);
       if (!o || typeof o !== 'object') return null;
-      return o;
+      return o as any;
     } catch (e) {
       return null;
     }
@@ -662,13 +680,13 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
     if (typeof savedCols.due_day === 'string') colDue.value = savedCols.due_day;
   }
 
-  function setStatus(t) {
+  function setStatus(t: any) {
     if (statusEl) statusEl.textContent = t || '';
   }
 
   function syncButton() {
     const ready = !!(parsedRows && parsedRows.length);
-    btn.disabled = !ready;
+    btnEl.disabled = !ready;
     if (btnOpenPrompt) {
       btnOpenPrompt.disabled = !ready;
       btnOpenPrompt.title = ready
@@ -822,7 +840,7 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
       saveCalendarCache({ at: new Date().toISOString(), data: norm });
       setStatus('Calendar ready — ' + norm.events.length + ' event(s).');
     } catch (err) {
-      const msg = err && err.message ? String(err.message) : 'Something went wrong.';
+  const msg = err && (err as any).message ? String((err as any).message) : 'Something went wrong.';
       setStatus(msg);
       const p = document.createElement('p');
       p.className = 'ai-bill-cal__error';
