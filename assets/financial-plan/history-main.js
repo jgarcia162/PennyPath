@@ -2,8 +2,8 @@
  * History page: compare two months + charts, bars, and optional demo data.
  */
 
-import { PLAN, DEMO_MODE_STORAGE_KEY, STORAGE_KEY } from './plan-data.js';
-import { applyPlanOverrides } from './persistence.js';
+import { PLAN, DEMO_MODE_STORAGE_KEY, STORAGE_KEY } from './plan-data';
+import { applyPlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
 import {
   summarizeMonth,
@@ -11,7 +11,8 @@ import {
   defaultCompareMonths,
   buildMonthlySeriesForChart,
   monthLabel,
-} from './monthly-activity.js';
+  yyyyMmFromDate,
+} from './monthly-activity';
 import { getMockMonthlySeries, mockSummaryByMonthMap } from './history-mock-data.js';
 import {
   renderTrendSvg,

@@ -6,9 +6,9 @@
  */
 
 import type { IsoDateTimeString, YyyyMm } from '../../types/index.js';
-import { PLAN } from './plan-data.js';
-import { getDashboardViewMonthYm } from './plan-derived.js';
-import { yyyyMmFromDate } from './monthly-activity.js';
+import { PLAN } from './plan-data';
+import { getDashboardViewMonthYm } from './plan-derived';
+import { yyyyMmFromDate } from './monthly-activity';
 
 export function defaultLogAtIsoForEdits(): IsoDateTimeString {
   const ym = getDashboardViewMonthYm(PLAN) as YyyyMm;

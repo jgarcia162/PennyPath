@@ -9,7 +9,7 @@
 
 import { numOr, roundMoney } from './utils';
 import { getSavingsAccounts, syncLegacySavingsFromAccounts } from './savings-accounts.js';
-import { isoInLocalYyyyMm, dateFieldInYyyyMm } from './monthly-activity.js';
+import { isoInLocalYyyyMm, dateFieldInYyyyMm } from './monthly-activity';
 
 function parseYyyyMm(yyyyMm) {
   const p = String(yyyyMm || '').split('-');

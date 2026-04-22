@@ -5,15 +5,12 @@
  * `theme-service.js` → `site-settings.js` → `payoff-projection.js` (module) → `checkin-service.js` → `badges.js` → this module.
  */
 
-import { PLAN } from './plan-data.js';
+import { PLAN } from './plan-data';
 import { render as renderPlanPage } from './render-page.js';
 import { wireAiPayoffPlan } from './ai-payoff-plan-wire.js';
 import { wireBillPaymentCalendar } from './ai-bill-calendar-wire.js';
 import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
-import {
-  applyPlanOverrides,
-  isFinancialPlanDemoMode,
-} from './persistence.js';
+import { applyPlanOverrides, isFinancialPlanDemoMode } from './persistence';
 import {
   initEditorSnapshots,
   wireGoal2DebtEditor,
@@ -23,7 +20,7 @@ import { wirePlanTabs } from './tabs-wire.js';
 import { wireGoalTargetsEditor } from './goal-targets-wire.js';
 import { wireCheckIns } from './checkin-log.js';
 import { wireBadges, renderBadges } from './features.js';
-import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage.js';
+import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage';
 import { wipeAllUserData } from './wipe-user-data.js';
 import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap';
 

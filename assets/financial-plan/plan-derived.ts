@@ -1,7 +1,10 @@
 /**
  * Pure derived metrics from a plan object (no DOM).
+ *
+ * Converted from `plan-derived.js` with no logic changes.
  */
 
+import type { DerivedPlanMetrics, EndOfPlanLiquidSummary, FinancialPlan, SavingsAccount, YyyyMm } from '../../types/index.js';
 import { numOr } from './utils';
 import { getSavingsAccounts } from './savings-accounts.js';
 import {
@@ -11,34 +14,34 @@ import {
   ID_GOAL_EFUND,
 } from './savings-goals.js';
 import { projectPayoffTimeline, projectDebtPayoffYm } from './payoff-projection.js';
-import { isoInLocalYyyyMm, monthLabel, yyyyMmFromDate } from './monthly-activity.js';
+import { isoInLocalYyyyMm, monthLabel, yyyyMmFromDate } from './monthly-activity';
 
 /** Working month for monthly debt progress (`YYYY-MM`). Falls back to the real calendar month. */
-export function getWorkingMonthYm(plan) {
-  const w = plan && plan.workingMonthYm;
-  if (typeof w === 'string' && /^\d{4}-\d{2}$/.test(w)) return w;
-  return yyyyMmFromDate(new Date());
+export function getWorkingMonthYm(plan: FinancialPlan): YyyyMm {
+  const w = plan && (plan as any).workingMonthYm;
+  if (typeof w === 'string' && /^\d{4}-\d{2}$/.test(w)) return w as YyyyMm;
+  return yyyyMmFromDate(new Date()) as YyyyMm;
 }
 
 /**
  * Month shown on the dashboard monthly debt bar and used for default payment/deposit dates.
  * If `dashboardViewMonthYm` is unset, matches the working month.
  */
-export function getDashboardViewMonthYm(plan) {
-  const v = plan && plan.dashboardViewMonthYm;
-  if (typeof v === 'string' && /^\d{4}-\d{2}$/.test(v)) return v;
+export function getDashboardViewMonthYm(plan: FinancialPlan): YyyyMm {
+  const v = plan && (plan as any).dashboardViewMonthYm;
+  if (typeof v === 'string' && /^\d{4}-\d{2}$/.test(v)) return v as YyyyMm;
   return getWorkingMonthYm(plan);
 }
 
 /** Sum of debt payments logged with `at` in the given YYYY-MM (local). */
-export function sumPaymentsInYyyyMm(plan, yyyyMm) {
+export function sumPaymentsInYyyyMm(plan: FinancialPlan, yyyyMm: string): number {
   const ym = String(yyyyMm || '');
   if (!/^\d{4}-\d{2}$/.test(ym)) return 0;
-  const debts = Array.isArray(plan.debts) ? plan.debts : [];
+  const debts = Array.isArray((plan as any).debts) ? (plan as any).debts : [];
   let sum = 0;
-  debts.forEach(function (d) {
+  debts.forEach(function (d: any) {
     const hist = Array.isArray(d.paymentHistory) ? d.paymentHistory : [];
-    hist.forEach(function (p) {
+    hist.forEach(function (p: any) {
       if (!p || typeof p.at !== 'string') return;
       if (isoInLocalYyyyMm(p.at, ym)) sum += numOr(p.amount, 0);
     });
@@ -47,12 +50,12 @@ export function sumPaymentsInYyyyMm(plan, yyyyMm) {
 }
 
 /** @deprecated Use sumPaymentsInYyyyMm(plan, yyyyMmFromDate(new Date())) — kept for clarity in tooling. */
-export function sumPaymentsThisCalendarMonth(plan) {
+export function sumPaymentsThisCalendarMonth(plan: FinancialPlan): number {
   return sumPaymentsInYyyyMm(plan, yyyyMmFromDate(new Date()));
 }
 
 /** Monthly rate from APY percent (e.g. 3.25 → 3.25% nominal, compounded monthly). */
-function monthlyRateFromApyPct(apyPct) {
+function monthlyRateFromApyPct(apyPct: unknown): number {
   const apyDec = numOr(apyPct, 0) / 100;
   if (apyDec <= -1) return 0;
   return Math.pow(1 + apyDec, 1 / 12) - 1;
@@ -61,15 +64,15 @@ function monthlyRateFromApyPct(apyPct) {
 /**
  * Project non–joint savings balances to end of plan using each account’s APY (no additional deposits).
  */
-function projectPersonalSavingsEnd(accs, months) {
-  const n = Math.max(0, months | 0);
+function projectPersonalSavingsEnd(accs: SavingsAccount[], months: unknown): number {
+  const n = Math.max(0, (months as any) | 0);
   return accs
     .filter(function (a) {
       return String(a.id) !== 'hysa';
     })
     .reduce(function (sum, a) {
-      const cur = numOr(a.current, 0);
-      const rm = monthlyRateFromApyPct(numOr(a.apyPct, 0));
+      const cur = numOr((a as any).current, 0);
+      const rm = monthlyRateFromApyPct(numOr((a as any).apyPct, 0));
       return sum + cur * Math.pow(1 + rm, n);
     }, 0);
 }
@@ -77,14 +80,16 @@ function projectPersonalSavingsEnd(accs, months) {
 /**
  * Joint HYSA + deposits through `monthsToHysaGoal`, and personal savings grown at each account’s APY.
  */
-export function endOfPlanLiquid(plan) {
-  const months = Math.max(0, Math.floor(numOr(plan.monthsToHysaGoal, 0)));
-  const accs = getSavingsAccounts(plan);
+export function endOfPlanLiquid(plan: FinancialPlan): EndOfPlanLiquidSummary {
+  const months = Math.max(0, Math.floor(numOr((plan as any).monthsToHysaGoal, 0)));
+  const accs = getSavingsAccounts(plan) as SavingsAccount[];
   const rows = projectPayoffTimeline(plan, { maxMonths: months, noEarlyBreak: true });
   const hysaEnd =
-    rows.length > 0 ? rows[rows.length - 1].hysaEnd : accs.reduce(function (s, a) {
-      return String(a.id) === 'hysa' ? s + numOr(a.current, 0) : s;
-    }, 0);
+    rows.length > 0
+      ? rows[rows.length - 1].hysaEnd
+      : accs.reduce(function (s, a) {
+          return String(a.id) === 'hysa' ? s + numOr((a as any).current, 0) : s;
+        }, 0);
   const personalEnd = projectPersonalSavingsEnd(accs, months);
   return {
     months,
@@ -94,21 +99,19 @@ export function endOfPlanLiquid(plan) {
   };
 }
 
-export function derived(plan) {
-  const accs = getSavingsAccounts(plan);
+export function derived(plan: FinancialPlan): DerivedPlanMetrics {
+  const accs = getSavingsAccounts(plan) as SavingsAccount[];
   ensureSavingsGoals(plan);
-  const goalSavingsCurrent = sumBalancesTowardGoal(accs, ID_GOAL_HYSA);
-  const savingsGoalSummaries = (plan.savingsGoals || []).map(function (g) {
+  const goalSavingsCurrent = sumBalancesTowardGoal(accs as any, ID_GOAL_HYSA);
+  const savingsGoalSummaries = ((plan as any).savingsGoals || []).map(function (g: any) {
     const id = String(g.id || '');
     const name = String(g.name || 'Goal');
     const targetAmount = Math.max(0, numOr(g.targetAmount, 0));
-    const sum = sumBalancesTowardGoal(accs, id);
+    const sum = sumBalancesTowardGoal(accs as any, id);
     const pct = targetAmount > 0 ? Math.min(100, (sum / targetAmount) * 100) : 0;
     const gap = Math.max(0, targetAmount - sum);
     const ym =
-      typeof g.goalByYm === 'string' && /^\d{4}-\d{2}$/.test(g.goalByYm.trim())
-        ? g.goalByYm.trim()
-        : '';
+      typeof g.goalByYm === 'string' && /^\d{4}-\d{2}$/.test(g.goalByYm.trim()) ? g.goalByYm.trim() : '';
     const goalByWhen = ym ? 'By ' + monthLabel(ym) : '';
     return {
       id: id,
@@ -126,31 +129,32 @@ export function derived(plan) {
       return String(a.id) === 'hysa';
     })
     .reduce(function (s, a) {
-      return s + numOr(a.current, 0);
+      return s + numOr((a as any).current, 0);
     }, 0);
   const personalSavings = accs
     .filter(function (a) {
       return String(a.id) !== 'hysa';
     })
     .reduce(function (s, a) {
-      return s + numOr(a.current, 0);
+      return s + numOr((a as any).current, 0);
     }, 0);
   const totalAssets = accs.reduce(function (s, a) {
-    return s + numOr(a.current, 0);
+    return s + numOr((a as any).current, 0);
   }, 0);
-  const debts = Array.isArray(plan.debts) ? plan.debts : [];
-  const totalDebt = debts.reduce(function (sum, d) {
+  const debts = Array.isArray((plan as any).debts) ? (plan as any).debts : [];
+  const totalDebt = debts.reduce(function (sum: number, d: any) {
     return sum + numOr(d.current, 0);
   }, 0);
-  const debtStartTotal = debts.reduce(function (sum, d) {
+  const debtStartTotal = debts.reduce(function (sum: number, d: any) {
     const c = numOr(d.current, 0);
     const p = numOr(d.paidOff, 0);
     return sum + Math.max(0, c + p);
   }, 0);
-  const debtPaidOffTotal = debts.reduce(function (sum, d) {
+  const debtPaidOffTotal = debts.reduce(function (sum: number, d: any) {
     return sum + numOr(d.paidOff, 0);
   }, 0);
-  const debtGoalPct = debtStartTotal > 0 ? Math.min(100, (Math.max(0, debtPaidOffTotal) / debtStartTotal) * 100) : 0;
+  const debtGoalPct =
+    debtStartTotal > 0 ? Math.min(100, (Math.max(0, debtPaidOffTotal) / debtStartTotal) * 100) : 0;
 
   const netWorth = totalAssets - totalDebt;
   const debtRounded = Math.round(totalDebt);
@@ -161,51 +165,49 @@ export function derived(plan) {
     return String(a.id) === 'hysa';
   });
   const hysaApyDec =
-    hysaAcc && Number.isFinite(hysaAcc.apyPct) ? hysaAcc.apyPct / 100 : numOr(plan.hysaApy, 0);
+    hysaAcc && Number.isFinite((hysaAcc as any).apyPct) ? (hysaAcc as any).apyPct / 100 : numOr((plan as any).hysaApy, 0);
   const hysaInterestYr = hysaBal * hysaApyDec;
-  const efundRow = savingsGoalSummaries.find(function (x) {
+  const efundRow = savingsGoalSummaries.find(function (x: any) {
     return x.id === ID_GOAL_EFUND;
   });
-  const efundFallback = numOr(plan.monthlyFixedExpenses, 0) * numOr(plan.efundMonths, 12);
+  const efundFallback = numOr((plan as any).monthlyFixedExpenses, 0) * numOr((plan as any).efundMonths, 12);
   const efundTarget = efundRow ? efundRow.targetAmount : efundFallback;
   const towardEfund = efundRow ? efundRow.sum : personalSavings;
   const efundGap = efundRow ? efundRow.gap : Math.max(0, efundFallback - personalSavings);
-  const efundPct =
-    efundTarget > 0 ? Math.min(100, (Math.max(0, towardEfund) / efundTarget) * 100) : 0;
+  const efundPct = efundTarget > 0 ? Math.min(100, (Math.max(0, towardEfund) / efundTarget) * 100) : 0;
   const buffer =
-    plan.monthlyTakeHome -
-    plan.monthlyFixedExpenses -
-    plan.phase1.ccPayment -
-    plan.phase1.hysaDeposit -
-    plan.funBudget;
+    (plan as any).monthlyTakeHome -
+    (plan as any).monthlyFixedExpenses -
+    (plan as any).phase1.ccPayment -
+    (plan as any).phase1.hysaDeposit -
+    (plan as any).funBudget;
   const budgetParts = [
-    plan.monthlyFixedExpenses,
-    plan.phase1.ccPayment,
-    plan.phase1.hysaDeposit,
-    plan.funBudget,
+    (plan as any).monthlyFixedExpenses,
+    (plan as any).phase1.ccPayment,
+    (plan as any).phase1.hysaDeposit,
+    (plan as any).funBudget,
     buffer,
   ];
-  const budgetTotal = budgetParts.reduce((a, b) => a + b, 0);
-  const pctOfBudget = function (amt) {
+  const budgetTotal = budgetParts.reduce((a: number, b: number) => a + b, 0);
+  const pctOfBudget = function (amt: number) {
     return budgetTotal > 0 ? Math.round((amt / budgetTotal) * 100) : 0;
   };
-  const phase2Savings = plan.phase1.ccPayment + plan.phase1.hysaDeposit;
+  const phase2Savings = (plan as any).phase1.ccPayment + (plan as any).phase1.hysaDeposit;
   const eop = endOfPlanLiquid(plan);
   const totalLiquidEndPlan = eop.totalLiquidEndPlan;
   const hysaEndPlan = eop.hysaEndPlan;
   const personalEndPlan = eop.personalEndPlan;
 
-  const monthlyDebtGoal = numOr(plan.phase1 && plan.phase1.ccPayment, 3500);
+  const monthlyDebtGoal = numOr((plan as any).phase1 && (plan as any).phase1.ccPayment, 3500);
   const workingYm = getWorkingMonthYm(plan);
   const viewYm = getDashboardViewMonthYm(plan);
   const monthlyDebtPaidAuto = sumPaymentsInYyyyMm(plan, viewYm);
   const monthlyDebtPaid = monthlyDebtPaidAuto;
   const monthlyDebtPaidNonNeg = Math.max(0, monthlyDebtPaid);
-  const monthlyDebtPct =
-    monthlyDebtGoal > 0 ? Math.min(100, (monthlyDebtPaidNonNeg / monthlyDebtGoal) * 100) : 0;
+  const monthlyDebtPct = monthlyDebtGoal > 0 ? Math.min(100, (monthlyDebtPaidNonNeg / monthlyDebtGoal) * 100) : 0;
   const monthlyDebtBudgetRemaining = Math.max(0, monthlyDebtGoal - monthlyDebtPaidNonNeg);
   const dashboardFollowsWorking =
-    !(typeof plan.dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test(plan.dashboardViewMonthYm));
+    !(typeof (plan as any).dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test((plan as any).dashboardViewMonthYm));
 
   const payoff = projectDebtPayoffYm(plan, { maxMonths: 600 });
   const debtPayoffYm = payoff.ym;
@@ -223,8 +225,7 @@ export function derived(plan) {
     debtGoalWhenLine = 'Paid off';
   } else if (payoff.ym) {
     debtPayoffWhenLabel = monthLabel(payoff.ym);
-    debtPayoffWhenNote =
-      payoff.monthIndex != null ? '~' + (payoff.monthIndex + 1) + ' months (projected)' : '';
+    debtPayoffWhenNote = payoff.monthIndex != null ? '~' + (payoff.monthIndex + 1) + ' months (projected)' : '';
     debtGoalWhenLine = 'By ' + monthLabel(payoff.ym);
   } else {
     debtPayoffWhenLabel = '—';
@@ -239,7 +240,7 @@ export function derived(plan) {
     dashboardViewMonthLabel: monthLabel(viewYm),
     viewingDifferentFromWorking: viewYm !== workingYm,
     dashboardFollowsWorking: dashboardFollowsWorking,
-    goalHysa: numOr(plan.goalHysa, 0),
+    goalHysa: numOr((plan as any).goalHysa, 0),
     personalSavings,
     goalSavingsCurrent,
     totalAssets,
@@ -253,7 +254,7 @@ export function derived(plan) {
     efundGap,
     efundPct,
     towardEfund,
-    savingsGoalSummaries,
+    savingsGoalSummaries: savingsGoalSummaries as any,
     buffer,
     budgetTotal,
     pctOfBudget,
@@ -268,12 +269,14 @@ export function derived(plan) {
     debtPayoffWhenLabel,
     debtPayoffWhenNote,
     debtGoalWhenLine,
-    debts,
+    debts: debts as any,
     monthlyDebtGoal,
     monthlyDebtPaidAuto,
     monthlyDebtPaid,
+    monthlyDebtPaidNonNeg,
     monthlyDebtPct,
     monthlyDebtBudgetRemaining,
     savingsAccounts: accs,
-  };
+  } as any;
 }
+
