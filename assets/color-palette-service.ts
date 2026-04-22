@@ -6,11 +6,14 @@
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'financial-plan-v3-aggressive.palette';
-  var ATTR = 'data-color-palette';
-  var DEFAULT_ID = 'pastel';
+  const STORAGE_KEY = 'financial-plan-v3-aggressive.palette';
+  const ATTR = 'data-color-palette';
+  const DEFAULT_ID = 'pastel';
 
-  var PALETTES = [
+  type PaletteId = 'pastel' | 'classic' | 'ocean' | 'forest' | 'sunset';
+  interface PaletteDef { id: PaletteId; name: string; blurb: string }
+
+  const PALETTES: PaletteDef[] = [
     { id: 'pastel', name: 'Pastel', blurb: 'Soft blues, warm cream' },
     { id: 'classic', name: 'Classic', blurb: 'Navy, gold, sage' },
     { id: 'ocean', name: 'Ocean', blurb: 'Teal, sea glass, sand' },
@@ -18,34 +21,35 @@
     { id: 'sunset', name: 'Sunset', blurb: 'Rose, peach, amber' },
   ];
 
-  var VALID = PALETTES.map(function (p) {
+  const VALID: PaletteId[] = PALETTES.map(function (p) {
     return p.id;
   });
 
-  function normalizePalette(id) {
-    return VALID.indexOf(id) !== -1 ? id : DEFAULT_ID;
+  function normalizePalette(id: unknown): PaletteId {
+    const s = String(id || '');
+    return (VALID as string[]).indexOf(s) !== -1 ? (s as PaletteId) : DEFAULT_ID;
   }
 
-  function applyPalette(id) {
-    id = normalizePalette(id);
+  function applyPalette(id: unknown): PaletteId {
+    const palette = normalizePalette(id);
     var root = document.documentElement;
-    if (id === DEFAULT_ID) {
+    if (palette === DEFAULT_ID) {
       root.removeAttribute(ATTR);
     } else {
-      root.setAttribute(ATTR, id);
+      root.setAttribute(ATTR, palette);
     }
     try {
-      localStorage.setItem(STORAGE_KEY, id);
+      localStorage.setItem(STORAGE_KEY, palette);
     } catch (e) {}
     try {
       window.dispatchEvent(
-        new CustomEvent('pennypath:palettechange', { detail: { palette: id } })
+        new CustomEvent('pennypath:palettechange', { detail: { palette: palette } })
       );
     } catch (e) {}
-    return id;
+    return palette;
   }
 
-  function getPalette() {
+  function getPalette(): PaletteId {
     try {
       var s = localStorage.getItem(STORAGE_KEY);
       if (s) return normalizePalette(s);
@@ -53,11 +57,11 @@
     return DEFAULT_ID;
   }
 
-  function init() {
+  function init(): void {
     applyPalette(getPalette());
   }
 
-  window.ColorPaletteService = {
+  (window as any).ColorPaletteService = {
     init: init,
     applyPalette: applyPalette,
     getPalette: getPalette,

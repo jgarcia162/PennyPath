@@ -2,26 +2,29 @@
  * Goal 2 per-debt UI + debts list inside the balance editor (DOM builders).
  */
 
+import type { Debt, DerivedPlanMetrics, FinancialPlan, SavingsAccount, SavingsGoal } from '../../types/index.js';
 import { DEFAULT_DEBT_APR_PCT, DEFAULT_SAVINGS_APY_PCT, PLAN } from './plan-data';
 import { ensureSavingsGoals, accountContributesToGoal } from './savings-goals';
 import { numOr, formatMoneyInput } from './utils';
 
+type MoneyFn = (n: number) => string;
+
 /** Normalize legacy sort keys for UI + sorting. */
-export function normalizeDebtsEditorSort(mode) {
+export function normalizeDebtsEditorSort(mode: unknown): string {
   const m = mode || 'saved';
   if (m === 'balance') return 'balance-desc';
   if (m === 'apr') return 'apr-desc';
-  return m;
+  return String(m);
 }
 
-export function normalizeDebtsProgressSort(mode) {
+export function normalizeDebtsProgressSort(mode: unknown): string {
   const m = mode || 'saved';
   if (m === 'balance') return 'balance-desc';
   if (m === 'apr') return 'apr-desc';
-  return m;
+  return String(m);
 }
 
-function sortDebtListByMode(list, mode) {
+function sortDebtListByMode(list: Debt[], mode: string): Debt[] {
   if (mode === 'saved') return list;
   if (mode === 'balance-desc' || mode === 'balance-asc') {
     const dir = mode === 'balance-desc' ? -1 : 1;
@@ -56,26 +59,24 @@ function sortDebtListByMode(list, mode) {
 
 /**
  * Debts in Goal 2 editor row order (saved array order, or balance / APR).
- * @param {{ debts?: unknown[], debtsEditorSort?: string }} plan
  */
-export function getDebtsInEditorOrder(plan) {
-  const list = Array.isArray(plan.debts) ? plan.debts.slice() : [];
-  const mode = normalizeDebtsEditorSort(plan.debtsEditorSort);
+export function getDebtsInEditorOrder(plan: Pick<FinancialPlan, 'debts' | 'debtsEditorSort'>): Debt[] {
+  const list = Array.isArray(plan.debts) ? (plan.debts.slice() as Debt[]) : [];
+  const mode = normalizeDebtsEditorSort(plan.debtsEditorSort as unknown);
   return sortDebtListByMode(list, mode);
 }
 
 /**
  * Order for Goal 2 per-debt progress cards (`#goal2-debts`).
- * @param {{ debts?: unknown[], debtsProgressSort?: string }} plan
  */
-export function getDebtsInProgressOrder(plan) {
-  const list = Array.isArray(plan.debts) ? plan.debts.slice() : [];
-  const mode = normalizeDebtsProgressSort(plan.debtsProgressSort);
+export function getDebtsInProgressOrder(plan: Pick<FinancialPlan, 'debts' | 'debtsProgressSort'>): Debt[] {
+  const list = Array.isArray(plan.debts) ? (plan.debts.slice() as Debt[]) : [];
+  const mode = normalizeDebtsProgressSort(plan.debtsProgressSort as unknown);
   return sortDebtListByMode(list, mode);
 }
 
-export function renderGoal2Debts(plan, moneyExact) {
-  const host = document.getElementById('goal2-debts');
+export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void {
+  const host = document.getElementById('goal2-debts') as HTMLElement | null;
   if (!host) return;
   host.innerHTML = '';
   const debts = getDebtsInProgressOrder(plan);
@@ -209,16 +210,12 @@ export function buildDebtsEditorThead() {
   return thead;
 }
 
-/**
- * @param {object} debt
- * @returns {HTMLTableRowElement}
- */
-export function buildDebtRowTR(debt) {
+export function buildDebtRowTR(debt: Debt): HTMLTableRowElement {
   const row = document.createElement('tr');
   row.className = 'debt-row';
   row.setAttribute('data-debt-id', String(debt.id));
 
-  function tdInput(className, inner) {
+  function tdInput(className: string, inner: string): HTMLTableCellElement {
     const td = document.createElement('td');
     if (className) td.className = className;
     td.innerHTML = inner;
@@ -268,11 +265,11 @@ export function buildDebtRowTR(debt) {
   rmTd.appendChild(rm);
   row.appendChild(rmTd);
 
-  const nameInput = row.querySelector('input[data-field="name"]');
-  const curInput = row.querySelector('input[data-field="current"]');
-  const aprInput = row.querySelector('input[data-field="aprPct"]');
-  const defInput = row.querySelector('input[data-field="deferredAmount"]');
-  const defDateInput = row.querySelector('input[data-field="deferredExpiresOn"]');
+  const nameInput = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
+  const curInput = row.querySelector('input[data-field="current"]') as HTMLInputElement | null;
+  const aprInput = row.querySelector('input[data-field="aprPct"]') as HTMLInputElement | null;
+  const defInput = row.querySelector('input[data-field="deferredAmount"]') as HTMLInputElement | null;
+  const defDateInput = row.querySelector('input[data-field="deferredExpiresOn"]') as HTMLInputElement | null;
   if (nameInput) nameInput.value = debt.name || '';
   if (curInput) curInput.value = formatMoneyInput(numOr(debt.current, 0));
   if (aprInput) aprInput.value = formatMoneyInput(numOr(debt.aprPct, DEFAULT_DEBT_APR_PCT));
@@ -282,8 +279,8 @@ export function buildDebtRowTR(debt) {
   return row;
 }
 
-export function renderDebtsEditor(plan) {
-  const host = document.getElementById('debts-editor-list');
+export function renderDebtsEditor(plan: FinancialPlan): void {
+  const host = document.getElementById('debts-editor-list') as HTMLElement | null;
   if (!host) return;
   host.innerHTML = '';
   const debts = getDebtsInEditorOrder(plan);
@@ -303,19 +300,19 @@ export function renderDebtsEditor(plan) {
   host.appendChild(table);
 }
 
-export function syncDebtsEditorSortSelect(plan) {
-  const sortSel = document.getElementById('debts-editor-sort');
+export function syncDebtsEditorSortSelect(plan: Pick<FinancialPlan, 'debtsEditorSort'>): void {
+  const sortSel = document.getElementById('debts-editor-sort') as HTMLSelectElement | null;
   if (!sortSel) return;
-  sortSel.value = normalizeDebtsEditorSort(plan.debtsEditorSort);
+  sortSel.value = normalizeDebtsEditorSort(plan.debtsEditorSort as unknown);
 }
 
-export function syncDebtsProgressSortSelect(plan) {
-  const sortSel = document.getElementById('debts-progress-sort');
+export function syncDebtsProgressSortSelect(plan: Pick<FinancialPlan, 'debtsProgressSort'>): void {
+  const sortSel = document.getElementById('debts-progress-sort') as HTMLSelectElement | null;
   if (!sortSel) return;
-  sortSel.value = normalizeDebtsProgressSort(plan.debtsProgressSort);
+  sortSel.value = normalizeDebtsProgressSort(plan.debtsProgressSort as unknown);
 }
 
-export function appendSavingsEditorEmptyState(host) {
+export function appendSavingsEditorEmptyState(host: HTMLElement): void {
   const wrap = document.createElement('div');
   wrap.className = 'editor-empty-state editor-empty-state--savings';
   wrap.setAttribute('role', 'status');
@@ -326,7 +323,7 @@ export function appendSavingsEditorEmptyState(host) {
   host.appendChild(wrap);
 }
 
-export function buildSavingsEditorThead() {
+export function buildSavingsEditorThead(): HTMLTableSectionElement {
   const thead = document.createElement('thead');
   const tr = document.createElement('tr');
   tr.className = 'editor-table__head-row';
@@ -358,7 +355,7 @@ export function buildSavingsEditorThead() {
  * @param {Array<{ id?: string, name?: string }>} savingsGoals
  * @returns {HTMLTableRowElement}
  */
-export function buildSavingsRowTR(acc, savingsGoals) {
+export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal[]): HTMLTableRowElement {
   const row = document.createElement('tr');
   row.className = 'savings-row';
   row.setAttribute('data-savings-id', String(acc.id));
@@ -425,9 +422,9 @@ export function buildSavingsRowTR(acc, savingsGoals) {
   row.appendChild(tdGoal);
   row.appendChild(rmTd);
 
-  const nameInput = row.querySelector('input[data-field="name"]');
-  const curInput = row.querySelector('input[data-field="current"]');
-  const apyInput = row.querySelector('input[data-field="apyPct"]');
+  const nameInput = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
+  const curInput = row.querySelector('input[data-field="current"]') as HTMLInputElement | null;
+  const apyInput = row.querySelector('input[data-field="apyPct"]') as HTMLInputElement | null;
   if (nameInput) nameInput.value = acc.name || '';
   if (curInput) curInput.value = formatMoneyInput(numOr(acc.current, 0));
   if (apyInput) apyInput.value = formatMoneyInput(numOr(acc.apyPct, DEFAULT_SAVINGS_APY_PCT));
@@ -435,13 +432,13 @@ export function buildSavingsRowTR(acc, savingsGoals) {
   return row;
 }
 
-export function renderSavingsEditor(d) {
-  const host = document.getElementById('savings-editor-list');
+export function renderSavingsEditor(d: Pick<DerivedPlanMetrics, 'savingsAccounts'>): void {
+  const host = document.getElementById('savings-editor-list') as HTMLElement | null;
   if (!host) return;
   host.innerHTML = '';
-  const accs = d.savingsAccounts || [];
+  const accs: SavingsAccount[] = (d.savingsAccounts || []) as SavingsAccount[];
   ensureSavingsGoals(PLAN);
-  const savingsGoals = PLAN.savingsGoals || [];
+  const savingsGoals: SavingsGoal[] = ((PLAN as any).savingsGoals || []) as SavingsGoal[];
   if (accs.length === 0) {
     appendSavingsEditorEmptyState(host);
     return;
@@ -458,11 +455,14 @@ export function renderSavingsEditor(d) {
   host.appendChild(table);
 }
 
-export function renderGoal3SavingsAccounts(d, moneyExact) {
-  const host = document.getElementById('goal3-savings');
+export function renderGoal3SavingsAccounts(
+  d: Pick<DerivedPlanMetrics, 'savingsAccounts' | 'savingsGoalSummaries'>,
+  moneyExact: MoneyFn
+): void {
+  const host = document.getElementById('goal3-savings') as HTMLElement | null;
   if (!host) return;
   host.innerHTML = '';
-  const accs = d.savingsAccounts || [];
+  const accs: SavingsAccount[] = (d.savingsAccounts || []) as SavingsAccount[];
   accs.forEach(function (acc) {
     const current = numOr(acc.current, 0);
     const hist = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
@@ -498,7 +498,7 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
 
     const goalWrap = document.createElement('div');
     goalWrap.className = 'goal3-savings-goals';
-    const summaries = d.savingsGoalSummaries || [];
+    const summaries = (d.savingsGoalSummaries || []) as any[];
     const assigned = summaries.filter(function (sg) {
       return accountContributesToGoal(acc, sg.id);
     });
@@ -639,11 +639,17 @@ export function renderGoal3SavingsAccounts(d, moneyExact) {
  * @param {(n: number) => string} moneyExact
  * @param {{ hasData?: boolean }} [opts]
  */
-export function renderSavingsGoalsStack(hostId, d, money, moneyExact, opts) {
-  const host = document.getElementById(hostId);
+export function renderSavingsGoalsStack(
+  hostId: string,
+  d: Pick<DerivedPlanMetrics, 'savingsGoalSummaries'>,
+  money: MoneyFn,
+  moneyExact: MoneyFn,
+  opts?: { hasData?: boolean }
+): void {
+  const host = document.getElementById(hostId) as HTMLElement | null;
   if (!host) return;
   const hasData = opts && opts.hasData;
-  const sums = d.savingsGoalSummaries || [];
+  const sums = (d.savingsGoalSummaries || []) as any[];
   host.innerHTML = '';
   if (sums.length === 0) {
     const p = document.createElement('p');
@@ -668,7 +674,7 @@ export function renderSavingsGoalsStack(hostId, d, money, moneyExact, opts) {
 
     const grid = document.createElement('div');
     grid.className = 'efund-grid savings-goal-block__grid';
-    function cell(label, val, note) {
+    function cell(label: string, val: string, note: string): HTMLDivElement {
       const it = document.createElement('div');
       it.className = 'efund-item';
       const l = document.createElement('div');

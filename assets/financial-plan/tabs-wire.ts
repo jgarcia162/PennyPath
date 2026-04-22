@@ -4,18 +4,18 @@
  * - Dashboard: Debts vs Savings
  */
 
-function setSelected(tabEl, selected) {
+function setSelected(tabEl: HTMLElement | null, selected: boolean): void {
   if (!tabEl) return;
   tabEl.setAttribute('aria-selected', selected ? 'true' : 'false');
   tabEl.tabIndex = selected ? 0 : -1;
 }
 
-function setPanelVisible(panelEl, visible) {
+function setPanelVisible(panelEl: HTMLElement | null, visible: boolean): void {
   if (!panelEl) return;
   panelEl.hidden = !visible;
 }
 
-function activatePair(tabs) {
+function activatePair(tabs: { tabA: HTMLElement; tabB: HTMLElement; panelA: HTMLElement; panelB: HTMLElement }): void {
   const { tabA, tabB, panelA, panelB } = tabs;
   setSelected(tabA, true);
   setSelected(tabB, false);
@@ -23,7 +23,7 @@ function activatePair(tabs) {
   setPanelVisible(panelB, false);
 }
 
-function activatePairB(tabs) {
+function activatePairB(tabs: { tabA: HTMLElement; tabB: HTMLElement; panelA: HTMLElement; panelB: HTMLElement }): void {
   const { tabA, tabB, panelA, panelB } = tabs;
   setSelected(tabA, false);
   setSelected(tabB, true);
@@ -31,27 +31,29 @@ function activatePairB(tabs) {
   setPanelVisible(panelB, true);
 }
 
-export function wirePlanTabs() {
-  const tabPlan = document.getElementById('tab-plan');
-  const tabDash = document.getElementById('tab-dashboard');
-  const panelPlan = document.getElementById('panel-plan');
-  const panelDash = document.getElementById('panel-dashboard');
+export function wirePlanTabs(): void {
+  const tabPlan = document.getElementById('tab-plan') as HTMLElement | null;
+  const tabDash = document.getElementById('tab-dashboard') as HTMLElement | null;
+  const panelPlan = document.getElementById('panel-plan') as HTMLElement | null;
+  const panelDash = document.getElementById('panel-dashboard') as HTMLElement | null;
 
-  const tabDebts = document.getElementById('tab-dashboard-debts');
-  const tabSavings = document.getElementById('tab-dashboard-savings');
-  const panelDebts = document.getElementById('panel-dashboard-debts');
-  const panelSavings = document.getElementById('panel-dashboard-savings');
-  const tabDebtsEdge = document.getElementById('tab-dashboard-debts-edge');
-  const tabSavingsEdge = document.getElementById('tab-dashboard-savings-edge');
+  const tabDebts = document.getElementById('tab-dashboard-debts') as HTMLElement | null;
+  const tabSavings = document.getElementById('tab-dashboard-savings') as HTMLElement | null;
+  const panelDebts = document.getElementById('panel-dashboard-debts') as HTMLElement | null;
+  const panelSavings = document.getElementById('panel-dashboard-savings') as HTMLElement | null;
+  const tabDebtsEdge = document.getElementById('tab-dashboard-debts-edge') as HTMLElement | null;
+  const tabSavingsEdge = document.getElementById('tab-dashboard-savings-edge') as HTMLElement | null;
 
   if (!tabPlan || !tabDash || !panelPlan || !panelDash) return;
 
   const top = { tabA: tabPlan, tabB: tabDash, panelA: panelPlan, panelB: panelDash };
   const dash = { tabA: tabDebts, tabB: tabSavings, panelA: panelDebts, panelB: panelSavings };
 
-  function setEdgeEditorOpen(name, open) {
+  function setEdgeEditorOpen(name: string, open: boolean): void {
     const n = String(name || '');
-    const editor = document.querySelector('.edge-editor[data-edge-editor="' + n + '"]');
+    const editor = document.querySelector(
+      '.edge-editor[data-edge-editor="' + n + '"]'
+    ) as HTMLElement | null;
     const tab = document.getElementById('tab-dashboard-' + n + '-edge');
     const panel = document.getElementById('edge-editor-panel-' + n);
     if (tab) tab.setAttribute('aria-expanded', open ? 'true' : 'false');
@@ -67,14 +69,14 @@ export function wirePlanTabs() {
     setEdgeEditorOpen('savings', false);
   }
 
-  function syncDashEdgeTabs(which) {
+  function syncDashEdgeTabs(which: string): void {
     if (!tabDebtsEdge || !tabSavingsEdge) return;
     const isSavings = which === 'savings';
     setSelected(tabDebtsEdge, !isSavings);
     setSelected(tabSavingsEdge, isSavings);
   }
 
-  function activateDash(which, opts) {
+  function activateDash(which: string, opts?: { openEditor?: boolean; updateHash?: boolean }): void {
     const w = which === 'savings' ? 'savings' : 'debts';
     if (!tabDebts || !tabSavings || !panelDebts || !panelSavings) return;
     if (w === 'savings') activatePairB(dash);
@@ -157,8 +159,8 @@ export function wirePlanTabs() {
     // Click outside drawer collapses any open editor.
     document.addEventListener(
       'click',
-      function (e) {
-        const t = e && e.target;
+      function (e: MouseEvent) {
+        const t = e && (e.target as HTMLElement | null);
         if (!t) return;
         // Ignore clicks on the tabs or inside the drawer panels.
         if (t.closest && t.closest('.edge-editor__tab')) return;
@@ -183,7 +185,7 @@ export function wirePlanTabs() {
     openDashBtns.forEach(function (btn) {
       btn.addEventListener('click', function () {
         activatePairB(top);
-        const which = btn.getAttribute('data-open-dashboard');
+        const which = (btn as HTMLElement).getAttribute('data-open-dashboard');
         closeAllEdgeEditors();
         activateDash(which === 'savings' ? 'savings' : 'debts', { updateHash: true, openEditor: false });
       });

@@ -12,12 +12,12 @@ This project is a **static site**: HTML pages load scripts in a defined order. T
 
 | Global | File | Purpose |
 |--------|------|---------|
-| `window.ThemeService` | `assets/theme-service.js` | Light/dark theme; storage key `financial-plan-v3-aggressive.theme` (also on `ThemeService.STORAGE_KEY`) |
-| `window.CheckInService` | `assets/checkin-service.js` | Check-in CRUD |
-| `window.Badges` | `assets/badges.js` | Pure badge evaluation |
+| `window.ThemeService` | `assets/theme-service.ts` | Light/dark theme; storage key `financial-plan-v3-aggressive.theme` (also on `ThemeService.STORAGE_KEY`) |
+| `window.CheckInService` | `assets/checkin-service.ts` | Check-in CRUD |
+| `window.Badges` | `assets/badges.ts` | Pure badge evaluation |
 | `window.PayoffTimeline` | `assets/financial-plan/payoff-projection.js` (module) | Timeline projection (loaded as module before `main.js`) |
 
-**Site header** behavior (`assets/site-settings.js`): gear menu, theme, print, demo toggle. Uses the same demo flag string as `DEMO_MODE_STORAGE_KEY` in `plan-data.js` (`financial-plan.historyDemo`).
+**Site header** behavior (`assets/site-settings.ts`): gear menu, theme, print, demo toggle. Uses the same demo flag string as `DEMO_MODE_STORAGE_KEY` in `plan-data.js` (`financial-plan.historyDemo`).
 
 ## Financial Plan module graph (simplified)
 

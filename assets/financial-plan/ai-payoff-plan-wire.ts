@@ -3,6 +3,7 @@
  * Last generated plan text is cached in localStorage; requests go to POST /api/financial-payoff.
  */
 
+import type { FinancialPlan } from '../../types/index.js';
 import { AI_PAYOFF_PLAN_CACHE_LS_KEY } from './storage-keys';
 
 const LS_KEY_CACHE = AI_PAYOFF_PLAN_CACHE_LS_KEY;
@@ -10,12 +11,14 @@ const LS_KEY_CACHE = AI_PAYOFF_PLAN_CACHE_LS_KEY;
 /** Optional override for API origin (shared with real-estate-plan.html). */
 const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
 
+declare const process: any;
+
 function isDevTechnical() {
   return (
     typeof window !== 'undefined' &&
-    window.PennypathDev &&
-    typeof window.PennypathDev.isTechnical === 'function' &&
-    window.PennypathDev.isTechnical()
+    (window as any).PennypathDev &&
+    typeof (window as any).PennypathDev.isTechnical === 'function' &&
+    (window as any).PennypathDev.isTechnical()
   );
 }
 
@@ -23,20 +26,21 @@ function isDevTechnical() {
 function shouldLogLocalStorageErrors() {
   if (isDevTechnical()) return true;
   try {
-    if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'development') {
+    const p = typeof process !== 'undefined' ? process : (globalThis as any).process;
+    if (p && p.env && p.env.NODE_ENV === 'development') {
       return true;
     }
   } catch (e) {}
-  return typeof window !== 'undefined' && !!window.__PENNYPATH_DEBUG__;
+  return typeof window !== 'undefined' && !!(window as any).__PENNYPATH_DEBUG__;
 }
 
 function getPayoffApiBase() {
   if (
     typeof window !== 'undefined' &&
-    window.PennypathApiOrigin &&
-    typeof window.PennypathApiOrigin.getSafeApiBase === 'function'
+    (window as any).PennypathApiOrigin &&
+    typeof (window as any).PennypathApiOrigin.getSafeApiBase === 'function'
   ) {
-    return window.PennypathApiOrigin.getSafeApiBase(LS_API_BASE_KEY);
+    return (window as any).PennypathApiOrigin.getSafeApiBase(LS_API_BASE_KEY);
   }
   try {
     if (
@@ -452,7 +456,13 @@ function showPlaceholder(scrollEl, toolbarEl, expandBtn, outputRoot, msg) {
   setExpandedState(outputRoot, scrollEl, expandBtn, false);
 }
 
-function showLoading(scrollEl, toolbarEl, expandBtn, outputRoot, opts) {
+function showLoading(
+  scrollEl: HTMLElement | null,
+  toolbarEl: HTMLElement | null,
+  expandBtn: HTMLButtonElement | null,
+  outputRoot: HTMLElement | null,
+  opts?: { message?: string }
+): void {
   if (!scrollEl) return;
   clearScrollEl(scrollEl);
   setToolbarVisible(toolbarEl, false);
@@ -464,8 +474,7 @@ function showLoading(scrollEl, toolbarEl, expandBtn, outputRoot, opts) {
   spin.setAttribute('aria-hidden', 'true');
   const label = document.createElement('p');
   label.className = 'ai-payoff-loading__label';
-  label.textContent =
-    opts && opts.message ? String(opts.message) : 'Crafting your payoff plan…';
+  label.textContent = opts && opts.message ? String(opts.message) : 'Crafting your payoff plan…';
   wrap.appendChild(spin);
   wrap.appendChild(label);
   scrollEl.appendChild(wrap);
@@ -547,21 +556,21 @@ async function callFinancialPayoffApi(prompt) {
 }
 
 /**
- * @param {object} plan - mutable `PLAN` from plan-data (after persistence merge).
+ * @param plan mutable `PLAN` from plan-data (after persistence merge).
  */
-export function wireAiPayoffPlan(plan) {
-  const tabOriginal = document.getElementById('tab-how-original');
-  const tabAi = document.getElementById('tab-how-ai');
-  const panelOriginal = document.getElementById('panel-how-original');
-  const panelAi = document.getElementById('panel-how-ai');
-  const btn = document.getElementById('btn-ai-payoff-generate');
-  const statusEl = document.getElementById('ai-payoff-status');
-  const outRoot = document.getElementById('ai-payoff-output');
-  const scrollEl = document.getElementById('ai-payoff-scroll');
-  const toolbarEl = document.getElementById('ai-payoff-toolbar');
-  const expandBtn = document.getElementById('btn-ai-payoff-expand');
-  const refineInput = document.getElementById('ai-payoff-refine-input');
-  const refineBtn = document.getElementById('btn-ai-payoff-refine');
+export function wireAiPayoffPlan(plan: FinancialPlan): { refreshAfterPlanChange: () => void } | void {
+  const tabOriginal = document.getElementById('tab-how-original') as HTMLElement | null;
+  const tabAi = document.getElementById('tab-how-ai') as HTMLElement | null;
+  const panelOriginal = document.getElementById('panel-how-original') as HTMLElement | null;
+  const panelAi = document.getElementById('panel-how-ai') as HTMLElement | null;
+  const btn = document.getElementById('btn-ai-payoff-generate') as HTMLButtonElement | null;
+  const statusEl = document.getElementById('ai-payoff-status') as HTMLElement | null;
+  const outRoot = document.getElementById('ai-payoff-output') as HTMLElement | null;
+  const scrollEl = document.getElementById('ai-payoff-scroll') as HTMLElement | null;
+  const toolbarEl = document.getElementById('ai-payoff-toolbar') as HTMLElement | null;
+  const expandBtn = document.getElementById('btn-ai-payoff-expand') as HTMLButtonElement | null;
+  const refineInput = document.getElementById('ai-payoff-refine-input') as HTMLTextAreaElement | null;
+  const refineBtn = document.getElementById('btn-ai-payoff-refine') as HTMLButtonElement | null;
 
   if (!tabOriginal || !tabAi || !panelOriginal || !panelAi || !outRoot || !scrollEl) return;
 

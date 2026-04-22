@@ -2,7 +2,7 @@
  * Monthly check-in log UI: preview list, expand/collapse older rows, “all entries” dialog.
  *
  * Depends on globals loaded before the Financial Plan module bundle:
- * - `window.CheckInService` (see `assets/checkin-service.js`)
+ * - `window.CheckInService` (see `assets/checkin-service.ts`)
  *
  * DOM ids are defined in `financial-plan-v3-aggressive.html` (`#checkin-list`, `#checkin-log-dialog`, etc.).
  */

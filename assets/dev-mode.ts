@@ -13,7 +13,7 @@
   var TAP_WINDOW_MS = 12000;
   var TAPS_REQUIRED = 7;
 
-  function getItem(key) {
+  function getItem(key: string): string | null {
     try {
       return localStorage.getItem(key);
     } catch (e) {
@@ -21,37 +21,37 @@
     }
   }
 
-  function setItem(key, val) {
+  function setItem(key: string, val: string): void {
     try {
       localStorage.setItem(key, val);
     } catch (e) {}
   }
 
-  function isUnlocked() {
+  function isUnlocked(): boolean {
     return getItem(LS_UNLOCKED) === '1';
   }
 
   /** Technical hints (.env, npm, etc.) when unlocked and not opted out. */
-  function isTechnical() {
+  function isTechnical(): boolean {
     if (!isUnlocked()) return false;
     var t = getItem(LS_TECHNICAL);
     if (t === '0') return false;
     return true;
   }
 
-  function setTechnical(on) {
+  function setTechnical(on: boolean): void {
     setItem(LS_TECHNICAL, on ? '1' : '0');
     syncDom();
     dispatchChange();
   }
 
-  function dispatchChange() {
+  function dispatchChange(): void {
     try {
       window.dispatchEvent(new CustomEvent('pennypath-dev-mode-changed'));
     } catch (e) {}
   }
 
-  function syncDom() {
+  function syncDom(): void {
     var root = document.documentElement;
     if (isTechnical()) {
       root.setAttribute('data-dev-technical', 'true');
@@ -64,46 +64,46 @@
       devSec.hidden = !isUnlocked();
     }
 
-    var cb = document.getElementById('dev-mode-technical-toggle');
+    var cb = document.getElementById('dev-mode-technical-toggle') as HTMLInputElement | null;
     if (cb) {
       cb.checked = isTechnical();
     }
 
     var devBits = document.querySelectorAll('[data-dev-copy="technical"]');
     for (var i = 0; i < devBits.length; i++) {
-      devBits[i].hidden = !isTechnical();
+      (devBits[i] as HTMLElement).hidden = !isTechnical();
     }
 
     var sampleSections = document.querySelectorAll('[data-dev-only="sample-data"]');
     for (var s = 0; s < sampleSections.length; s++) {
-      sampleSections[s].hidden = !isUnlocked();
+      (sampleSections[s] as HTMLElement).hidden = !isUnlocked();
     }
 
     var devSettingsRows = document.querySelectorAll('[data-dev-only="developer-settings"]');
     for (var r = 0; r < devSettingsRows.length; r++) {
-      devSettingsRows[r].hidden = !isUnlocked();
+      (devSettingsRows[r] as HTMLElement).hidden = !isUnlocked();
     }
 
     syncReminderBar();
   }
 
   /** One sticky column so the nav + dev reminder scroll away together and stay in view. */
-  function ensureHeaderStickyShell() {
-    var header = document.querySelector('.site-header');
+  function ensureHeaderStickyShell(): void {
+    var header = document.querySelector('.site-header') as HTMLElement | null;
     if (!header) return;
     var p = header.parentElement;
     if (p && p.classList && p.classList.contains('site-header-sticky-shell')) return;
     var shell = document.createElement('div');
     shell.className = 'site-header-sticky-shell no-print';
     shell.id = 'site-header-sticky-shell';
-    header.parentNode.insertBefore(shell, header);
+    if (header.parentNode) header.parentNode.insertBefore(shell, header);
     shell.appendChild(header);
   }
 
   /** Banner under the site header whenever dev is unlocked (hard to miss before a screen share). */
-  function syncReminderBar() {
+  function syncReminderBar(): void {
     ensureHeaderStickyShell();
-    var header = document.querySelector('.site-header');
+    var header = document.querySelector('.site-header') as HTMLElement | null;
     if (!header) return;
 
     var bar = document.getElementById('dev-mode-reminder');
@@ -137,7 +137,7 @@
   }
 
   /** Clear unlock (for Settings or testing). */
-  function lockDeveloperMode() {
+  function lockDeveloperMode(): void {
     var reminder = document.getElementById('dev-mode-reminder');
     if (reminder) reminder.setAttribute('hidden', '');
     try {
@@ -250,7 +250,7 @@
       count = 0;
     }
 
-    function onActivate(e) {
+    function onActivate(e?: any) {
       if (e && typeof e.button === 'number' && e.button !== 0) return;
       var now = Date.now();
       if (!firstTap || now - firstTap > TAP_WINDOW_MS) {
@@ -288,7 +288,7 @@
   }
 
   function wireAppearanceToggle() {
-    var cb = document.getElementById('dev-mode-technical-toggle');
+    var cb = document.getElementById('dev-mode-technical-toggle') as HTMLInputElement | null;
     if (!cb) return;
     cb.addEventListener('change', function () {
       setTechnical(!!cb.checked);
@@ -302,7 +302,7 @@
     el.setAttribute('aria-label', 'App version ' + APP_VERSION);
   }
 
-  window.PennypathDev = {
+  (window as any).PennypathDev = {
     VERSION: APP_VERSION,
     isUnlocked: isUnlocked,
     isTechnical: isTechnical,
