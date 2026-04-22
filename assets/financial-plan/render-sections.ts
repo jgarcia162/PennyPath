@@ -170,7 +170,7 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
   });
 }
 
-export function appendDebtsEditorEmptyState(host) {
+export function appendDebtsEditorEmptyState(host: HTMLElement): void {
   const wrap = document.createElement('div');
   wrap.className = 'editor-empty-state';
   wrap.setAttribute('role', 'status');

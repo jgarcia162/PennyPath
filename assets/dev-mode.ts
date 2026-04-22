@@ -131,7 +131,7 @@
       });
       bar.appendChild(text);
       bar.appendChild(lockBtn);
-      header.parentNode.insertBefore(bar, header.nextSibling);
+      if (header.parentNode) header.parentNode.insertBefore(bar, header.nextSibling);
     }
     bar.hidden = false;
   }
@@ -290,8 +290,9 @@
   function wireAppearanceToggle() {
     var cb = document.getElementById('dev-mode-technical-toggle') as HTMLInputElement | null;
     if (!cb) return;
-    cb.addEventListener('change', function () {
-      setTechnical(!!cb.checked);
+    const cbEl = cb;
+    cbEl.addEventListener('change', function () {
+      setTechnical(!!cbEl.checked);
     });
   }
 

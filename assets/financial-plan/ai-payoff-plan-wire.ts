@@ -54,19 +54,19 @@ function getPayoffApiBase() {
   return 'http://127.0.0.1:8787';
 }
 
-function setSelected(tabEl, selected) {
+function setSelected(tabEl: HTMLElement | null, selected: boolean): void {
   if (!tabEl) return;
   tabEl.setAttribute('aria-selected', selected ? 'true' : 'false');
   tabEl.tabIndex = selected ? 0 : -1;
 }
 
-function setPanelVisible(panelEl, visible) {
+function setPanelVisible(panelEl: HTMLElement | null, visible: boolean): void {
   if (!panelEl) return;
   panelEl.hidden = !visible;
 }
 
 /** Stable subset of phase1/phase2 for cache fingerprint (matches plan-data shapes). */
-function fingerprintPhase1(phase1) {
+function fingerprintPhase1(phase1: any): { ccPayment: number; hysaDeposit: number } {
   if (!phase1 || typeof phase1 !== 'object') {
     return { ccPayment: 0, hysaDeposit: 0 };
   }
@@ -76,7 +76,7 @@ function fingerprintPhase1(phase1) {
   };
 }
 
-function fingerprintPhase2(phase2) {
+function fingerprintPhase2(phase2: any): { hysaDeposit: number } {
   if (!phase2 || typeof phase2 !== 'object') {
     return { hysaDeposit: 0 };
   }
@@ -85,11 +85,11 @@ function fingerprintPhase2(phase2) {
   };
 }
 
-function buildFingerprint(plan) {
+function buildFingerprint(plan: any): string {
   if (!plan || typeof plan !== 'object') return '';
   try {
     const debts = Array.isArray(plan.debts)
-      ? plan.debts.map(function (d) {
+      ? plan.debts.map(function (d: any) {
           return {
             id: String(d.id || ''),
             name: String(d.name || ''),
@@ -116,20 +116,21 @@ function buildFingerprint(plan) {
   }
 }
 
-function loadCache() {
+function loadCache(): { text: string; fingerprint: string; truncated: boolean; at: unknown } | null {
   try {
     const raw = localStorage.getItem(LS_KEY_CACHE);
     if (!raw) return null;
     const o = JSON.parse(raw);
     if (!o || typeof o !== 'object') return null;
-    if (typeof o.text !== 'string' || typeof o.fingerprint !== 'string') return null;
-    return { text: o.text, fingerprint: o.fingerprint, truncated: !!o.truncated, at: o.at };
+    const anyO = o as any;
+    if (typeof anyO.text !== 'string' || typeof anyO.fingerprint !== 'string') return null;
+    return { text: anyO.text, fingerprint: anyO.fingerprint, truncated: !!anyO.truncated, at: anyO.at };
   } catch (e) {
     return null;
   }
 }
 
-function saveCache(fingerprint, text, truncated) {
+function saveCache(fingerprint: string, text: string, truncated: boolean): void {
   try {
     localStorage.setItem(
       LS_KEY_CACHE,
@@ -147,11 +148,11 @@ function saveCache(fingerprint, text, truncated) {
   }
 }
 
-function buildPrompt(plan) {
+function buildPrompt(plan: FinancialPlan): string {
   const fp = buildFingerprint(plan);
   const debtsBlock = Array.isArray(plan.debts)
     ? plan.debts
-        .map(function (d, i) {
+        .map(function (d: any, i: number) {
           const lines = [
             'Debt ' + (i + 1) + ': ' + String(d.name || 'Unnamed'),
             '  Balance (current): $' + Number(d.current || 0).toFixed(2),
@@ -221,7 +222,7 @@ const MAX_REFINEMENT_PREVIOUS_CHARS = 28000;
  * @param {string} previousPlanText - raw markdown from last generation
  * @param {string} userFeedback - user instructions to change the plan
  */
-function buildRefinementPrompt(plan, previousPlanText, userFeedback) {
+function buildRefinementPrompt(plan: FinancialPlan, previousPlanText: string, userFeedback: string): string {
   const base = buildPrompt(plan);
   let prev = String(previousPlanText || '').trim();
   if (prev.length > MAX_REFINEMENT_PREVIOUS_CHARS) {
@@ -245,7 +246,7 @@ function buildRefinementPrompt(plan, previousPlanText, userFeedback) {
   );
 }
 
-function headingEmoji(title) {
+function headingEmoji(title: unknown): string {
   const t = String(title || '').toLowerCase();
   if (t.includes('summary')) return '✨';
   if (t.includes('payoff order') || t.includes('recommended')) return '📋';
@@ -256,7 +257,7 @@ function headingEmoji(title) {
   return '💡';
 }
 
-function stripHeadingMarks(line) {
+function stripHeadingMarks(line: unknown): string {
   return String(line || '')
     .replace(/^#{1,3}\s*/, '')
     .trim();
@@ -265,7 +266,7 @@ function stripHeadingMarks(line) {
 /**
  * Turn body text under a section into paragraphs and simple lists (lines starting with - or *).
  */
-function appendBodyLines(parent, bodyText) {
+function appendBodyLines(parent: HTMLElement, bodyText: unknown): void {
   const raw = String(bodyText || '').trim();
   if (!raw) return;
   const blocks = raw.split(/\n\n+/);
@@ -307,14 +308,14 @@ function appendBodyLines(parent, bodyText) {
  * Render Markdown-ish plan text into structured, styled nodes (safe: textContent only).
  * ### sections become alternating timeline cards; leading text stays as intro.
  */
-function renderPlanContent(text) {
+function renderPlanContent(text: unknown): DocumentFragment {
   const frag = document.createDocumentFragment();
   const t = String(text || '').replace(/\r\n/g, '\n').trim();
   if (!t) return frag;
 
   const chunks = t.split(/\n(?=#{1,3}\s)/);
-  const introParts = [];
-  const sections = [];
+  const introParts: string[] = [];
+  const sections: Array<{ title: string; body: string }> = [];
 
   chunks.forEach(function (chunk) {
     const trimmed = chunk.trim();
@@ -405,17 +406,22 @@ function renderPlanContent(text) {
   return frag;
 }
 
-function clearScrollEl(scrollEl) {
+function clearScrollEl(scrollEl: HTMLElement | null): void {
   if (!scrollEl) return;
   scrollEl.textContent = '';
 }
 
-function setToolbarVisible(toolbarEl, visible) {
+function setToolbarVisible(toolbarEl: HTMLElement | null, visible: boolean): void {
   if (!toolbarEl) return;
   toolbarEl.hidden = !visible;
 }
 
-function setExpandedState(outputRoot, scrollEl, expandBtn, expanded) {
+function setExpandedState(
+  outputRoot: HTMLElement | null,
+  scrollEl: HTMLElement | null,
+  expandBtn: HTMLButtonElement | null,
+  expanded: boolean
+): void {
   if (!outputRoot || !scrollEl) return;
   outputRoot.classList.toggle('ai-payoff-output--expanded', !!expanded);
   if (expandBtn) {
@@ -429,7 +435,14 @@ function setExpandedState(outputRoot, scrollEl, expandBtn, expanded) {
   }
 }
 
-function displayPlanInScroll(scrollEl, outputRoot, toolbarEl, expandBtn, text, opts) {
+function displayPlanInScroll(
+  scrollEl: HTMLElement | null,
+  outputRoot: HTMLElement | null,
+  toolbarEl: HTMLElement | null,
+  expandBtn: HTMLButtonElement | null,
+  text: unknown,
+  opts?: { truncated?: boolean }
+): void {
   if (!scrollEl) return;
   clearScrollEl(scrollEl);
   scrollEl.appendChild(renderPlanContent(text));
@@ -445,12 +458,18 @@ function displayPlanInScroll(scrollEl, outputRoot, toolbarEl, expandBtn, text, o
   setExpandedState(outputRoot, scrollEl, expandBtn, false);
 }
 
-function showPlaceholder(scrollEl, toolbarEl, expandBtn, outputRoot, msg) {
+function showPlaceholder(
+  scrollEl: HTMLElement | null,
+  toolbarEl: HTMLElement | null,
+  expandBtn: HTMLButtonElement | null,
+  outputRoot: HTMLElement | null,
+  msg: unknown
+): void {
   if (!scrollEl) return;
   clearScrollEl(scrollEl);
   const p = document.createElement('p');
   p.className = 'ai-payoff-placeholder section-sub';
-  p.textContent = msg;
+  p.textContent = String(msg == null ? '' : msg);
   scrollEl.appendChild(p);
   setToolbarVisible(toolbarEl, false);
   setExpandedState(outputRoot, scrollEl, expandBtn, false);
@@ -480,14 +499,20 @@ function showLoading(
   scrollEl.appendChild(wrap);
 }
 
-function showError(scrollEl, toolbarEl, expandBtn, outputRoot, msg) {
+function showError(
+  scrollEl: HTMLElement | null,
+  toolbarEl: HTMLElement | null,
+  expandBtn: HTMLButtonElement | null,
+  outputRoot: HTMLElement | null,
+  msg: unknown
+): void {
   if (!scrollEl) return;
   clearScrollEl(scrollEl);
   setToolbarVisible(toolbarEl, false);
   setExpandedState(outputRoot, scrollEl, expandBtn, false);
   const p = document.createElement('p');
   p.className = 'ai-payoff-error';
-  p.textContent = msg;
+  p.textContent = String(msg == null ? '' : msg);
   scrollEl.appendChild(p);
 }
 
@@ -497,7 +522,7 @@ const CLIENT_PAYOFF_FETCH_TIMEOUT_MS = 60000;
 /**
  * Calls the app server POST /api/financial-payoff (see server/market-research.mjs).
  */
-async function callFinancialPayoffApi(prompt) {
+async function callFinancialPayoffApi(prompt: string): Promise<{ text: string; truncated: boolean }> {
   const base = getPayoffApiBase();
   const controller = new AbortController();
   const timeoutId = setTimeout(function () {
@@ -512,7 +537,8 @@ async function callFinancialPayoffApi(prompt) {
       signal: controller.signal,
     });
   } catch (e) {
-    if (e && e.name === 'AbortError') {
+    const err = e as any;
+    if (err && err.name === 'AbortError') {
       if (isDevTechnical()) {
         throw new Error(
           'The AI payoff request timed out. Ensure `npm run research-server` is running and try again.'
@@ -531,9 +557,9 @@ async function callFinancialPayoffApi(prompt) {
   } finally {
     clearTimeout(timeoutId);
   }
-  const data = await res.json().catch(function () {
+  const data = (await res.json().catch(function () {
     return {};
-  });
+  })) as any;
   if (!res.ok || data.ok === false) {
     if (isDevTechnical()) {
       const msg =
@@ -573,6 +599,7 @@ export function wireAiPayoffPlan(plan: FinancialPlan): { refreshAfterPlanChange:
   const refineBtn = document.getElementById('btn-ai-payoff-refine') as HTMLButtonElement | null;
 
   if (!tabOriginal || !tabAi || !panelOriginal || !panelAi || !outRoot || !scrollEl) return;
+  const btnEl = btn;
 
   /** Raw markdown last shown or loaded from cache; used for refinement prompts. */
   let lastAiPlanText = '';
@@ -673,11 +700,11 @@ export function wireAiPayoffPlan(plan: FinancialPlan): { refreshAfterPlanChange:
         if (statusEl) statusEl.textContent = '';
         syncRefineControls();
       } catch (err) {
-        const msg = err && err.message ? String(err.message) : 'Something went wrong.';
+        const msg = err && (err as any).message ? String((err as any).message) : 'Something went wrong.';
         if (statusEl) statusEl.textContent = '';
         showError(scrollEl, toolbarEl, expandBtn, outRoot, msg);
       } finally {
-        btn.disabled = false;
+        if (btnEl) btnEl.disabled = false;
         syncRefineControls();
       }
     });
@@ -701,7 +728,7 @@ export function wireAiPayoffPlan(plan: FinancialPlan): { refreshAfterPlanChange:
       activateAi();
       if (statusEl) statusEl.textContent = 'Updating your plan…';
       showLoading(scrollEl, toolbarEl, expandBtn, outRoot, { message: 'Updating your plan…' });
-      btn.disabled = true;
+      if (btnEl) btnEl.disabled = true;
       refineBtn.disabled = true;
       if (refineInput) refineInput.disabled = true;
       try {
@@ -725,11 +752,11 @@ export function wireAiPayoffPlan(plan: FinancialPlan): { refreshAfterPlanChange:
         refineInput.value = '';
         if (statusEl) statusEl.textContent = '';
       } catch (err) {
-        const msg = err && err.message ? String(err.message) : 'Something went wrong.';
+        const msg = err && (err as any).message ? String((err as any).message) : 'Something went wrong.';
         if (statusEl) statusEl.textContent = '';
         showError(scrollEl, toolbarEl, expandBtn, outRoot, msg);
       } finally {
-        btn.disabled = false;
+        if (btnEl) btnEl.disabled = false;
         syncRefineControls();
       }
     });

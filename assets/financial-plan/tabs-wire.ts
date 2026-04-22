@@ -47,7 +47,10 @@ export function wirePlanTabs(): void {
   if (!tabPlan || !tabDash || !panelPlan || !panelDash) return;
 
   const top = { tabA: tabPlan, tabB: tabDash, panelA: panelPlan, panelB: panelDash };
-  const dash = { tabA: tabDebts, tabB: tabSavings, panelA: panelDebts, panelB: panelSavings };
+  const dash =
+    tabDebts && tabSavings && panelDebts && panelSavings
+      ? { tabA: tabDebts, tabB: tabSavings, panelA: panelDebts, panelB: panelSavings }
+      : null;
 
   function setEdgeEditorOpen(name: string, open: boolean): void {
     const n = String(name || '');
@@ -78,7 +81,7 @@ export function wirePlanTabs(): void {
 
   function activateDash(which: string, opts?: { openEditor?: boolean; updateHash?: boolean }): void {
     const w = which === 'savings' ? 'savings' : 'debts';
-    if (!tabDebts || !tabSavings || !panelDebts || !panelSavings) return;
+    if (!dash) return;
     if (w === 'savings') activatePairB(dash);
     else activatePair(dash);
     syncDashEdgeTabs(w);
@@ -96,7 +99,7 @@ export function wirePlanTabs(): void {
 
   // Default state (in case markup changes later).
   activatePair(top);
-  if (tabDebts && tabSavings && panelDebts && panelSavings) {
+  if (dash) {
     // Keep edge editor drawers collapsed on load.
     setEdgeEditorOpen('debts', false);
     setEdgeEditorOpen('savings', false);
@@ -117,12 +120,14 @@ export function wirePlanTabs(): void {
     } catch (e) {}
   });
 
-  if (tabDebts && tabSavings && panelDebts && panelSavings) {
-    tabDebts.addEventListener('click', function () {
+  if (dash) {
+    const tabDebtsEl = dash.tabA;
+    const tabSavingsEl = dash.tabB;
+    tabDebtsEl.addEventListener('click', function () {
       closeAllEdgeEditors();
       activateDash('debts', { updateHash: true, openEditor: false });
     });
-    tabSavings.addEventListener('click', function () {
+    tabSavingsEl.addEventListener('click', function () {
       closeAllEdgeEditors();
       activateDash('savings', { updateHash: true, openEditor: false });
     });
