@@ -39,26 +39,28 @@
     var trigger = document.getElementById('btn-site-settings') as HTMLButtonElement | null;
     var menu = document.getElementById('site-settings-menu') as HTMLElement | null;
     if (!trigger || !menu) return;
+    const triggerEl = trigger;
+    const menuEl = menu;
 
-    trigger.addEventListener('click', function (e) {
+    triggerEl.addEventListener('click', function (e) {
       e.stopPropagation();
-      toggleMenu(menu, trigger);
+      toggleMenu(menuEl, triggerEl);
     });
 
     document.addEventListener('click', function (e) {
-      var wrap = trigger.closest('.site-header__settings');
-      if (wrap && !wrap.contains(e.target as any)) closeMenu(menu, trigger);
+      var wrap = triggerEl.closest('.site-header__settings');
+      if (wrap && !wrap.contains(e.target as any)) closeMenu(menuEl, triggerEl);
     });
 
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') closeMenu(menu, trigger);
+      if (e.key === 'Escape') closeMenu(menuEl, triggerEl);
     });
 
     ['btn-print', 'btn-wipe-all-data', 'btn-open-appearance', 'btn-dev-lock'].forEach(function (id) {
       var el = document.getElementById(id);
       if (!el) return;
       el.addEventListener('click', function () {
-        closeMenu(menu, trigger);
+        closeMenu(menuEl, triggerEl);
       });
     });
   }
@@ -94,12 +96,13 @@
   function initDemoModeToggle() {
     var input = document.getElementById('demo-mode-toggle') as HTMLInputElement | null;
     if (!input) return;
+    const inputEl = input;
     try {
-      input.checked = localStorage.getItem(DEMO_MODE_KEY) === '1';
+      inputEl.checked = localStorage.getItem(DEMO_MODE_KEY) === '1';
     } catch (e) {}
-    input.addEventListener('change', function () {
+    inputEl.addEventListener('change', function () {
       try {
-        localStorage.setItem(DEMO_MODE_KEY, input.checked ? '1' : '0');
+        localStorage.setItem(DEMO_MODE_KEY, inputEl.checked ? '1' : '0');
       } catch (e) {}
       location.reload();
     });
@@ -110,6 +113,8 @@
     var dlg = document.getElementById('appearance-dialog') as HTMLDialogElement | null;
     var openBtn = document.getElementById('btn-open-appearance') as HTMLButtonElement | null;
     if (!dlg || !openBtn) return;
+    const dlgEl = dlg;
+    const openBtnEl = openBtn;
 
     var scrollDepth = 0;
     var scrollY = 0;
@@ -146,8 +151,8 @@
       if (!current && svc && svc.PALETTES && svc.PALETTES.length && svc.PALETTES[0] && svc.PALETTES[0].id) {
         current = svc.PALETTES[0].id;
       }
-      var opts = dlg.querySelectorAll('.palette-option[data-palette]');
-      if (!current && opts && opts.length && opts[0] && opts[0].getAttribute) {
+      var opts = dlgEl.querySelectorAll('.palette-option[data-palette]');
+      if (!current && opts.length && opts[0]) {
         current = opts[0].getAttribute('data-palette');
       }
       for (var i = 0; i < opts.length; i++) {
@@ -164,15 +169,16 @@
       syncPaletteOptions();
 
       // Prefer native <dialog>. Only lock scroll after showModal() succeeds.
-      if (typeof dlg.showModal === 'function') {
+      // (In TS libdom, showModal() is always present on HTMLDialogElement, but some browsers may not implement it.)
+      if (typeof (dlgEl as any).showModal === 'function') {
         // Avoid calling showModal() if the dialog is already open.
         // Some browsers throw in that case; also don't close an already-open dialog on failure.
-        if (dlg.open === true || (dlg.hasAttribute && dlg.hasAttribute('open'))) {
+        if (dlgEl.open === true || (typeof (dlgEl as any).hasAttribute === 'function' && dlgEl.hasAttribute('open'))) {
           lockScroll();
           return true;
         }
         try {
-          dlg.showModal();
+          (dlgEl as any).showModal();
           lockScroll();
           return true;
         } catch (e) {
@@ -184,20 +190,20 @@
       // Fallback for browsers without native <dialog> support:
       // make the dialog visibly open and provide a backdrop that closes it.
       try {
-        dlg.setAttribute('open', '');
-        dlg.setAttribute('aria-modal', 'true');
-        if (!dlg.getAttribute('role')) dlg.setAttribute('role', 'dialog');
+        dlgEl.setAttribute('open', '');
+        dlgEl.setAttribute('aria-modal', 'true');
+        if (!dlgEl.getAttribute('role')) dlgEl.setAttribute('role', 'dialog');
 
         // Ensure it's visible even if CSS expects showModal/backdrop behavior.
-        dlg.style.display = 'block';
-        dlg.style.position = 'fixed';
-        dlg.style.zIndex = '10000';
-        dlg.style.left = '50%';
-        dlg.style.top = '50%';
-        dlg.style.transform = 'translate(-50%, -50%)';
-        if (!dlg.style.maxWidth) dlg.style.maxWidth = 'min(92vw, 42rem)';
-        if (!dlg.style.maxHeight) dlg.style.maxHeight = 'min(85vh, 42rem)';
-        dlg.style.overflow = 'auto';
+        dlgEl.style.display = 'block';
+        dlgEl.style.position = 'fixed';
+        dlgEl.style.zIndex = '10000';
+        dlgEl.style.left = '50%';
+        dlgEl.style.top = '50%';
+        dlgEl.style.transform = 'translate(-50%, -50%)';
+        if (!dlgEl.style.maxWidth) dlgEl.style.maxWidth = 'min(92vw, 42rem)';
+        if (!dlgEl.style.maxHeight) dlgEl.style.maxHeight = 'min(85vh, 42rem)';
+        dlgEl.style.overflow = 'auto';
 
         if (!backdropEl) {
           backdropEl = document.createElement('div');
@@ -216,12 +222,12 @@
         if (!backdropEl.parentNode) document.body.appendChild(backdropEl);
 
         // Add Escape key support (fallback mode only) and prevent listener buildup.
-        var escHandler = (dlg as any)._appearanceEscHandler as ((e: KeyboardEvent) => void) | null;
+        var escHandler = (dlgEl as any)._appearanceEscHandler as ((e: KeyboardEvent) => void) | null;
         if (!escHandler) {
           escHandler = function (e) {
             if (e && e.key === 'Escape') closeAppearanceDialog();
           };
-          (dlg as any)._appearanceEscHandler = escHandler;
+          (dlgEl as any)._appearanceEscHandler = escHandler;
         }
         try {
           document.removeEventListener('keydown', escHandler);
@@ -230,8 +236,8 @@
 
         // Move focus into the dialog for accessibility.
         var focusTarget =
-          (dlg.querySelector('[autofocus]') as HTMLElement | null) ||
-          (dlg.querySelector(
+          (dlgEl.querySelector('[autofocus]') as HTMLElement | null) ||
+          (dlgEl.querySelector(
             'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
           ) as HTMLElement | null);
         if (focusTarget && focusTarget.focus) focusTarget.focus();
@@ -248,25 +254,25 @@
     }
 
     function closeAppearanceDialog() {
-      if (typeof dlg.close === 'function') {
+      if (typeof dlgEl.close === 'function') {
         try {
-          dlg.close();
+          dlgEl.close();
           return;
         } catch (e) {}
       }
 
       // Fallback close: mirror unlockScroll() behavior since <dialog> won't fire "close".
       try {
-        dlg.removeAttribute('open');
-        dlg.style.display = '';
-        dlg.style.position = '';
-        dlg.style.zIndex = '';
-        dlg.style.left = '';
-        dlg.style.top = '';
-        dlg.style.transform = '';
-        dlg.style.maxWidth = '';
-        dlg.style.maxHeight = '';
-        dlg.style.overflow = '';
+        dlgEl.removeAttribute('open');
+        dlgEl.style.display = '';
+        dlgEl.style.position = '';
+        dlgEl.style.zIndex = '';
+        dlgEl.style.left = '';
+        dlgEl.style.top = '';
+        dlgEl.style.transform = '';
+        dlgEl.style.maxWidth = '';
+        dlgEl.style.maxHeight = '';
+        dlgEl.style.overflow = '';
       } catch (e2) {}
       try {
         if (backdropEl && backdropEl.parentNode) backdropEl.parentNode.removeChild(backdropEl);
@@ -274,32 +280,32 @@
 
       // Remove fallback Escape handler and restore focus to the trigger.
       try {
-        var escHandler = (dlg as any)._appearanceEscHandler;
+        var escHandler = (dlgEl as any)._appearanceEscHandler;
         if (escHandler) {
           document.removeEventListener('keydown', escHandler);
-          (dlg as any)._appearanceEscHandler = null;
+          (dlgEl as any)._appearanceEscHandler = null;
         }
       } catch (e4) {}
       try {
-        if (openBtn && openBtn.focus) setTimeout(function () { openBtn.focus(); }, 0);
+        if (openBtnEl && openBtnEl.focus) setTimeout(function () { openBtnEl.focus(); }, 0);
       } catch (e5) {}
 
       unlockScroll();
     }
 
-    openBtn.addEventListener('click', function () {
+    openBtnEl.addEventListener('click', function () {
       openAppearanceDialog();
     });
 
-    dlg.addEventListener('close', function () {
+    dlgEl.addEventListener('close', function () {
       unlockScroll();
       try {
         if (backdropEl && backdropEl.parentNode) backdropEl.parentNode.removeChild(backdropEl);
       } catch (e) {}
     });
 
-    dlg.addEventListener('click', function (e) {
-      if (e.target === dlg) {
+    dlgEl.addEventListener('click', function (e) {
+      if (e.target === dlgEl) {
         closeAppearanceDialog();
         return;
       }
@@ -310,9 +316,9 @@
       }
     });
 
-    var paletteBtns = dlg.querySelectorAll('.palette-option[data-palette]');
+    var paletteBtns = dlgEl.querySelectorAll('.palette-option[data-palette]');
     for (var k = 0; k < paletteBtns.length; k++) {
-      paletteBtns[k].addEventListener('click', function () {
+      paletteBtns[k].addEventListener('click', function (this: HTMLElement) {
         var id = this.getAttribute('data-palette');
         if (!id || !(window as any).ColorPaletteService || !(window as any).ColorPaletteService.applyPalette) return;
         (window as any).ColorPaletteService.applyPalette(id);

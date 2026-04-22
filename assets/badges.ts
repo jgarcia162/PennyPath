@@ -16,9 +16,9 @@
 
   function debtStats(plan: any): { paidOff: number; remaining: number; original: number; pctEliminated: number } {
     const debts = Array.isArray(plan && plan.debts) ? plan.debts : [];
-    const paidOff = debts.reduce(function (sum, d) { return sum + clamp0(d && d.paidOff); }, 0);
-    const remaining = debts.reduce(function (sum, d) { return sum + clamp0(d && d.current); }, 0);
-    const original = debts.reduce(function (sum, d) { return sum + clamp0((d && d.current) + (d && d.paidOff)); }, 0);
+    const paidOff = debts.reduce(function (sum: number, d: any) { return sum + clamp0(d && d.paidOff); }, 0);
+    const remaining = debts.reduce(function (sum: number, d: any) { return sum + clamp0(d && d.current); }, 0);
+    const original = debts.reduce(function (sum: number, d: any) { return sum + clamp0((d && d.current) + (d && d.paidOff)); }, 0);
     const pctEliminated = original > 0 ? (paidOff / original) : 0;
     return { paidOff: paidOff, remaining: remaining, original: original, pctEliminated: pctEliminated };
   }
@@ -31,7 +31,7 @@
   function sumTowardGoalHysa(plan: any): number {
     const accs = Array.isArray(plan && plan.savingsAccounts) ? plan.savingsAccounts : [];
     var sum = 0;
-    accs.forEach(function (a) {
+    accs.forEach(function (a: any) {
       if (!a) return;
       var ids = a.goalIds;
       if (Array.isArray(ids) && ids.indexOf('goal-hysa') >= 0) {

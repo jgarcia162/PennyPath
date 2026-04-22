@@ -52,8 +52,6 @@ type MonthExportPlanPayload = Pick<
   | 'hysaBalance'
   | 'joseSavings'
   | 'sherlynaSavings'
-  | 'savingsAccounts'
-  | 'debts'
   | 'debtsEditorSort'
   | 'debtsProgressSort'
 > & {
@@ -78,7 +76,7 @@ type MonthExportPlanPayload = Pick<
 };
 
 function clonePlanBalancesOnly(plan: FinancialPlan): MonthExportPlanPayload {
-  const out = {
+  const out: MonthExportPlanPayload = {
     hysaBalance: roundMoney(numOr(plan && plan.hysaBalance, 0)),
     joseSavings: roundMoney(numOr(plan && plan.joseSavings, 0)),
     sherlynaSavings: roundMoney(numOr(plan && plan.sherlynaSavings, 0)),
