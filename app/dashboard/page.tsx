@@ -1,0 +1,1174 @@
+'use client';
+
+import { useEffect } from 'react';
+
+export default function DashboardPage() {
+  useEffect(() => {
+    let cancelled = false;
+
+    async function boot() {
+      // Everything below assumes a browser environment and the DOM nodes rendered by this page.
+      // Load order matches `financial-plan-v3-aggressive.html`.
+      try {
+        await import('../../assets/safe-api-origin');
+        await import('../../assets/theme-service');
+        await import('../../assets/color-palette-service');
+        await import('../../assets/site-settings');
+        await import('../../assets/dev-mode');
+        await import('../../assets/financial-plan/payoff-projection.js');
+        await import('../../assets/checkin-service');
+        await import('../../assets/badges');
+
+        // Entrypoint: wires UI and features (reads DOM immediately if document is ready).
+        await import('../../assets/financial-plan/main');
+      } catch (e) {
+        if (cancelled) return;
+        // Keep the page usable even if wiring fails; surface a console error for debugging.
+        // eslint-disable-next-line no-console
+        console.error('Failed to boot Financial Plan dashboard:', e);
+      }
+    }
+
+    boot();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <div>
+      <header className="site-header no-print">
+        <nav className="site-nav" aria-label="Site">
+          <a className="site-nav__tab site-nav__tab--active" href="/dashboard" aria-current="page">
+            💰 Financial Plan
+          </a>
+          <a className="site-nav__tab" href="/real-estate">
+            🏠 Real Estate
+          </a>
+          <a className="site-nav__tab" href="/history">
+            📅 History
+          </a>
+        </nav>
+        <div className="site-header__settings">
+          <button
+            type="button"
+            className="site-settings-btn"
+            id="btn-site-settings"
+            aria-expanded="false"
+            aria-haspopup="true"
+            aria-controls="site-settings-menu"
+          >
+            <span className="site-settings-btn__icon" aria-hidden="true">
+              ⚙
+            </span>
+            <span className="site-settings-btn__label">Settings</span>
+          </button>
+          <ul className="site-settings-menu" id="site-settings-menu" aria-label="Site settings">
+            <li>
+              <div className="site-settings-menu-section">
+                <span className="site-settings-menu-label">Display</span>
+                <button
+                  type="button"
+                  className="site-settings-item site-settings-item--muted"
+                  id="btn-toggle-theme"
+                  aria-pressed="false"
+                >
+                  Dark mode
+                </button>
+                <button type="button" className="site-settings-item" id="btn-open-appearance">
+                  Appearance…
+                </button>
+              </div>
+            </li>
+            <li>
+              <div className="site-settings-menu-section">
+                <span className="site-settings-menu-label">Page</span>
+                <button type="button" className="site-settings-item" id="btn-print">
+                  Print
+                </button>
+              </div>
+            </li>
+            <li data-dev-only="sample-data" hidden>
+              <div className="site-settings-menu-section">
+                <span className="site-settings-menu-label">Sample data</span>
+                <label className="site-settings-demo-toggle">
+                  <input type="checkbox" id="demo-mode-toggle" />
+                  <span>Use sample data (demo)</span>
+                </label>
+              </div>
+            </li>
+            <li data-dev-only="developer-settings" hidden>
+              <div className="site-settings-menu-section">
+                <span className="site-settings-menu-label">Developer</span>
+                <button type="button" className="site-settings-item" id="btn-dev-lock">
+                  Lock developer options
+                </button>
+                <p className="site-settings-dev-hint">
+                  Clears the developer unlock (same as a fresh browser). Use the footer version gesture to unlock
+                  again.
+                </p>
+              </div>
+            </li>
+            <li>
+              <div className="site-settings-menu-section">
+                <span className="site-settings-menu-label">Data</span>
+                <button
+                  type="button"
+                  className="site-settings-item site-settings-item--danger"
+                  id="btn-wipe-all-data"
+                  title="Clear all saved balances, debts, savings, check-ins, and milestone progress in this browser"
+                >
+                  Reset all data
+                </button>
+              </div>
+            </li>
+            <li>
+              <div className="site-settings-menu-section">
+                <span className="site-settings-menu-label">Account</span>
+                <form action="/auth/logout" method="post">
+                  <button type="submit" className="site-settings-item">
+                    Log out
+                  </button>
+                </form>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </header>
+
+      <div className="cover">
+        <div className="cover-label">Family Financial Plan · 2026 – 2027</div>
+        <h1>
+          Our Plan to Get
+          <br />
+          Free &amp; Save Big 💸
+        </h1>
+        <div className="cover-sub" id="cover-sub"></div>
+        <div className="cover-stats">
+          <div className="cover-stat">
+            <div className="cover-stat-label">Take-Home Pay</div>
+            <div className="cover-stat-val" id="cover-takehome"></div>
+            <div className="cover-stat-note">per month</div>
+          </div>
+          <div className="cover-stat">
+            <div className="cover-stat-label">Debt-Free By</div>
+            <div className="cover-stat-val" id="cover-debt-free-date"></div>
+            <div className="cover-stat-note" id="cover-debt-free-note"></div>
+          </div>
+          <div className="cover-stat">
+            <div className="cover-stat-label" id="cover-hysa-goal-label"></div>
+            <div className="cover-stat-val" id="cover-hysa-by"></div>
+            <div className="cover-stat-note" id="cover-hysa-note"></div>
+          </div>
+        </div>
+      </div>
+
+      <div className="content">
+        <div className="history-demo-banner no-print" id="financial-plan-demo-banner" hidden>
+          <strong>Sample data mode</strong> — Turn off the toggle in Settings to use your own data.
+        </div>
+
+        <div className="page-tabs no-print" role="tablist" aria-label="Financial Plan tabs">
+          <button
+            type="button"
+            className="page-tab-btn"
+            id="tab-plan"
+            role="tab"
+            aria-selected="true"
+            aria-controls="panel-plan"
+          >
+            Financial Plan
+          </button>
+          <button
+            type="button"
+            className="page-tab-btn"
+            id="tab-dashboard"
+            role="tab"
+            aria-selected="false"
+            aria-controls="panel-dashboard"
+          >
+            Dashboard
+          </button>
+        </div>
+
+        <section className="page-tab-panel" id="panel-plan" role="tabpanel" aria-labelledby="tab-plan">
+          {/* SECTION 01 */}
+          <div className="section">
+            <div className="section-eyebrow">Section 01</div>
+            <div className="section-title-row">
+              <div className="section-title">Where We Stand Today</div>
+              <div className="top-actions no-print">
+                <button
+                  type="button"
+                  className="plan-dash-nav-btn plan-dash-nav-btn--inline"
+                  data-open-dashboard="debts"
+                >
+                  Click here to open the Dashboard to edit debts and savings.
+                </button>
+              </div>
+            </div>
+
+            <div className="status-grid">
+              <div className="status-card positive">
+                <div className="status-label">Joint Account Balance</div>
+                <div className="status-value" id="status-hysa"></div>
+                <div className="status-note" id="status-hysa-note"></div>
+              </div>
+              <div className="status-card neutral">
+                <div className="status-label">Personal Savings</div>
+                <div className="status-value" id="status-personal"></div>
+                <div className="status-note" id="status-personal-note"></div>
+              </div>
+              <div className="status-card negative">
+                <div className="status-label">Debt</div>
+                <div className="status-value" id="status-debt-rounded"></div>
+                <div className="status-note" id="status-debt-note"></div>
+              </div>
+              <div className="status-card income">
+                <div className="status-label">Monthly Take-Home</div>
+                <div className="status-value" id="status-takehome"></div>
+                <div className="status-note" id="status-takehome-note"></div>
+              </div>
+            </div>
+
+            <div className="networth-wrap">
+              <div className="networth-label">Current Net Worth (Assets vs. Debt)</div>
+              <div className="networth-bar-track">
+                <div className="networth-bar-fill" id="nw-fill-assets"></div>
+                <div className="networth-bar-fill debt" id="nw-fill-debt"></div>
+              </div>
+              <div className="networth-legend">
+                <span>
+                  <span className="dot-sage"></span> <span id="nw-legend-assets"></span>
+                </span>
+                <span>
+                  <span className="dot-red"></span> <span id="nw-legend-debt"></span>
+                </span>
+              </div>
+              <div className="networth-total">
+                <span id="nw-total-line"></span> <span id="nw-total-sub"></span>
+              </div>
+            </div>
+          </div>
+
+          {/* SECTION 02 */}
+          <div className="section">
+            <div className="section-eyebrow">Section 02</div>
+            <div className="section-title">Where We Want to Be</div>
+
+            <div className="plan-goals-editor no-print" id="plan-goals-editor">
+              <div className="goal-editor-inner balance-editor plan-goals-editor__panel">
+                <div className="debts-editor-header plan-goals-editor__header">
+                  <div className="debts-editor-title">Edit goal targets</div>
+                  <div className="plan-goals-editor__hint">Updates instantly across the plan + dashboard.</div>
+                </div>
+
+                <div className="plan-goals-editor__section">
+                  <div className="debts-editor-header plan-goals-editor__subheader">
+                    <div className="debts-editor-title">Savings targets</div>
+                  </div>
+                  <p className="balance-editor-note plan-goals-editor__targets-note">
+                    Each target can include the full balance of accounts you link in the savings editor. One account can
+                    count toward several goals.
+                  </p>
+                  <div
+                    id="savings-goals-target-editor"
+                    className="debts-editor-list goals-targets-editor-list"
+                    aria-label="Savings goal targets"
+                  ></div>
+                  <div className="balance-editor-actions balance-editor-actions--goal-targets-add">
+                    <span className="balance-editor-actions-primary" aria-hidden="true"></span>
+                    <button type="button" className="btn-add-debt balance-editor-actions-add" id="btn-add-savings-goal">
+                      + Add savings goal
+                    </button>
+                  </div>
+                </div>
+
+                <div className="balance-editor-actions">
+                  <div className="balance-editor-actions-primary">
+                    <button type="button" className="btn-save" id="btn-save-goal-targets">
+                      Save goals
+                    </button>
+                    <span className="balance-saved-hint" id="goal-targets-save-status" aria-live="polite"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="goals-grid">
+              <div className="goal-card primary">
+                <div className="goal-tag">Goal 1 — Primary 🏡</div>
+                <div className="goal-value" id="goal-hysa-amt"></div>
+                <div className="goal-desc">
+                  in our High Yield Savings Account — fully funded, growing, and untouched by debt.
+                </div>
+                <div className="goal-when" id="goal-hysa-when"></div>
+              </div>
+
+              <div className="goal-card secondary-a">
+                <div className="goal-card-head" id="goal2-card-head">
+                  <div className="goal-tag">Goal 2</div>
+                  <button
+                    type="button"
+                    className="toggle-goal-editor-btn no-print"
+                    id="btn-toggle-goal2-editor"
+                    data-open-dashboard="debts"
+                  >
+                    Edit in Dashboard
+                  </button>
+                </div>
+                <div className="goal-value" id="goal-debt-amt"></div>
+                <div className="goal-desc">
+                  Credit card debt — completely eliminated. No more interest eating our income.
+                </div>
+                <div className="goal-when" id="goal-debt-when"></div>
+                <div className="progress-wrap">
+                  <div className="progress-label-row debt">
+                    <span id="debt-progress-left"></span>
+                    <span id="debt-progress-right"></span>
+                  </div>
+                  <div className="progress-track">
+                    <div className="progress-fill-debt" id="debt-progress-fill"></div>
+                  </div>
+                </div>
+                <div className="monthly-debt-goal-wrap" id="monthly-debt-goal-section">
+                  <div className="monthly-debt-goal-head">
+                    <span className="monthly-debt-goal-title">This month toward debt</span>
+                    <span className="monthly-debt-goal-meta" id="monthly-debt-goal-meta"></span>
+                  </div>
+                  <div className="progress-wrap monthly-debt-goal-bar">
+                    <div className="progress-label-row debt">
+                      <span id="monthly-debt-paid-label"></span>
+                      <span id="monthly-debt-pct-label"></span>
+                    </div>
+                    <div className="progress-track">
+                      <div className="progress-fill-debt" id="monthly-debt-progress-fill"></div>
+                    </div>
+                  </div>
+                  <p className="monthly-debt-goal-hint" id="monthly-debt-goal-hint"></p>
+                </div>
+
+                <div className="plan-inline-hint plan-inline-hint--cta no-print">
+                  <button type="button" className="plan-dash-nav-btn" data-open-dashboard="debts">
+                    Click here to review individual debts and log payments.
+                  </button>
+                </div>
+              </div>
+
+              <div className="goal-card secondary-b">
+                <div className="goal-card-head" id="goal3-card-head">
+                  <div className="goal-tag">Goal 3 — Savings goals 🚨</div>
+                  <button
+                    type="button"
+                    className="toggle-goal-editor-btn no-print"
+                    id="btn-toggle-goal3-editor"
+                    data-open-dashboard="savings"
+                  >
+                    Edit in Dashboard
+                  </button>
+                </div>
+                <div className="goal-value" id="goal-efund-amt"></div>
+                <div className="goal-desc" id="goal-efund-desc"></div>
+                <div className="goal-when" id="goal-efund-when"></div>
+
+                <div className="savings-goals-stack" id="savings-goals-stack"></div>
+
+                <div className="plan-inline-hint plan-inline-hint--cta no-print">
+                  <button type="button" className="plan-dash-nav-btn" data-open-dashboard="savings">
+                    Click here to edit accounts or log deposits.
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="callout sage" id="callout-full-picture"></div>
+            <div className="callout purple" id="callout-why-12"></div>
+          </div>
+
+          {/* SECTION 03 */}
+          <div className="section" id="section-how-we-get-there">
+            <div className="section-eyebrow">Section 03</div>
+            <div className="section-title">How We Get There</div>
+
+            <div className="how-we-get-there__tabs-row no-print">
+              <div className="page-tabs" role="tablist" aria-label="How we get there">
+                <button
+                  type="button"
+                  className="page-tab-btn"
+                  role="tab"
+                  id="tab-how-original"
+                  aria-selected="true"
+                  aria-controls="panel-how-original"
+                >
+                  Original plan
+                </button>
+                <button
+                  type="button"
+                  className="page-tab-btn"
+                  role="tab"
+                  id="tab-how-ai"
+                  aria-selected="false"
+                  tabIndex={-1}
+                  aria-controls="panel-how-ai"
+                >
+                  AI payoff plan
+                </button>
+              </div>
+              <div className="how-we-get-there__generate-wrap">
+                <button type="button" className="ai-payoff-generate-btn" id="btn-ai-payoff-generate">
+                  Generate plan
+                </button>
+                <span className="ai-payoff-status" id="ai-payoff-status" role="status"></span>
+              </div>
+            </div>
+
+            <div id="panel-how-original" role="tabpanel" aria-labelledby="tab-how-original">
+              <div className="plan-phases">
+                <div className="phase-card p1">
+                  <div className="phase-num">Phase 1 · October 2026 - December 2026</div>
+                  <div className="phase-name">Destroy the Debt</div>
+                  <div className="phase-row">
+                    <span className="label">CC Payment</span>
+                    <span className="val" id="phase1-cc"></span>
+                  </div>
+                  <div className="phase-row">
+                    <span className="label">HYSA Deposit</span>
+                    <span className="val" id="phase1-hysa"></span>
+                  </div>
+                  <div className="phase-row">
+                    <span className="label">Duration</span>
+                    <span className="val" id="phase1-dur"></span>
+                  </div>
+                  <div className="phase-row">
+                    <span className="label">Result</span>
+                    <span className="val">Debt: $0</span>
+                  </div>
+                </div>
+                <div className="phase-card p2">
+                  <div className="phase-num">Phase 2 · Jan – Jun 2027</div>
+                  <div className="phase-name">Build the Savings</div>
+                  <div className="phase-row">
+                    <span className="label">CC Payment</span>
+                    <span className="val">$0</span>
+                  </div>
+                  <div className="phase-row">
+                    <span className="label">HYSA Deposit</span>
+                    <span className="val" id="phase2-hysa"></span>
+                  </div>
+                  <div className="phase-row">
+                    <span className="label">Duration</span>
+                    <span className="val" id="phase2-dur"></span>
+                  </div>
+                  <div className="phase-row">
+                    <span className="label">Result</span>
+                    <span className="val" id="phase2-result"></span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="section-eyebrow" style={{ marginTop: 32, marginBottom: 12 }}>
+                Monthly Budget Breakdown
+              </div>
+
+              <div className="budget-wrap">
+                <div className="budget-header">
+                  <span>Category</span>
+                  <span>Amount</span>
+                  <span>%</span>
+                </div>
+                <div className="budget-row">
+                  <span>🏠 Monthly Expenses</span>
+                  <span className="budget-amount" id="budget-expenses"></span>
+                  <span className="budget-pct" id="budget-pct-expenses"></span>
+                </div>
+                <div className="budget-row">
+                  <span>
+                    💳 Credit Card Payoff <span className="chip red">Phase 1</span>
+                  </span>
+                  <span className="budget-amount" style={{ color: 'var(--red)' }} id="budget-cc"></span>
+                  <span className="budget-pct" id="budget-pct-cc"></span>
+                </div>
+                <div className="budget-row">
+                  <span>
+                    💰 HYSA Savings <span className="chip green">Phase 1</span>
+                  </span>
+                  <span className="budget-amount" style={{ color: 'var(--sage)' }} id="budget-hysa"></span>
+                  <span className="budget-pct" id="budget-pct-hysa"></span>
+                </div>
+                <div className="budget-row">
+                  <span>🎉 Fun Budget</span>
+                  <span className="budget-amount" style={{ color: 'var(--gold)' }} id="budget-fun"></span>
+                  <span className="budget-pct" id="budget-pct-fun"></span>
+                </div>
+                <div className="budget-row">
+                  <span>
+                    🛡️ Buffer <span style={{ fontSize: 12, color: '#aaa' }}>(rolls to savings if unused)</span>
+                  </span>
+                  <span className="budget-amount" id="budget-buffer"></span>
+                  <span className="budget-pct" id="budget-pct-buffer"></span>
+                </div>
+                <div className="budget-row total">
+                  <span>Total</span>
+                  <span className="budget-amount" id="budget-total"></span>
+                  <span className="budget-pct">100%</span>
+                </div>
+              </div>
+
+              <div className="callout red" id="callout-interest"></div>
+              <div className="callout" id="callout-phase2"></div>
+              <div className="callout blue" id="callout-fun"></div>
+            </div>
+
+            <div id="panel-how-ai" role="tabpanel" aria-labelledby="tab-how-ai" hidden>
+              <div className="ai-payoff-setup no-print">
+                <p className="ai-payoff-intro">
+                  Get a suggested payoff order and monthly allocation based on your debts, interest rates, and any
+                  deferred-interest promotions. Results are generated with Google Gemini and require an internet
+                  connection.
+                </p>
+                <p className="ai-payoff-intro ai-payoff-intro--technical" data-dev-copy="technical" hidden>
+                  <strong className="ai-payoff-dev-label">Technical</strong>
+                  The request is sent to your PennyPath server, which uses <code className="ai-payoff-code">GEMINI_API_KEY</code> from{' '}
+                  <code className="ai-payoff-code">.env</code> (same as other Gemini features). For local testing, run{' '}
+                  <code className="ai-payoff-code">npm run research-server</code> and open this page at{' '}
+                  <code className="ai-payoff-code">http://127.0.0.1:8787/financial-plan-v3-aggressive.html</code>.
+                </p>
+              </div>
+              <div className="ai-payoff-refine no-print">
+                <label className="ai-payoff-refine__label" htmlFor="ai-payoff-refine-input">
+                  Ask for changes
+                </label>
+                <p className="ai-payoff-refine__hint" id="ai-payoff-refine-hint">
+                  After a plan appears below, describe what you want different (for example: prioritize the car loan,
+                  use snowball order, or add a shorter summary).
+                </p>
+                <textarea
+                  id="ai-payoff-refine-input"
+                  className="ai-payoff-refine__input"
+                  rows={3}
+                  maxLength={8000}
+                  placeholder="Your feedback or instructions for the AI…"
+                  aria-describedby="ai-payoff-refine-hint"
+                  disabled
+                ></textarea>
+                <button type="button" className="ai-payoff-refine-btn" id="btn-ai-payoff-refine" disabled>
+                  Refine plan
+                </button>
+              </div>
+              <div className="ai-payoff-output" id="ai-payoff-output" aria-live="polite">
+                <div className="ai-payoff-output__toolbar no-print" id="ai-payoff-toolbar" hidden>
+                  <button type="button" className="ai-payoff-expand-btn" id="btn-ai-payoff-expand" aria-expanded="false">
+                    Expand full plan
+                  </button>
+                </div>
+                <div className="ai-payoff-scroll" id="ai-payoff-scroll" tabIndex={0}>
+                  <p className="ai-payoff-placeholder section-sub" id="ai-payoff-placeholder-default">
+                    Switch here and generate to see an AI-suggested payoff strategy.
+                  </p>
+                </div>
+              </div>
+
+              <div className="ai-bill-cal no-print">
+                <h3 className="ai-bill-cal__heading">Payment &amp; bill calendar</h3>
+                <p className="ai-bill-cal__intro">
+                  Upload a CSV with your monthly bills. The AI places each bill on its due day and suggests dates to
+                  make debt payments using your plan budget and (when available) the generated payoff strategy above.
+                </p>
+                <p className="ai-bill-cal__format">
+                  The first row must be headers. Enter the exact header names from your file for bill name, amount, and
+                  due day (day of month 1–31, recurring each month). Matching is not case-sensitive.
+                </p>
+                <div className="ai-bill-cal__columns" role="group" aria-label="CSV column mapping">
+                  <label className="ai-bill-cal__col-field">
+                    <span className="ai-bill-cal__col-label">Name column</span>
+                    <input
+                      type="text"
+                      id="ai-bill-cal-col-name"
+                      className="ai-bill-cal__col-input"
+                      defaultValue="name"
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </label>
+                  <label className="ai-bill-cal__col-field">
+                    <span className="ai-bill-cal__col-label">Amount column</span>
+                    <input
+                      type="text"
+                      id="ai-bill-cal-col-amount"
+                      className="ai-bill-cal__col-input"
+                      defaultValue="amount"
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </label>
+                  <label className="ai-bill-cal__col-field">
+                    <span className="ai-bill-cal__col-label">Due day column</span>
+                    <input
+                      type="text"
+                      id="ai-bill-cal-col-due"
+                      className="ai-bill-cal__col-input"
+                      defaultValue="due_day"
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                  </label>
+                </div>
+                <div className="ai-bill-cal__row">
+                  <label className="ai-bill-cal__file-label">
+                    <span className="ai-bill-cal__file-btn">Choose CSV</span>
+                    <input type="file" id="ai-bill-cal-file" accept=".csv,text/csv" className="ai-bill-cal__file-input" />
+                  </label>
+                  <button type="button" className="ai-bill-cal-generate-btn" id="btn-ai-bill-cal-generate" disabled>
+                    Generate calendar
+                  </button>
+                  <button
+                    type="button"
+                    className="ai-bill-cal-prompt-btn"
+                    id="btn-ai-bill-cal-open-prompt"
+                    disabled
+                    title="Load a CSV with at least one valid bill first"
+                  >
+                    View prompt
+                  </button>
+                  <span className="ai-bill-cal__status" id="ai-bill-cal-status" role="status"></span>
+                </div>
+                <div id="ai-bill-cal-host" className="ai-bill-cal-host" aria-live="polite"></div>
+              </div>
+
+              <dialog
+                id="ai-bill-cal-prompt-dialog"
+                className="ai-bill-cal-prompt-dialog"
+                aria-labelledby="ai-bill-cal-prompt-dialog-title"
+              >
+                <div className="ai-bill-cal-prompt-dialog__chrome">
+                  <header className="ai-bill-cal-prompt-dialog__header">
+                    <h3 id="ai-bill-cal-prompt-dialog-title" className="ai-bill-cal-prompt-dialog__title">
+                      Calendar prompt
+                    </h3>
+                    <button
+                      type="button"
+                      className="ai-bill-cal-prompt-dialog__close"
+                      id="btn-ai-bill-cal-prompt-close"
+                      aria-label="Close"
+                    >
+                      &times;
+                    </button>
+                  </header>
+                  <div className="ai-bill-cal-prompt-dialog__body">
+                    <p className="ai-bill-cal-prompt-dialog__hint">
+                      Use this with the in-app generator or on its own. Paste into an AI assistant and ask it to reply
+                      with only the JSON object (no markdown fences) as specified at the end of the prompt.
+                    </p>
+                    <label className="ai-bill-cal-prompt-dialog__label" htmlFor="ai-bill-cal-prompt-text">
+                      Prompt
+                    </label>
+                    <textarea
+                      id="ai-bill-cal-prompt-text"
+                      className="ai-bill-cal-prompt-dialog__textarea"
+                      readOnly
+                      rows={16}
+                      spellCheck={false}
+                    ></textarea>
+                    <p className="ai-bill-cal-prompt-dialog__feedback" id="ai-bill-cal-prompt-feedback" aria-live="polite"></p>
+                    <div className="ai-bill-cal-prompt-dialog__actions">
+                      <button type="button" className="ai-bill-cal-prompt-dialog__action" id="btn-ai-bill-cal-prompt-copy">
+                        Copy
+                      </button>
+                      <button type="button" className="ai-bill-cal-prompt-dialog__action" id="btn-ai-bill-cal-prompt-share">
+                        Share
+                      </button>
+                      <button
+                        type="button"
+                        className="ai-bill-cal-prompt-dialog__action"
+                        id="btn-ai-bill-cal-prompt-download"
+                      >
+                        Download
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </dialog>
+            </div>
+          </div>
+
+          {/* SECTION 04 */}
+          <div className="section" id="section-payoff-timeline">
+            <div className="section-eyebrow">Section 04</div>
+            <div className="section-title">Month-by-Month Payoff Timeline</div>
+            <p className="section-sub">
+              A simple projection of total credit card balance + interest, plus HYSA growth and deposits. Updates
+              automatically when you save new balances.
+            </p>
+            <div className="timeline-wrap" id="payoff-timeline"></div>
+          </div>
+
+          {/* SECTION 05 */}
+          <div className="section section-checkins" id="section-checkins">
+            <details className="checkin-collapsible" id="checkin-collapsible" open>
+              <summary className="checkin-collapsible__summary">
+                <span className="section-eyebrow">Section 05</span>
+                <span className="section-title checkin-collapsible__title">Monthly Check-In Log</span>
+              </summary>
+              <div className="checkin-collapsible__body">
+                <div className="checkin-wrap no-print">
+                  <form className="checkin-form" id="checkin-form">
+                    <div className="balance-field">
+                      <label htmlFor="checkin-date">Date</label>
+                      <input type="date" id="checkin-date" required />
+                    </div>
+                    <div className="balance-field">
+                      <label htmlFor="checkin-note">Note</label>
+                      <input
+                        type="text"
+                        id="checkin-note"
+                        autoComplete="off"
+                        placeholder="What went well? What needs adjusting?"
+                        required
+                      />
+                    </div>
+                    <div className="checkin-actions">
+                      <button type="submit" className="btn-save">
+                        Add check-in
+                      </button>
+                    </div>
+                  </form>
+                  <div className="balance-saved-hint" id="checkin-status" aria-live="polite"></div>
+                </div>
+                <div className="checkin-list checkin-log" id="checkin-list"></div>
+                <dialog className="checkin-log-dialog no-print" id="checkin-log-dialog" aria-labelledby="checkin-log-dialog-title">
+                  <div className="checkin-log-dialog__chrome">
+                    <div className="checkin-log-dialog__header">
+                      <h2 className="checkin-log-dialog__title" id="checkin-log-dialog-title">
+                        All check-ins
+                      </h2>
+                      <button
+                        type="button"
+                        className="checkin-log-dialog__close no-print"
+                        data-checkin-dialog-close
+                        aria-label="Close"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div className="checkin-log-dialog__body" id="checkin-log-dialog-body"></div>
+                  </div>
+                </dialog>
+              </div>
+            </details>
+          </div>
+
+          {/* SECTION 06 */}
+          <div className="section" id="section-milestones">
+            <div className="section-eyebrow">Section 06</div>
+            <div className="section-title">Milestones</div>
+            <div className="badges-grid" id="badges-grid"></div>
+          </div>
+        </section>
+
+        <section
+          className="page-tab-panel page-tab-panel--dashboard"
+          id="panel-dashboard"
+          role="tabpanel"
+          aria-labelledby="tab-dashboard"
+          hidden
+        >
+          <div className="dashboard-hero">
+            <div className="dashboard-hero__title">Dashboard</div>
+            <div className="dashboard-hero__sub">
+              Edit debts and savings here. Changes reflect instantly in the Financial Plan outline.
+            </div>
+          </div>
+
+          <div className="dashboard-month-wrap no-print">
+            <div className="dashboard-month-wrap__row">
+              <div className="dashboard-month-wrap__text">
+                <span className="dashboard-month-wrap__eyebrow">View &amp; edit month</span>
+                <div className="dashboard-month-wrap__picker-row">
+                  <label className="dashboard-month-wrap__picker-label" htmlFor="dashboard-view-month">
+                    Month
+                  </label>
+                  <select
+                    id="dashboard-view-month"
+                    className="dashboard-view-month-select"
+                    aria-label="Month to view on the dashboard and date new payments"
+                  ></select>
+                </div>
+                <p className="dashboard-month-wrap__working-note" id="dashboard-view-working-note" hidden></p>
+              </div>
+              <div className="dashboard-month-wrap__actions">
+                <button type="button" className="btn-save" id="btn-month-wrap-up">
+                  Wrap up month
+                </button>
+                <button type="button" className="btn-undo" id="btn-month-wrap-undo" disabled>
+                  Undo last wrap
+                </button>
+              </div>
+            </div>
+            <p className="dashboard-month-wrap__hint">
+              Pick a month to see that month’s debt progress and to log payments or deposits with dates in that month.
+              “Follow working month” keeps the bar aligned with wrap-up. Wrapping saves a snapshot, advances the working
+              month, and resets the monthly bar for the new month. Use Undo once if you need to fix the previous month.
+            </p>
+          </div>
+
+          <div className="dashboard-goals-details no-print dashboard-goals-details--open" id="dashboard-goals-at-glance">
+            <button
+              type="button"
+              className="dashboard-goals-summary"
+              id="dashboard-goals-toggle"
+              aria-expanded="true"
+              aria-controls="dashboard-goals-panel"
+            >
+              <span className="dashboard-goals-summary-chevron" aria-hidden="true"></span>
+              <span className="section-eyebrow dashboard-goals-summary-eyebrow" id="dashboard-goals-heading">
+                Goals at a glance
+              </span>
+            </button>
+            <div
+              className="dashboard-goals-anim"
+              id="dashboard-goals-panel"
+              role="region"
+              aria-labelledby="dashboard-goals-heading"
+              aria-hidden="false"
+            >
+              <div className="dashboard-goals-inner">
+                <div className="goals-grid goals-grid--dashboard">
+                  <div className="goal-card secondary-a">
+                    <div className="goal-card-head">
+                      <div className="goal-tag">Goal 2</div>
+                    </div>
+                    <div className="goal-value" id="dash-goal-debt-amt"></div>
+                    <div className="goal-desc">
+                      Credit card debt — completely eliminated. No more interest eating our income.
+                    </div>
+                    <div className="goal-when" id="dash-goal-debt-when"></div>
+                    <div className="progress-wrap">
+                      <div className="progress-label-row debt">
+                        <span id="dash-debt-progress-left"></span>
+                        <span id="dash-debt-progress-right"></span>
+                      </div>
+                      <div className="progress-track">
+                        <div className="progress-fill-debt" id="dash-debt-progress-fill"></div>
+                      </div>
+                    </div>
+                    <div className="monthly-debt-goal-wrap" id="dash-monthly-debt-goal-section">
+                      <div className="monthly-debt-goal-head">
+                        <span className="monthly-debt-goal-title">This month toward debt</span>
+                        <span className="monthly-debt-goal-meta" id="dash-monthly-debt-goal-meta"></span>
+                      </div>
+                      <div className="progress-wrap monthly-debt-goal-bar">
+                        <div className="progress-label-row debt">
+                          <span id="dash-monthly-debt-paid-label"></span>
+                          <span id="dash-monthly-debt-pct-label"></span>
+                        </div>
+                        <div className="progress-track">
+                          <div className="progress-fill-debt" id="dash-monthly-debt-progress-fill"></div>
+                        </div>
+                      </div>
+                      <p className="monthly-debt-goal-hint" id="dash-monthly-debt-goal-hint"></p>
+                    </div>
+                  </div>
+
+                  <div className="goal-card secondary-b">
+                    <div className="goal-card-head">
+                      <div className="goal-tag">Goal 3 — Savings goals 🚨</div>
+                    </div>
+                    <div className="goal-value" id="dash-goal-efund-amt"></div>
+                    <div className="goal-desc" id="dash-goal-efund-desc"></div>
+                    <div className="goal-when" id="dash-goal-efund-when"></div>
+
+                    <div className="savings-goals-stack" id="dash-savings-goals-stack"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="dashboard-tabs no-print" role="tablist" aria-label="Dashboard tabs">
+            <button
+              type="button"
+              className="dashboard-tab-btn"
+              id="tab-dashboard-debts"
+              role="tab"
+              aria-selected="true"
+              aria-controls="panel-dashboard-debts"
+            >
+              Debts
+            </button>
+            <button
+              type="button"
+              className="dashboard-tab-btn"
+              id="tab-dashboard-savings"
+              role="tab"
+              aria-selected="false"
+              aria-controls="panel-dashboard-savings"
+            >
+              Savings
+            </button>
+          </div>
+
+          <div className="dashboard-edge-editors no-print" role="tablist" aria-label="Dashboard editors">
+            <div className="edge-editor" data-edge-editor="debts">
+              <button
+                type="button"
+                className="edge-editor__tab"
+                id="tab-dashboard-debts-edge"
+                role="tab"
+                aria-selected="true"
+                aria-controls="panel-dashboard-debts"
+                aria-expanded="false"
+                aria-label="Debts editor"
+              >
+                <span className="edge-editor__tab-label">Debts</span>
+              </button>
+              <div
+                className="edge-editor__panel"
+                id="edge-editor-panel-debts"
+                role="region"
+                aria-labelledby="tab-dashboard-debts-edge"
+                aria-hidden="true"
+                hidden
+              >
+                <aside className="toolwin toolwin--right" data-toolwin="debts">
+                  <div className="toolwin__head">
+                    <div className="toolwin__title">
+                      Debts editor <span className="toolwin__meta" id="goal2-editor-dialog-totals" aria-live="polite"></span>
+                    </div>
+                  </div>
+                  <div className="toolwin__body">
+                    <div className="goal-editor-inner balance-editor">
+                      <div className="debts-editor-header">
+                        <div className="debts-editor-title">Debts</div>
+                        <div className="debts-editor-sort">
+                          <label htmlFor="debts-editor-sort" className="debts-editor-sort-label">
+                            Sort by
+                          </label>
+                          <select id="debts-editor-sort" className="debts-editor-sort-select" aria-label="Sort debts">
+                            <option value="saved">Saved order</option>
+                            <option value="balance-desc">Balance (high → low)</option>
+                            <option value="balance-asc">Balance (low → high)</option>
+                            <option value="apr-desc">APR % (high → low)</option>
+                            <option value="apr-asc">APR % (low → high)</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div className="debts-editor-list" id="debts-editor-list"></div>
+                      <div className="balance-editor-actions">
+                        <div className="balance-editor-actions-primary">
+                          <button type="button" className="btn-save" id="btn-save-goal2-debts">
+                            Save
+                          </button>
+                          <button type="button" className="btn-undo" id="btn-undo-goal2-debts">
+                            Undo
+                          </button>
+                          <button type="button" className="btn-reset" id="btn-reset-goal2-debts">
+                            Reset draft
+                          </button>
+                          <span className="balance-saved-hint" id="goal2-save-status" aria-live="polite"></span>
+                        </div>
+                        <button type="button" className="btn-add-debt balance-editor-actions-add" id="btn-add-debt">
+                          + Add debt
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+
+            <div className="edge-editor" data-edge-editor="savings">
+              <button
+                type="button"
+                className="edge-editor__tab"
+                id="tab-dashboard-savings-edge"
+                role="tab"
+                aria-selected="false"
+                aria-controls="panel-dashboard-savings"
+                aria-expanded="false"
+                aria-label="Savings editor"
+              >
+                <span className="edge-editor__tab-label">Savings</span>
+              </button>
+              <div
+                className="edge-editor__panel"
+                id="edge-editor-panel-savings"
+                role="region"
+                aria-labelledby="tab-dashboard-savings-edge"
+                aria-hidden="true"
+                hidden
+              >
+                <aside className="toolwin toolwin--right" data-toolwin="savings">
+                  <div className="toolwin__head">
+                    <div className="toolwin__title">
+                      Savings editor <span className="toolwin__meta" id="goal3-editor-dialog-totals" aria-live="polite"></span>
+                    </div>
+                  </div>
+                  <div className="toolwin__body">
+                    <div className="goal-editor-inner balance-editor">
+                      <div className="savings-editor-list" id="savings-editor-list"></div>
+                      <div className="balance-editor-actions">
+                        <div className="balance-editor-actions-primary">
+                          <button type="button" className="btn-save" id="btn-save-goal3-savings">
+                            Save
+                          </button>
+                          <button type="button" className="btn-undo" id="btn-undo-goal3-savings">
+                            Undo
+                          </button>
+                          <button type="button" className="btn-reset" id="btn-reset-goal3-savings">
+                            Reset draft
+                          </button>
+                          <span className="balance-saved-hint" id="goal3-save-status" aria-live="polite"></span>
+                        </div>
+                        <button type="button" className="btn-add-debt balance-editor-actions-add" id="btn-add-savings">
+                          + Add account
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+          </div>
+
+          <section className="dashboard-tab-panel" id="panel-dashboard-debts" role="tabpanel" aria-labelledby="tab-dashboard-debts">
+            <div className="dashboard-split">
+              <div className="dashboard-main">
+                <div className="dashboard-card">
+                  <div className="dashboard-card__head">
+                    <div className="dashboard-card__title">Per-debt progress</div>
+                  </div>
+                  <div className="goal2-debts-wrap">
+                    <div className="goal2-debts-toolbar">
+                      <div className="goal2-debts-toolbar-title">Cards</div>
+                      <div className="debts-progress-sort">
+                        <label htmlFor="debts-progress-sort" className="debts-editor-sort-label">
+                          Sort by
+                        </label>
+                        <select id="debts-progress-sort" className="debts-editor-sort-select" aria-label="Sort per-debt progress cards">
+                          <option value="saved">Saved order</option>
+                          <option value="balance-desc">Balance (high → low)</option>
+                          <option value="balance-asc">Balance (low → high)</option>
+                          <option value="apr-desc">APR % (high → low)</option>
+                          <option value="apr-asc">APR % (low → high)</option>
+                          <option value="paid-desc">Amount paid (high → low)</option>
+                          <option value="paid-asc">Amount paid (low → high)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="goal2-debts" id="goal2-debts"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section
+            className="dashboard-tab-panel"
+            id="panel-dashboard-savings"
+            role="tabpanel"
+            aria-labelledby="tab-dashboard-savings"
+            hidden
+          >
+            <div className="dashboard-split">
+              <div className="dashboard-main">
+                <div className="dashboard-card">
+                  <div className="dashboard-card__head">
+                    <div className="dashboard-card__title">Accounts &amp; recent deposits</div>
+                  </div>
+                  <div className="goal3-savings" id="goal3-savings"></div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </section>
+      </div>
+
+      <div className="footer">
+        <strong>Phase 1: Destroy. Phase 2: Build. Phase 3: Protect.</strong>
+        <span id="footer-line"></span>
+        <div className="footer-meta" id="footer-meta" title="App version">
+          <button type="button" className="footer-version" id="footer-app-version" aria-label="Application version">
+            Version
+          </button>
+        </div>
+      </div>
+
+      <dialog
+        className="appearance-dialog no-print"
+        id="appearance-dialog"
+        aria-labelledby="appearance-dialog-title"
+        aria-modal="true"
+      >
+        <div className="appearance-dialog__chrome">
+          <div className="appearance-dialog__header">
+            <h2 className="appearance-dialog__title" id="appearance-dialog-title">
+              Appearance
+            </h2>
+            <button
+              type="button"
+              className="appearance-dialog__close"
+              data-close-appearance-dialog
+              aria-label="Close dialog"
+            >
+              ×
+            </button>
+          </div>
+          <div className="appearance-dialog__body">
+            <p className="appearance-dialog__intro">
+              Choose a color palette. Your choice is saved in this browser and applies to PennyPath pages that share
+              this header.
+            </p>
+            <div className="palette-options" role="listbox" aria-label="Color palettes">
+              <button type="button" className="palette-option" role="option" data-palette="pastel" id="palette-opt-pastel">
+                <span className="palette-option__preview" aria-hidden="true"></span>
+                <span className="palette-option__text">
+                  <span className="palette-option__name">Pastel</span>
+                  <span className="palette-option__blurb">Soft blues, warm cream</span>
+                </span>
+              </button>
+              <button type="button" className="palette-option" role="option" data-palette="classic" id="palette-opt-classic">
+                <span className="palette-option__preview" aria-hidden="true"></span>
+                <span className="palette-option__text">
+                  <span className="palette-option__name">Classic</span>
+                  <span className="palette-option__blurb">Navy, gold, sage</span>
+                </span>
+              </button>
+              <button type="button" className="palette-option" role="option" data-palette="ocean" id="palette-opt-ocean">
+                <span className="palette-option__preview" aria-hidden="true"></span>
+                <span className="palette-option__text">
+                  <span className="palette-option__name">Ocean</span>
+                  <span className="palette-option__blurb">Teal, sea glass, sand</span>
+                </span>
+              </button>
+              <button type="button" className="palette-option" role="option" data-palette="forest" id="palette-opt-forest">
+                <span className="palette-option__preview" aria-hidden="true"></span>
+                <span className="palette-option__text">
+                  <span className="palette-option__name">Forest</span>
+                  <span className="palette-option__blurb">Moss, bark, honey</span>
+                </span>
+              </button>
+              <button type="button" className="palette-option" role="option" data-palette="sunset" id="palette-opt-sunset">
+                <span className="palette-option__preview" aria-hidden="true"></span>
+                <span className="palette-option__text">
+                  <span className="palette-option__name">Sunset</span>
+                  <span className="palette-option__blurb">Rose, peach, amber</span>
+                </span>
+              </button>
+            </div>
+            <div className="appearance-dialog__section appearance-dialog__dev" id="appearance-dev-section" hidden>
+              <p className="appearance-dialog__section-label">Developer</p>
+              <p className="appearance-dialog__dev-hint">
+                When on, supported areas show setup and diagnostic details (for example the AI Payoff Plan section).
+              </p>
+              <label className="appearance-dev-toggle">
+                <input type="checkbox" id="dev-mode-technical-toggle" />
+                <span>Show technical messages and setup details</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </dialog>
+    </div>
+  );
+}
+
