@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { fontPlayfair } from '../fonts';
 import { createSupabaseBrowserClient } from '../../lib/supabase/browser';
 
 export default function LoginPage() {
@@ -34,59 +35,69 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="mx-auto max-w-md">
-      <h1 className="text-2xl font-semibold tracking-tight text-slate-900">Log in</h1>
-      <p className="mt-2 text-sm text-slate-600">Use your email and password to access your planner.</p>
-
-      <form onSubmit={onSubmit} className="mt-6 space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-800" htmlFor="email">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500"
-          />
-        </div>
-
-        <div className="space-y-1">
-          <label className="text-sm font-medium text-slate-800" htmlFor="password">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-slate-500"
-          />
-        </div>
-
-        {error ? <p className="text-sm text-red-600">{error}</p> : null}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="inline-flex w-full items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-60"
-        >
-          {loading ? 'Logging in…' : 'Log in'}
-        </button>
-
-        <p className="text-center text-sm text-slate-600">
-          Don’t have an account?{' '}
-          <a className="font-medium text-slate-900 hover:underline" href="/signup">
-            Sign up
+    <div className="auth-page">
+      <header className="auth-page__header">
+        <a className={`auth-page__brand ${fontPlayfair.className}`} href="/">
+          PennyPath
+        </a>
+        <nav className="auth-page__header-nav" aria-label="Site">
+          <a className="auth-page__header-link" href="/">
+            Home
           </a>
-        </p>
-      </form>
-    </main>
+        </nav>
+      </header>
+
+      <main className="auth-page__main">
+        <div className="auth-page__inner">
+          <p className="auth-page__eyebrow">Account</p>
+          <h1 className={`auth-page__title ${fontPlayfair.className}`}>Log in</h1>
+          <p className="auth-page__lede">Use your email and password to access your planner.</p>
+
+          <div className="auth-page__card">
+            <form onSubmit={onSubmit}>
+              <div className="auth-page__field">
+                <label className="auth-page__label" htmlFor="email">
+                  Email
+                </label>
+                <input
+                  id="email"
+                  className="auth-page__input"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="auth-page__field">
+                <label className="auth-page__label" htmlFor="password">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  className="auth-page__input"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
+              {error ? <p className="auth-page__error">{error}</p> : null}
+
+              <button type="submit" disabled={loading} className="auth-page__submit">
+                {loading ? 'Logging in…' : 'Log in'}
+              </button>
+
+              <p className="auth-page__footer">
+                Don’t have an account? <a href="/signup">Sign up</a>
+              </p>
+            </form>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
-
