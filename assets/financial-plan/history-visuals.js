@@ -2,7 +2,7 @@
  * SVG charts + comparison bars for History page (no external deps).
  */
 
-import { escapeHtml } from './utils.js';
+import { escapeHtml } from './utils';
 
 /** B as % of A; null if A is 0. */
 export function percentOfReference(a, b) {

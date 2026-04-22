@@ -3,7 +3,7 @@
  */
 
 import { monthLabel } from './monthly-activity.js';
-import { numOr } from './utils.js';
+import { numOr } from './utils';
 
 export const ID_GOAL_HYSA = 'goal-hysa';
 export const ID_GOAL_EFUND = 'goal-efund';

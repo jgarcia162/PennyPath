@@ -3,7 +3,7 @@
  * YYYY-MM-DD for check-in date fields).
  */
 
-import { numOr } from './utils.js';
+import { numOr } from './utils';
 import { getSavingsAccounts } from './savings-accounts.js';
 
 /** @param {string} iso */

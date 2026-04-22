@@ -10,7 +10,7 @@ import {
   AI_PAYOFF_PLAN_CACHE_LS_KEY,
   AI_BILL_CALENDAR_CACHE_LS_KEY,
   AI_BILL_CALENDAR_COLUMNS_LS_KEY,
-} from './storage-keys.js';
+} from './storage-keys';
 
 const KEYS_TO_WIPE = FINANCIAL_PLAN_STORAGE_KEYS.filter(function (k) {
   return k !== THEME_STORAGE_KEY;
