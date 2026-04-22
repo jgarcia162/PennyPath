@@ -256,6 +256,177 @@ body {
   color: rgba(233, 233, 246, 0.92);
 }
 
+/* Home (landing) — same surfaces + header as dashboard / auth */
+.home-page {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--cream);
+  color: var(--text);
+}
+
+.home-page__header-aside {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch;
+  border-left: 1px solid rgba(196, 168, 110, 0.22);
+}
+
+.home-page__header-aside-link {
+  display: flex;
+  align-items: center;
+  padding: 14px 20px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  color: rgba(250, 246, 244, 0.82);
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.home-page__header-aside-link:hover {
+  color: var(--gold);
+  background: rgba(196, 176, 128, 0.1);
+}
+
+.home-page__main {
+  flex: 1;
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 40px 20px 64px;
+}
+
+.home-page__hero-title {
+  font-size: clamp(2.25rem, 5vw, 2.75rem);
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--ink);
+  margin: 0 0 12px;
+}
+
+.home-page__section-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--md-on-surface-variant);
+  margin: 0 0 16px;
+}
+
+.home-page__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.home-page__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 20px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+  cursor: pointer;
+}
+
+.home-page__btn--primary {
+  color: rgba(250, 246, 244, 0.96);
+  background: var(--ink);
+  border-color: rgba(196, 168, 110, 0.35);
+  box-shadow: 0 1px 2px rgba(82, 90, 108, 0.12);
+}
+
+.home-page__btn--primary:hover {
+  background: #657899;
+  color: var(--cream);
+}
+
+.home-page__btn--secondary {
+  color: var(--ink);
+  background: var(--sage-light);
+  border: 1px solid rgba(143, 176, 160, 0.4);
+}
+
+.home-page__btn--secondary:hover {
+  background: rgba(143, 176, 160, 0.28);
+  border-color: rgba(143, 176, 160, 0.55);
+}
+
+.home-page__h2 {
+  font-family: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--ink);
+  margin: 0 0 14px;
+}
+
+.home-page__list {
+  margin: 0;
+  padding-left: 1.2rem;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--md-on-surface);
+}
+
+.home-page__list li {
+  margin-bottom: 10px;
+}
+
+.home-page__list li:last-child {
+  margin-bottom: 0;
+}
+
+.home-page__list code {
+  font-size: 0.9em;
+  color: var(--ink);
+  background: var(--blue-light);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+.home-page__card--spaced {
+  margin-top: 22px;
+}
+
+:root[data-theme='dark'] .home-page {
+  background: #141820;
+  color: rgba(230, 232, 240, 0.88);
+}
+
+:root[data-theme='dark'] .home-page__hero-title,
+:root[data-theme='dark'] .home-page__h2 {
+  color: rgba(233, 233, 246, 0.95);
+}
+
+:root[data-theme='dark'] .home-page__btn--secondary {
+  background: rgba(40, 48, 64, 0.85);
+  border-color: rgba(120, 140, 170, 0.35);
+  color: rgba(220, 225, 240, 0.92);
+}
+
+:root[data-theme='dark'] .home-page__list {
+  color: rgba(200, 205, 220, 0.88);
+}
+
+:root[data-theme='dark'] .home-page__list code {
+  background: rgba(30, 36, 48, 0.95);
+  color: rgba(200, 210, 240, 0.95);
+}
+
 /* Real estate page (migrated from real-estate-plan.html inline styles) */
 .re-page h1,
 .re-page h2,
