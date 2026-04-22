@@ -12,7 +12,7 @@ import {
   escapeAttr,
   cssEscape,
   todayYyyyMmDd,
-} from './utils.js';
+} from './utils';
 
 export function renderPayoffTimeline(moneyExact, hasBalanceData) {
   const host = document.getElementById('payoff-timeline');

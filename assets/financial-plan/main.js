@@ -25,7 +25,7 @@ import { wireCheckIns } from './checkin-log.js';
 import { wireBadges, renderBadges } from './features.js';
 import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage.js';
 import { wipeAllUserData } from './wipe-user-data.js';
-import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap.js';
+import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap';
 
 const aiPayoffUi = wireAiPayoffPlan(PLAN);
 const billCalUi = wireBillPaymentCalendar(PLAN);

@@ -2,7 +2,7 @@
  * Pure derived metrics from a plan object (no DOM).
  */
 
-import { numOr } from './utils.js';
+import { numOr } from './utils';
 import { getSavingsAccounts } from './savings-accounts.js';
 import {
   ensureSavingsGoals,

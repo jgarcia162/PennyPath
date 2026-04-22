@@ -2,7 +2,7 @@
  * Whether the plan has saved balances worth showing in personalized / derived UI.
  */
 
-import { numOr } from './utils.js';
+import { numOr } from './utils';
 import { getSavingsAccounts } from './savings-accounts.js';
 
 /** True if there is at least one debt row or any savings balance &gt; 0. */

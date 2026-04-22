@@ -7,7 +7,7 @@
  * DOM ids are defined in `financial-plan-v3-aggressive.html` (`#checkin-list`, `#checkin-log-dialog`, etc.).
  */
 
-import { escapeHtml, escapeAttr } from './utils.js';
+import { escapeHtml, escapeAttr } from './utils';
 
 /** Number of newest entries always visible in the inline list. */
 const CHECKIN_PREVIEW_N = 3;

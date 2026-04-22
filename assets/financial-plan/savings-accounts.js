@@ -2,7 +2,7 @@
  * Savings accounts list + legacy PLAN.hysaBalance / joseSavings / sherlynaSavings sync.
  */
 
-import { numOr } from './utils.js';
+import { numOr } from './utils';
 
 export function getSavingsAccounts(plan) {
   if (Array.isArray(plan.savingsAccounts) && plan.savingsAccounts.length) {

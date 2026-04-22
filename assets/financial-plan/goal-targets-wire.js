@@ -12,7 +12,7 @@ import {
   stripGoalIdFromAllAccounts,
   ID_GOAL_HYSA,
 } from './savings-goals.js';
-import { numOr } from './utils.js';
+import { numOr } from './utils';
 
 function parseMoneyInput(val) {
   const n = Number(String(val || '').replace(/[^\d.-]/g, ''));

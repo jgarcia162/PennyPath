@@ -1,0 +1,22 @@
+{
+  // Visit https://aka.ms/tsconfig to read more about this file
+  "compilerOptions": {
+    // Outputs
+    "sourceMap": true,
+    "outDir": "./dist",
+
+    // Recommended
+    "moduleDetection": "force",
+    "skipLibCheck": true,
+
+    // Incremental migration settings
+    "allowJs": true,
+    "checkJs": false,
+    "strict": false,
+
+    // Module / target
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler"
+  }
+}

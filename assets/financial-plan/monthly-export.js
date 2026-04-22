@@ -7,7 +7,7 @@
  * - Forward compatibility: versioned payload for future multi-user/server storage.
  */
 
-import { numOr, roundMoney } from './utils.js';
+import { numOr, roundMoney } from './utils';
 import { getSavingsAccounts, syncLegacySavingsFromAccounts } from './savings-accounts.js';
 import { isoInLocalYyyyMm, dateFieldInYyyyMm } from './monthly-activity.js';
 
