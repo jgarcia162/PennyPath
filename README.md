@@ -33,10 +33,10 @@ Use any static server (VS Code Live Preview, `npx serve`, etc.).
 | `assets/financial-plan.css` | Shared styles |
 | `assets/print.css` | Print rules for the Financial Plan page |
 | `assets/financial-plan/*.js` | **ES modules** (planner domain logic + UI) |
-| `assets/theme-service.js` | Theme (`localStorage`) — classic script, attaches `window.ThemeService` |
-| `assets/site-settings.js` | Header gear menu (theme, print, demo toggle, etc.) — classic IIFE |
-| `assets/checkin-service.js` | Check-ins — classic script, `window.CheckInService` |
-| `assets/badges.js` | Badge rules — classic script, `window.Badges` |
+| `assets/theme-service.ts` | Theme (`localStorage`) — classic script, attaches `window.ThemeService` |
+| `assets/site-settings.ts` | Header gear menu (theme, print, demo toggle, etc.) — classic IIFE |
+| `assets/checkin-service.ts` | Check-ins — classic script, `window.CheckInService` |
+| `assets/badges.ts` | Badge rules — classic script, `window.Badges` |
 | `docs/ARCHITECTURE.md` | Module boundaries and globals (read before large changes) |
 
 Key modules under `assets/financial-plan/`:

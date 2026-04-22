@@ -2,7 +2,7 @@
  * Financial Plan page entry: restore persisted plan data, render UI, wire editors and ancillary features.
  *
  * Script order in `financial-plan-v3-aggressive.html` (all `defer` unless noted):
- * `theme-service.js` → `site-settings.js` → `payoff-projection.js` (module) → `checkin-service.js` → `badges.js` → this module.
+ * `theme-service.ts` → `site-settings.ts` → `payoff-projection.js` (module) → `checkin-service.ts` → `badges.ts` → this module.
  */
 
 import { PLAN } from './plan-data';
@@ -27,7 +27,7 @@ import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap';
 const aiPayoffUi = wireAiPayoffPlan(PLAN);
 const billCalUi = wireBillPaymentCalendar(PLAN);
 
-function render() {
+function render(): void {
   renderPlanPage();
   if (aiPayoffUi && aiPayoffUi.refreshAfterPlanChange) {
     aiPayoffUi.refreshAfterPlanChange();
@@ -38,29 +38,30 @@ function render() {
 }
 
 /** Preserve real list() when toggling sample-data mode or after reset. */
-let origCheckInList = null;
+let origCheckInList: null | (() => any[]) = null;
 
-function syncFinancialPlanDemoBanner() {
+function syncFinancialPlanDemoBanner(): void {
   const el = document.getElementById('financial-plan-demo-banner');
   if (el) el.hidden = !isFinancialPlanDemoMode();
 }
 
-function patchCheckInsForDemoMode() {
-  if (!window.CheckInService) return;
-  if (!origCheckInList && window.CheckInService.list) {
-    origCheckInList = window.CheckInService.list.bind(window.CheckInService);
+function patchCheckInsForDemoMode(): void {
+  const svc = (window as any).CheckInService as any;
+  if (!svc) return;
+  if (!origCheckInList && typeof svc.list === 'function') {
+    origCheckInList = svc.list.bind(svc);
   }
   if (!origCheckInList) return;
   if (isFinancialPlanDemoMode()) {
-    window.CheckInService.list = function () {
+    svc.list = function () {
       return buildMockCheckins();
     };
   } else {
-    window.CheckInService.list = origCheckInList;
+    svc.list = origCheckInList;
   }
 }
 
-function loadPlanForMode() {
+function loadPlanForMode(): void {
   if (isFinancialPlanDemoMode()) {
     applyDemoPlanSnapshot(PLAN);
   } else {
@@ -72,7 +73,7 @@ function loadPlanForMode() {
 /**
  * Goals at a glance: avoid native <details> so grid height transitions can run (closed slot is display:none).
  */
-function wireDashboardGoalsAtGlance() {
+function wireDashboardGoalsAtGlance(): void {
   const root = document.getElementById('dashboard-goals-at-glance');
   const btn = document.getElementById('dashboard-goals-toggle');
   if (!root || !btn) return;
@@ -85,8 +86,8 @@ function wireDashboardGoalsAtGlance() {
   if (panel) panel.setAttribute('aria-hidden', 'false');
 }
 
-function wireWipeAllButton() {
-  const btn = document.getElementById('btn-wipe-all-data');
+function wireWipeAllButton(): void {
+  const btn = document.getElementById('btn-wipe-all-data') as HTMLButtonElement | null;
   if (!btn) return;
   btn.addEventListener('click', function () {
     const ok = window.confirm(
@@ -97,8 +98,9 @@ function wireWipeAllButton() {
     if (!ok) return;
     wipeAllUserData();
     document.body.classList.remove('financial-plan-demo-mode');
-    if (origCheckInList && window.CheckInService) {
-      window.CheckInService.list = origCheckInList;
+    const svc = (window as any).CheckInService as any;
+    if (origCheckInList && svc) {
+      svc.list = origCheckInList;
     }
     applyPlanOverrides();
     syncLegacySavingsFromAccounts(PLAN);
@@ -108,7 +110,7 @@ function wireWipeAllButton() {
   });
 }
 
-function init() {
+function init(): void {
   if (isFinancialPlanDemoMode()) {
     document.body.classList.add('financial-plan-demo-mode');
   }

@@ -4,7 +4,15 @@
   const STORAGE_KEY = 'financial-plan-v3-aggressive.checkins';
   const DEMO_MODE_KEY = 'financial-plan.historyDemo';
 
-  function isDemoMode() {
+  type IsoString = string;
+  interface CheckInRow {
+    id: string;
+    date: string;
+    note: string;
+    createdAt: IsoString;
+  }
+
+  function isDemoMode(): boolean {
     try {
       return localStorage.getItem(DEMO_MODE_KEY) === '1';
     } catch (e) {
@@ -12,7 +20,7 @@
     }
   }
 
-  function safeLoad() {
+  function safeLoad(): any[] {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return [];
@@ -23,19 +31,19 @@
     }
   }
 
-  function safeSave(items) {
+  function safeSave(items: unknown[]): void {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); } catch (e) {}
   }
 
-  function nowIso() {
+  function nowIso(): IsoString {
     return new Date().toISOString();
   }
 
-  function newId() {
+  function newId(): string {
     return 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
   }
 
-  function list() {
+  function list(): CheckInRow[] {
     return safeLoad()
       .filter(function (e) { return e && typeof e === 'object'; })
       .map(function (e) {
@@ -49,7 +57,7 @@
       .sort(function (a, b) { return String(b.createdAt).localeCompare(String(a.createdAt)); });
   }
 
-  function add(entry) {
+  function add(entry: { date?: unknown; note?: unknown }): CheckInRow | null {
     if (isDemoMode()) return null;
     const items = safeLoad();
     const next = {
@@ -63,7 +71,7 @@
     return next;
   }
 
-  function remove(id) {
+  function remove(id: unknown): boolean {
     if (isDemoMode()) return false;
     const items = safeLoad();
     const sid = String(id || '');
@@ -72,11 +80,11 @@
     return next.length !== items.length;
   }
 
-  function clearAll() {
+  function clearAll(): void {
     safeSave([]);
   }
 
-  window.CheckInService = {
+  (window as any).CheckInService = {
     STORAGE_KEY: STORAGE_KEY,
     list: list,
     add: add,

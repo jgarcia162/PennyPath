@@ -8,35 +8,36 @@
 (function () {
   'use strict';
 
-  function syncThemeButtonLabel(btn) {
+  function syncThemeButtonLabel(btn: HTMLButtonElement | null) {
     if (!btn) return;
-    var t = window.ThemeService && window.ThemeService.getTheme ? window.ThemeService.getTheme() : 'light';
+    var t =
+      (window as any).ThemeService && (window as any).ThemeService.getTheme ? (window as any).ThemeService.getTheme() : 'light';
     btn.setAttribute('aria-pressed', t === 'dark' ? 'true' : 'false');
     btn.textContent = t === 'dark' ? 'Light mode' : 'Dark mode';
   }
 
-  function closeMenu(menu, trigger) {
+  function closeMenu(menu: HTMLElement | null, trigger: HTMLElement | null) {
     if (!menu || !trigger) return;
     menu.classList.remove('is-open');
     trigger.setAttribute('aria-expanded', 'false');
     document.body.classList.remove('site-settings-open');
   }
 
-  function openMenu(menu, trigger) {
+  function openMenu(menu: HTMLElement | null, trigger: HTMLElement | null) {
     if (!menu || !trigger) return;
     menu.classList.add('is-open');
     trigger.setAttribute('aria-expanded', 'true');
     document.body.classList.add('site-settings-open');
   }
 
-  function toggleMenu(menu, trigger) {
+  function toggleMenu(menu: HTMLElement, trigger: HTMLElement) {
     if (menu.classList.contains('is-open')) closeMenu(menu, trigger);
     else openMenu(menu, trigger);
   }
 
   function initDropdown() {
-    var trigger = document.getElementById('btn-site-settings');
-    var menu = document.getElementById('site-settings-menu');
+    var trigger = document.getElementById('btn-site-settings') as HTMLButtonElement | null;
+    var menu = document.getElementById('site-settings-menu') as HTMLElement | null;
     if (!trigger || !menu) return;
 
     trigger.addEventListener('click', function (e) {
@@ -46,7 +47,7 @@
 
     document.addEventListener('click', function (e) {
       var wrap = trigger.closest('.site-header__settings');
-      if (wrap && !wrap.contains(e.target)) closeMenu(menu, trigger);
+      if (wrap && !wrap.contains(e.target as any)) closeMenu(menu, trigger);
     });
 
     document.addEventListener('keydown', function (e) {
@@ -64,21 +65,21 @@
 
   function initTheme() {
     try {
-      if (window.ThemeService && window.ThemeService.init) window.ThemeService.init();
+      if ((window as any).ThemeService && (window as any).ThemeService.init) (window as any).ThemeService.init();
     } catch (e) {}
-    var btn = document.getElementById('btn-toggle-theme');
+    var btn = document.getElementById('btn-toggle-theme') as HTMLButtonElement | null;
     if (!btn) return;
     syncThemeButtonLabel(btn);
     btn.addEventListener('click', function () {
       try {
-        if (window.ThemeService && window.ThemeService.toggleTheme) window.ThemeService.toggleTheme();
+        if ((window as any).ThemeService && (window as any).ThemeService.toggleTheme) (window as any).ThemeService.toggleTheme();
       } catch (e) {}
       syncThemeButtonLabel(btn);
     });
   }
 
   function initPrint() {
-    var btn = document.getElementById('btn-print');
+    var btn = document.getElementById('btn-print') as HTMLButtonElement | null;
     if (!btn) return;
     btn.addEventListener('click', function () {
       try {
@@ -91,7 +92,7 @@
   var DEMO_MODE_KEY = 'financial-plan.historyDemo';
 
   function initDemoModeToggle() {
-    var input = document.getElementById('demo-mode-toggle');
+    var input = document.getElementById('demo-mode-toggle') as HTMLInputElement | null;
     if (!input) return;
     try {
       input.checked = localStorage.getItem(DEMO_MODE_KEY) === '1';
@@ -106,13 +107,13 @@
 
   /** Appearance dialog: palette picker + body scroll lock while open. */
   function initAppearanceDialog() {
-    var dlg = document.getElementById('appearance-dialog');
-    var openBtn = document.getElementById('btn-open-appearance');
+    var dlg = document.getElementById('appearance-dialog') as HTMLDialogElement | null;
+    var openBtn = document.getElementById('btn-open-appearance') as HTMLButtonElement | null;
     if (!dlg || !openBtn) return;
 
     var scrollDepth = 0;
     var scrollY = 0;
-    var backdropEl = null;
+    var backdropEl: HTMLElement | null = null;
 
     function lockScroll() {
       if (scrollDepth === 0) {
@@ -140,7 +141,7 @@
     }
 
     function syncPaletteOptions() {
-      var svc = window.ColorPaletteService;
+      var svc = (window as any).ColorPaletteService;
       var current = svc && svc.getPalette ? svc.getPalette() : null;
       if (!current && svc && svc.PALETTES && svc.PALETTES.length && svc.PALETTES[0] && svc.PALETTES[0].id) {
         current = svc.PALETTES[0].id;
@@ -150,7 +151,7 @@
         current = opts[0].getAttribute('data-palette');
       }
       for (var i = 0; i < opts.length; i++) {
-        var el = opts[i];
+        var el = opts[i] as HTMLElement;
         var id = el.getAttribute('data-palette');
         var on = id === current;
         el.setAttribute('aria-selected', on ? 'true' : 'false');
@@ -215,12 +216,12 @@
         if (!backdropEl.parentNode) document.body.appendChild(backdropEl);
 
         // Add Escape key support (fallback mode only) and prevent listener buildup.
-        var escHandler = dlg._appearanceEscHandler;
+        var escHandler = (dlg as any)._appearanceEscHandler as ((e: KeyboardEvent) => void) | null;
         if (!escHandler) {
           escHandler = function (e) {
             if (e && e.key === 'Escape') closeAppearanceDialog();
           };
-          dlg._appearanceEscHandler = escHandler;
+          (dlg as any)._appearanceEscHandler = escHandler;
         }
         try {
           document.removeEventListener('keydown', escHandler);
@@ -229,8 +230,10 @@
 
         // Move focus into the dialog for accessibility.
         var focusTarget =
-          dlg.querySelector('[autofocus]') ||
-          dlg.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+          (dlg.querySelector('[autofocus]') as HTMLElement | null) ||
+          (dlg.querySelector(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          ) as HTMLElement | null);
         if (focusTarget && focusTarget.focus) focusTarget.focus();
 
         lockScroll();
@@ -271,10 +274,10 @@
 
       // Remove fallback Escape handler and restore focus to the trigger.
       try {
-        var escHandler = dlg._appearanceEscHandler;
+        var escHandler = (dlg as any)._appearanceEscHandler;
         if (escHandler) {
           document.removeEventListener('keydown', escHandler);
-          dlg._appearanceEscHandler = null;
+          (dlg as any)._appearanceEscHandler = null;
         }
       } catch (e4) {}
       try {
@@ -300,7 +303,7 @@
         closeAppearanceDialog();
         return;
       }
-      var t = e.target;
+      var t = e.target as any;
       var el = t && t.nodeType === 3 ? t.parentElement : t;
       if (el && typeof el.closest === 'function' && el.closest('[data-close-appearance-dialog]')) {
         closeAppearanceDialog();
@@ -311,8 +314,8 @@
     for (var k = 0; k < paletteBtns.length; k++) {
       paletteBtns[k].addEventListener('click', function () {
         var id = this.getAttribute('data-palette');
-        if (!id || !window.ColorPaletteService || !window.ColorPaletteService.applyPalette) return;
-        window.ColorPaletteService.applyPalette(id);
+        if (!id || !(window as any).ColorPaletteService || !(window as any).ColorPaletteService.applyPalette) return;
+        (window as any).ColorPaletteService.applyPalette(id);
         syncPaletteOptions();
       });
     }
