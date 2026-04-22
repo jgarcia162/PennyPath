@@ -2,41 +2,42 @@
  * Savings editor DOM ↔ PLAN, snapshots, remove deposit helpers.
  */
 
+import type { DepositHistoryItem, FinancialPlan, SavingsAccount, SavingsGoal } from '../../types/index.js';
 import { PLAN, PLAN_DEFAULTS, DEFAULT_SAVINGS_APY_PCT } from './plan-data';
 import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils';
 import { appendSavingsEditorEmptyState, buildSavingsEditorThead, buildSavingsRowTR } from './render-sections.js';
 import { normalizeDepositHistory, newDepositId } from './persistence';
-import { ID_GOAL_HYSA, ensureSavingsGoals, getAccountGoalIds } from './savings-goals.js';
+import { ID_GOAL_HYSA, ensureSavingsGoals, getAccountGoalIds } from './savings-goals';
 import { defaultLogAtIsoForEdits } from './default-log-at';
 
-export function readSavingsEditorIntoPlan() {
+export function readSavingsEditorIntoPlan(): void {
   const host = document.getElementById('savings-editor-list');
   if (!host) return;
   const rows = host.querySelectorAll('.savings-row');
-  const next = [];
-  const planAcc = Array.isArray(PLAN.savingsAccounts) ? PLAN.savingsAccounts : [];
-  rows.forEach(function (row, rowIdx) {
+  const next: SavingsAccount[] = [];
+  const planAcc: SavingsAccount[] = Array.isArray((PLAN as any).savingsAccounts) ? ((PLAN as any).savingsAccounts as SavingsAccount[]) : [];
+  rows.forEach(function (row: Element, rowIdx: number) {
     let id = row.getAttribute('data-savings-id');
     if (id == null || String(id).trim() === '') {
       id = planAcc[rowIdx] ? String(planAcc[rowIdx].id) : 's_' + rowIdx;
     } else {
       id = String(id).trim();
     }
-    const nameEl = row.querySelector('input[data-field="name"]');
-    const curEl = row.querySelector('input[data-field="current"]');
-    const apyEl = row.querySelector('input[data-field="apyPct"]');
-    const depEl = row.querySelector('input[data-field="deposit"]');
+    const nameEl = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
+    const curEl = row.querySelector('input[data-field="current"]') as HTMLInputElement | null;
+    const apyEl = row.querySelector('input[data-field="apyPct"]') as HTMLInputElement | null;
+    const depEl = row.querySelector('input[data-field="deposit"]') as HTMLInputElement | null;
     const name = nameEl ? String(nameEl.value || 'Account').trim() : 'Account';
     const rawCurrent = curEl ? parseMoneyInput(curEl.value) : null;
     const rawApy = apyEl ? parseMoneyInput(apyEl.value) : null;
     const deposit = depEl ? parseMoneyInput(depEl.value) : null;
 
-    const prev = planAcc.find(function (a) {
+    const prev = planAcc.find(function (a: SavingsAccount) {
       return String(a.id) === String(id);
     });
     const prevByIndex = !prev && planAcc[rowIdx] ? planAcc[rowIdx] : null;
     const base = prev || prevByIndex;
-    var currentBal;
+    let currentBal: number;
     if (rawCurrent !== null) {
       currentBal = rawCurrent;
     } else if (base && Number.isFinite(Number(base.current))) {
@@ -45,7 +46,7 @@ export function readSavingsEditorIntoPlan() {
       currentBal = 0;
     }
 
-    var apyPctVal;
+    let apyPctVal: number;
     if (rawApy !== null) {
       apyPctVal = rawApy;
     } else if (base && Number.isFinite(Number(base.apyPct))) {
@@ -54,7 +55,7 @@ export function readSavingsEditorIntoPlan() {
       apyPctVal = DEFAULT_SAVINGS_APY_PCT;
     }
 
-    var hist = normalizeDepositHistory(base);
+    let hist: DepositHistoryItem[] = normalizeDepositHistory(base);
     if (deposit !== null && deposit > 0) {
       const dep = roundMoney(deposit);
       currentBal = roundMoney(currentBal + dep);
@@ -64,8 +65,8 @@ export function readSavingsEditorIntoPlan() {
       if (depEl) depEl.value = '';
     }
 
-    const goalIds = [];
-    row.querySelectorAll('input[data-field="goalId"]:checked').forEach(function (cb) {
+    const goalIds: string[] = [];
+    row.querySelectorAll('input[data-field="goalId"]:checked').forEach(function (cb: Element) {
       const gid = cb.getAttribute('data-goal-id');
       if (gid) goalIds.push(String(gid));
     });
@@ -84,9 +85,11 @@ export function readSavingsEditorIntoPlan() {
   PLAN.savingsAccounts = next;
 }
 
-export function cloneSavingsSnapshot() {
+export function cloneSavingsSnapshot(): { savingsAccounts: SavingsAccount[] } {
   return {
-    savingsAccounts: (Array.isArray(PLAN.savingsAccounts) ? PLAN.savingsAccounts : []).map(function (a) {
+    savingsAccounts: (Array.isArray((PLAN as any).savingsAccounts) ? ((PLAN as any).savingsAccounts as SavingsAccount[]) : []).map(function (
+      a: SavingsAccount
+    ) {
       return {
         id: String(a.id),
         name: String(a.name || 'Account'),
@@ -100,7 +103,7 @@ export function cloneSavingsSnapshot() {
   };
 }
 
-export function setSavingsDraftFromSnapshot(snap) {
+export function setSavingsDraftFromSnapshot(snap: { savingsAccounts: SavingsAccount[] } | null | undefined): void {
   if (!snap || !Array.isArray(snap.savingsAccounts)) return;
   const host = document.getElementById('savings-editor-list');
   if (!host) return;
@@ -115,15 +118,15 @@ export function setSavingsDraftFromSnapshot(snap) {
   table.appendChild(buildSavingsEditorThead());
   const tbody = document.createElement('tbody');
   ensureSavingsGoals(PLAN);
-  const sg = PLAN.savingsGoals || [];
-  snap.savingsAccounts.forEach(function (a) {
+  const sg: SavingsGoal[] = (PLAN as any).savingsGoals || [];
+  snap.savingsAccounts.forEach(function (a: SavingsAccount) {
     tbody.appendChild(buildSavingsRowTR(a, sg));
   });
   table.appendChild(tbody);
   host.appendChild(table);
 }
 
-export function addSavingsRowDraft(showUnsaved) {
+export function addSavingsRowDraft(showUnsaved: () => void): void {
   const host = document.getElementById('savings-editor-list');
   if (!host) return;
   const empty = host.querySelector('.editor-empty-state');
@@ -151,20 +154,25 @@ export function addSavingsRowDraft(showUnsaved) {
       countTowardsGoal: false,
       depositHistory: [],
     },
-    PLAN.savingsGoals || []
+    ((PLAN as any).savingsGoals || []) as SavingsGoal[]
   );
-  const nameEl = row.querySelector('input[data-field="name"]');
+  const nameEl = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
   if (nameEl) nameEl.placeholder = 'New account';
   tbody.appendChild(row);
   showUnsaved();
 }
 
-export function removeSavingsDeposit(accountId, depositId, onUnsaved, rerender) {
-  const acc = (PLAN.savingsAccounts || []).find(function (a) {
+export function removeSavingsDeposit(
+  accountId: string,
+  depositId: string,
+  onUnsaved: () => void,
+  rerender: () => void
+): void {
+  const acc = (((PLAN as any).savingsAccounts || []) as SavingsAccount[]).find(function (a: SavingsAccount) {
     return String(a.id) === String(accountId);
   });
   if (!acc || !Array.isArray(acc.depositHistory)) return;
-  const idx = acc.depositHistory.findIndex(function (p) {
+  const idx = acc.depositHistory.findIndex(function (p: DepositHistoryItem) {
     return String(p.id) === String(depositId);
   });
   if (idx === -1) return;

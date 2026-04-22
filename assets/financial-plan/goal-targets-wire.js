@@ -11,7 +11,7 @@ import {
   normalizeSavingsGoalRow,
   stripGoalIdFromAllAccounts,
   ID_GOAL_HYSA,
-} from './savings-goals.js';
+} from './savings-goals';
 import { numOr } from './utils';
 
 function parseMoneyInput(val) {

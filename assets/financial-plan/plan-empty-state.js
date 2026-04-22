@@ -3,7 +3,7 @@
  */
 
 import { numOr } from './utils';
-import { getSavingsAccounts } from './savings-accounts.js';
+import { getSavingsAccounts } from './savings-accounts';
 
 /** True if there is at least one debt row or any savings balance &gt; 0. */
 export function hasBalanceDataForProjections(plan) {

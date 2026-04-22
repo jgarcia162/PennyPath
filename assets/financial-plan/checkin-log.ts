@@ -7,6 +7,7 @@
  * DOM ids are defined in `financial-plan-v3-aggressive.html` (`#checkin-list`, `#checkin-log-dialog`, etc.).
  */
 
+import type { CheckInEntry, CheckInServiceApi } from '../../types/index.js';
 import { escapeHtml, escapeAttr } from './utils';
 
 /** Number of newest entries always visible in the inline list. */
@@ -18,7 +19,14 @@ const CHECKIN_EXPAND_TRANSITION_MS = 750;
 
 let checkinLogInlineExpanded = false;
 
-function checkinExpandScrollDelayMs() {
+function getCheckInService(): CheckInServiceApi | null {
+  const svc = (window as any).CheckInService;
+  if (!svc || typeof svc !== 'object') return null;
+  if (typeof (svc as any).list !== 'function') return null;
+  return svc as CheckInServiceApi;
+}
+
+function checkinExpandScrollDelayMs(): number {
   try {
     if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       return 0;
@@ -34,7 +42,7 @@ function checkinExpandScrollDelayMs() {
  * @param {boolean} expanded
  * @returns {boolean} false if expected elements are missing
  */
-function applyCheckinExpandDom(expanded) {
+function applyCheckinExpandDom(expanded: boolean): boolean {
   const wrap = document.getElementById('checkin-log-more-region');
   const btn = document.getElementById('checkin-log-toggle');
   if (!wrap || !btn) return false;
@@ -53,7 +61,7 @@ function applyCheckinExpandDom(expanded) {
   return true;
 }
 
-function checkInRowHtml(it) {
+function checkInRowHtml(it: { id?: string; date?: string; note?: string }): string {
   const date = String(it.date || '');
   const note = String(it.note || '');
   return (
@@ -73,7 +81,7 @@ function checkInRowHtml(it) {
   );
 }
 
-function fillCheckinDialog(items) {
+function fillCheckinDialog(items: Array<{ id?: string; date?: string; note?: string }>): void {
   const body = document.getElementById('checkin-log-dialog-body');
   if (!body) return;
   body.innerHTML = items.length
@@ -81,26 +89,30 @@ function fillCheckinDialog(items) {
     : '<p class="checkin-dialog-empty">No entries.</p>';
 }
 
-function wireCheckInDialogOnce() {
-  const dlg = document.getElementById('checkin-log-dialog');
+function wireCheckInDialogOnce(): void {
+  const dlg = document.getElementById('checkin-log-dialog') as HTMLDialogElement | null;
   if (!dlg || dlg.dataset.checkinDialogWired === '1') return;
   dlg.dataset.checkinDialogWired = '1';
   dlg.addEventListener('click', function (e) {
-    const t = e.target;
-    if (t && t.getAttribute && t.getAttribute('data-checkin-dialog-close') !== null) {
+    const t = e.target as HTMLElement | null;
+    if (t && (t as any).getAttribute && (t as any).getAttribute('data-checkin-dialog-close') !== null) {
       dlg.close();
     }
   });
   const body = document.getElementById('checkin-log-dialog-body');
   if (!body) return;
   body.addEventListener('click', function (e) {
-    const delBtn = e.target && e.target.closest ? e.target.closest('button[data-checkin-delete]') : null;
+    const delBtn =
+      (e.target as any) && (e.target as any).closest
+        ? ((e.target as any).closest('button[data-checkin-delete]') as HTMLButtonElement | null)
+        : null;
     if (!delBtn) return;
     const id = delBtn.getAttribute('data-checkin-delete');
     if (!id) return;
-    if (window.CheckInService && window.CheckInService.remove) {
-      window.CheckInService.remove(id);
-      const next = window.CheckInService.list ? window.CheckInService.list() : [];
+    const svc = getCheckInService();
+    if (svc && svc.remove) {
+      svc.remove(id);
+      const next = svc.list ? svc.list() : [];
       fillCheckinDialog(next);
       renderCheckIns();
     }
@@ -111,19 +123,20 @@ function wireCheckInDialogOnce() {
  * Check-in rows for badge evaluation (same backing store as the log).
  * @returns {Array<{ id?: string, date?: string, note?: string }>}
  */
-export function getCheckinEntriesForBadges() {
+export function getCheckinEntriesForBadges(): Array<{ id?: string; date?: string; note?: string }> {
   try {
-    return window.CheckInService && window.CheckInService.list ? window.CheckInService.list() : [];
+    const svc = getCheckInService();
+    return svc && svc.list ? svc.list() : [];
   } catch (e) {
     return [];
   }
 }
 
-export function wireCheckIns() {
+export function wireCheckIns(): void {
   const form = document.getElementById('checkin-form');
   if (!form) return;
-  const dateEl = document.getElementById('checkin-date');
-  const noteEl = document.getElementById('checkin-note');
+  const dateEl = document.getElementById('checkin-date') as HTMLInputElement | null;
+  const noteEl = document.getElementById('checkin-note') as HTMLTextAreaElement | null;
   const st = document.getElementById('checkin-status');
 
   if (dateEl && !dateEl.value) {
@@ -131,16 +144,17 @@ export function wireCheckIns() {
     const yyyy = d.getFullYear();
     const mm = String(d.getMonth() + 1).padStart(2, '0');
     const dd = String(d.getDate()).padStart(2, '0');
-    dateEl.value = yyyy + '-' + mm + '-' + dd;
+    dateEl.value = (yyyy + '-' + mm + '-' + dd) as any;
   }
 
   form.addEventListener('submit', function (e) {
     e.preventDefault();
-    if (!window.CheckInService || !window.CheckInService.add) return;
+    const svc = getCheckInService();
+    if (!svc || !svc.add) return;
     const date = dateEl ? String(dateEl.value || '').trim() : '';
     const note = noteEl ? String(noteEl.value || '').trim() : '';
     if (!date || !note) return;
-    const added = window.CheckInService.add({ date: date, note: note });
+    const added = svc.add({ date: date as any, note: note });
     if (!added) {
       if (st) st.textContent = 'Turn off sample data in Settings to add check-ins.';
       return;
@@ -148,8 +162,8 @@ export function wireCheckIns() {
     if (noteEl) noteEl.value = '';
     if (st) {
       st.textContent = 'Added check-in';
-      clearTimeout(wireCheckIns._statusClearTimer);
-      wireCheckIns._statusClearTimer = setTimeout(function () {
+      clearTimeout((wireCheckIns as any)._statusClearTimer);
+      (wireCheckIns as any)._statusClearTimer = setTimeout(function () {
         st.textContent = '';
       }, 1600);
     }
@@ -159,7 +173,7 @@ export function wireCheckIns() {
   const listHost = document.getElementById('checkin-list');
   if (listHost) {
     listHost.addEventListener('click', function (e) {
-      const t = e.target;
+      const t = e.target as HTMLElement | null;
       if (!t || !t.closest) return;
       if (t.closest('#checkin-log-toggle')) {
         const wasExpanded = checkinLogInlineExpanded;
@@ -180,12 +194,13 @@ export function wireCheckIns() {
       }
       if (t.closest('#checkin-open-all')) {
         wireCheckInDialogOnce();
-        const items = window.CheckInService && window.CheckInService.list ? window.CheckInService.list() : [];
+        const svc = getCheckInService();
+        const items = svc && svc.list ? svc.list() : [];
         fillCheckinDialog(items);
-        const dlg = document.getElementById('checkin-log-dialog');
+        const dlg = document.getElementById('checkin-log-dialog') as HTMLDialogElement | null;
         if (dlg && typeof dlg.showModal === 'function') {
           dlg.showModal();
-          const closeBtn = dlg.querySelector('[data-checkin-dialog-close]');
+          const closeBtn = dlg.querySelector('[data-checkin-dialog-close]') as HTMLElement | null;
           if (closeBtn && closeBtn.focus) closeBtn.focus();
         }
         return;
@@ -194,8 +209,9 @@ export function wireCheckIns() {
       if (!delBtn) return;
       const id = delBtn.getAttribute('data-checkin-delete');
       if (!id) return;
-      if (window.CheckInService && window.CheckInService.remove) {
-        window.CheckInService.remove(id);
+      const svc = getCheckInService();
+      if (svc && svc.remove) {
+        svc.remove(id);
         renderCheckIns();
       }
     });
@@ -203,10 +219,11 @@ export function wireCheckIns() {
   wireCheckInDialogOnce();
 }
 
-export function renderCheckIns() {
+export function renderCheckIns(): void {
   const host = document.getElementById('checkin-list');
   if (!host) return;
-  const items = window.CheckInService && window.CheckInService.list ? window.CheckInService.list() : [];
+  const svc = getCheckInService();
+  const items = svc && svc.list ? svc.list() : [];
   if (!items.length) {
     checkinLogInlineExpanded = false;
     host.innerHTML = '<div class="checkin-log-empty">No check-ins yet.</div>';

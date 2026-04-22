@@ -7,7 +7,7 @@
 
 import type { CheckInEntry, Debt, FinancialPlan, MoneyLedgerItem, SavingsAccount, YyyyMm } from '../../types/index.js';
 import { numOr } from './utils';
-import { getSavingsAccounts } from './savings-accounts.js';
+import { getSavingsAccounts } from './savings-accounts';
 
 /** @param iso */
 export function isoInLocalYyyyMm(iso: string, yyyyMm: string): boolean {

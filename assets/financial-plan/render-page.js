@@ -15,9 +15,9 @@ import {
   renderSavingsEditor,
   renderSavingsGoalsStack,
 } from './render-sections.js';
-import { ensureSavingsGoals } from './savings-goals.js';
+import { ensureSavingsGoals } from './savings-goals';
 import { renderPayoffTimeline, renderBadges } from './features.js';
-import { renderCheckIns } from './checkin-log.js';
+import { renderCheckIns } from './checkin-log';
 import {
   hasBalanceDataForProjections,
   hasDebtBalanceForInterest,

@@ -24,9 +24,9 @@ import {
   DEMO_MODE_STORAGE_KEY,
 } from './plan-data';
 import { numOr } from './utils';
-import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
+import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { yyyyMmFromDate } from './monthly-activity';
-import { ID_GOAL_HYSA, ensureSavingsGoals, normalizeSavingsGoalRow } from './savings-goals.js';
+import { ID_GOAL_HYSA, ensureSavingsGoals, normalizeSavingsGoalRow } from './savings-goals';
 
 function normalizeDebtsEditorSortForStorage(sort: unknown): string {
   if (sort === 'balance') return 'balance-desc';

@@ -2,7 +2,7 @@
  * Monthly CC payoff + joint HYSA projection (pure). Used by timeline UI and end-of-plan liquid.
  */
 
-import { getSavingsAccounts } from './savings-accounts.js';
+import { getSavingsAccounts } from './savings-accounts';
 
 function clamp0(n) {
   const x = typeof n === 'number' ? n : Number(n);
