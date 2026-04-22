@@ -9,6 +9,8 @@ export function parseMoneyInput(raw: unknown): number | null {
   if (raw == null) return null;
   let s = String(raw).replace(/,/g, '').replace(/\$/g, '').trim();
   if (s === '') return null;
+  // Reject partial parses like "123abc".
+  if (!/^[-+]?(?:\d+|\d*\.\d+)$/.test(s)) return null;
   const n = parseFloat(s);
   return Number.isFinite(n) ? n : null;
 }
@@ -64,17 +66,28 @@ export function setText(id: string, text: string): void {
 }
 
 /**
- * Inserts raw HTML into the DOM.
+ * Sets an element's HTML content.
  *
- * Callers MUST sanitize any untrusted input before calling (see `escapeHtml`).
+ * By default, this **sanitizes** by escaping HTML (see `escapeHtml`).
+ * To intentionally insert trusted markup, pass `{ unsafe: true }`.
  */
-export function setHtml(id: string, html: string): void {
+export function setHtml(
+  id: string,
+  html: string,
+  options?: { unsafe?: boolean }
+): void {
   const el = document.getElementById(id);
-  if (el) el.innerHTML = html;
+  if (!el) return;
+  const unsafe = !!(options && options.unsafe);
+  el.innerHTML = unsafe ? html : escapeHtml(html);
+}
+
+function toStrPreserveFalsy(v: unknown): string {
+  return v == null ? '' : String(v);
 }
 
 export function escapeHtml(s: unknown): string {
-  return String(s || '')
+  return toStrPreserveFalsy(s)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -84,7 +97,7 @@ export function escapeHtml(s: unknown): string {
 
 export function escapeAttr(s: unknown): string {
   // Safe for quoted/unquoted HTML attribute contexts.
-  return String(s || '')
+  return toStrPreserveFalsy(s)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
@@ -93,7 +106,7 @@ export function escapeAttr(s: unknown): string {
 }
 
 export function cssEscape(s: unknown): string {
-  const raw = String(s || '');
+  const raw = toStrPreserveFalsy(s);
   try {
     // Prefer standards-compliant escaping when available.
     const esc = (globalThis as any).CSS && typeof (globalThis as any).CSS.escape === 'function'

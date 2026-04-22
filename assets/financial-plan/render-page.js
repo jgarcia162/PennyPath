@@ -389,7 +389,8 @@ export function render(opts) {
           ' gap in about ' +
           PLAN.labels.monthsToCloseEfund +
           ' months. Full financial security well within reach by late 2027.'
-      : '<strong>The full picture by end of plan</strong> Once you add savings and debt balances in Goals 2 &amp; 3 and save, this space will summarize your projected end-of-plan liquid total and next steps toward your emergency fund.'
+      : '<strong>The full picture by end of plan</strong> Once you add savings and debt balances in Goals 2 &amp; 3 and save, this space will summarize your projected end-of-plan liquid total and next steps toward your emergency fund.',
+    { unsafe: true }
   );
 
   setHtml(
@@ -398,7 +399,8 @@ export function render(opts) {
       ? '<strong>💡 Why 12 months?</strong> Most financial advisors recommend 3 - 6 months of expenses. A 12-month fund gives you an extra layer of protection — enough runway to handle a job loss, major medical event, or large unexpected expense without ever touching a credit card again. At ' +
           moneyExact(d.personalSavings) +
           ", you're already ahead of most households."
-      : '<strong>💡 Why 12 months?</strong> Most financial advisors recommend 3–6 months of expenses. A 12-month fund adds extra runway for job loss, major medical costs, or large surprises — without leaning on credit cards. Your progress toward that fund will show here once you add account balances in Goal 3.'
+      : '<strong>💡 Why 12 months?</strong> Most financial advisors recommend 3–6 months of expenses. A 12-month fund adds extra runway for job loss, major medical costs, or large surprises — without leaning on credit cards. Your progress toward that fund will show here once you add account balances in Goal 3.',
+    { unsafe: true }
   );
 
   setText('phase1-cc', money(PLAN.phase1.ccPayment) + '/mo');
@@ -441,7 +443,8 @@ export function render(opts) {
           '–$' +
           intr.total8moHigh.toLocaleString() +
           '. Every extra dollar toward the CC directly reduces this cost.'
-      : '<strong>⚠️ A note on interest</strong> Add debts with remaining balances in Goal 2 to see estimated interest costs. Until then, there’s nothing to calculate.'
+      : '<strong>⚠️ A note on interest</strong> Add debts with remaining balances in Goal 2 to see estimated interest costs. Until then, there’s nothing to calculate.',
+    { unsafe: true }
   );
 
   setHtml(
@@ -456,7 +459,8 @@ export function render(opts) {
           ', a portion of that flow can start building the emergency fund to ' +
           money(d.efundTarget) +
           '.'
-      : '<strong>Once the debt is gone in Phase 2...</strong> After you add debt and savings balances in Goals 2 &amp; 3, this section will describe how your payment snowball shifts into savings and emergency-fund building.'
+      : '<strong>Once the debt is gone in Phase 2...</strong> After you add debt and savings balances in Goals 2 &amp; 3, this section will describe how your payment snowball shifts into savings and emergency-fund building.',
+    { unsafe: true }
   );
 
   setHtml(
@@ -464,6 +468,8 @@ export function render(opts) {
     '<strong>💡 The fun budget stays. Always.</strong> ' +
       money(PLAN.funBudget) +
       '/month for dates, weekend road trips, and enjoying life is built into the plan and non-negotiable. Sustainability is what makes this work — not deprivation.'
+    ,
+    { unsafe: true }
   );
 
   let footerDebtBit = '—';
