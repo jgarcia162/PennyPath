@@ -7,11 +7,19 @@
  * - Forward compatibility: versioned payload for future multi-user/server storage.
  */
 
+import type {
+  CheckInEntry,
+  DepositHistoryItem,
+  Debt,
+  FinancialPlan,
+  PaymentHistoryItem,
+  SavingsAccount,
+} from '../../types/index.js';
 import { numOr, roundMoney } from './utils';
-import { getSavingsAccounts, syncLegacySavingsFromAccounts } from './savings-accounts.js';
+import { getSavingsAccounts, syncLegacySavingsFromAccounts } from './savings-accounts';
 import { isoInLocalYyyyMm, dateFieldInYyyyMm } from './monthly-activity';
 
-function parseYyyyMm(yyyyMm) {
+function parseYyyyMm(yyyyMm: unknown): { y: number; m: number } | null {
   const p = String(yyyyMm || '').split('-');
   const y = Number(p[0]);
   const m = Number(p[1]);
@@ -19,27 +27,57 @@ function parseYyyyMm(yyyyMm) {
   return { y: y, m: m };
 }
 
-function endOfMonthLocal(yyyyMm) {
+function endOfMonthLocal(yyyyMm: unknown): Date | null {
   const pm = parseYyyyMm(yyyyMm);
   if (!pm) return null;
   // Day 0 of next month is last day of this month.
   return new Date(pm.y, pm.m, 0, 23, 59, 59, 999);
 }
 
-function endOfPrevMonthLocal(yyyyMm) {
+function endOfPrevMonthLocal(yyyyMm: unknown): Date | null {
   const pm = parseYyyyMm(yyyyMm);
   if (!pm) return null;
   return new Date(pm.y, pm.m - 1, 0, 23, 59, 59, 999);
 }
 
-function isoAtOrBeforeLocalCutoff(iso, cutoffLocalDate) {
+function isoAtOrBeforeLocalCutoff(iso: unknown, cutoffLocalDate: Date | null): boolean {
   if (!cutoffLocalDate) return false;
   const dt = new Date(String(iso || ''));
   if (!Number.isFinite(dt.getTime())) return false;
   return dt.getTime() <= cutoffLocalDate.getTime();
 }
 
-function clonePlanBalancesOnly(plan) {
+type MonthExportPlanPayload = Pick<
+  FinancialPlan,
+  | 'hysaBalance'
+  | 'joseSavings'
+  | 'sherlynaSavings'
+  | 'savingsAccounts'
+  | 'debts'
+  | 'debtsEditorSort'
+  | 'debtsProgressSort'
+> & {
+  savingsAccounts: Array<
+    Pick<SavingsAccount, 'id' | 'name' | 'current' | 'apyPct'> & {
+      depositHistory: DepositHistoryItem[];
+    }
+  >;
+  debts: Array<
+    Pick<
+      Debt,
+      | 'id'
+      | 'name'
+      | 'current'
+      | 'paidOff'
+      | 'aprPct'
+      | 'deferredAmount'
+      | 'deferredExpiresOn'
+      | 'deferredMonthsRemaining'
+    > & { paymentHistory: PaymentHistoryItem[] }
+  >;
+};
+
+function clonePlanBalancesOnly(plan: FinancialPlan): MonthExportPlanPayload {
   const out = {
     hysaBalance: roundMoney(numOr(plan && plan.hysaBalance, 0)),
     joseSavings: roundMoney(numOr(plan && plan.joseSavings, 0)),
@@ -50,8 +88,8 @@ function clonePlanBalancesOnly(plan) {
     debtsProgressSort: plan && typeof plan.debtsProgressSort === 'string' ? plan.debtsProgressSort : 'saved',
   };
 
-  const debts = Array.isArray(plan && plan.debts) ? plan.debts : [];
-  out.debts = debts.map(function (d) {
+  const debts = Array.isArray(plan && (plan as any).debts) ? ((plan as any).debts as Debt[]) : [];
+  out.debts = debts.map(function (d: any) {
     return {
       id: String(d && d.id ? d.id : ''),
       name: String((d && d.name) || 'Debt'),
@@ -67,8 +105,8 @@ function clonePlanBalancesOnly(plan) {
     };
   });
 
-  const accs = getSavingsAccounts(plan || {});
-  out.savingsAccounts = accs.map(function (a) {
+  const accs = getSavingsAccounts((plan || {}) as FinancialPlan);
+  out.savingsAccounts = accs.map(function (a: any) {
     return {
       id: String(a && a.id ? a.id : ''),
       name: String((a && a.name) || 'Account'),
@@ -89,18 +127,21 @@ function clonePlanBalancesOnly(plan) {
  * - Logging a debt payment decreases `current` and increases `paidOff`.
  * - Logging a savings deposit increases `current`.
  */
-export function computePlanPayloadAtMonthEnd(plan, yyyyMm) {
+export function computePlanPayloadAtMonthEnd(
+  plan: FinancialPlan,
+  yyyyMm: string
+): MonthExportPlanPayload | null {
   const cutoff = endOfMonthLocal(yyyyMm);
   if (!cutoff) return null;
 
   const payload = clonePlanBalancesOnly(plan);
 
-  payload.debts.forEach(function (d) {
+  payload.debts.forEach(function (d: any) {
     const hist = Array.isArray(d.paymentHistory) ? d.paymentHistory : [];
     let addBackCurrent = 0;
     let subPaidOff = 0;
-    const keep = [];
-    hist.forEach(function (p) {
+    const keep: PaymentHistoryItem[] = [];
+    hist.forEach(function (p: any) {
       if (!p || typeof p.at !== 'string') return;
       const amt = numOr(p.amount, 0);
       if (isoAtOrBeforeLocalCutoff(p.at, cutoff)) {
@@ -115,11 +156,11 @@ export function computePlanPayloadAtMonthEnd(plan, yyyyMm) {
     d.paymentHistory = keep;
   });
 
-  payload.savingsAccounts.forEach(function (a) {
+  payload.savingsAccounts.forEach(function (a: any) {
     const hist = Array.isArray(a.depositHistory) ? a.depositHistory : [];
     let subCurrent = 0;
-    const keep = [];
-    hist.forEach(function (p) {
+    const keep: DepositHistoryItem[] = [];
+    hist.forEach(function (p: any) {
       if (!p || typeof p.at !== 'string') return;
       const amt = numOr(p.amount, 0);
       if (isoAtOrBeforeLocalCutoff(p.at, cutoff)) {
@@ -134,13 +175,16 @@ export function computePlanPayloadAtMonthEnd(plan, yyyyMm) {
 
   // Keep legacy savings fields consistent with savingsAccounts.
   try {
-    syncLegacySavingsFromAccounts(payload);
+    syncLegacySavingsFromAccounts(payload as any);
   } catch (e) {}
 
   return payload;
 }
 
-export function computePlanPayloadAtPrevMonthEnd(plan, yyyyMm) {
+export function computePlanPayloadAtPrevMonthEnd(
+  plan: FinancialPlan,
+  yyyyMm: string
+): MonthExportPlanPayload | null {
   const prevCutoff = endOfPrevMonthLocal(yyyyMm);
   if (!prevCutoff) return null;
   const pm = parseYyyyMm(yyyyMm);
@@ -151,26 +195,29 @@ export function computePlanPayloadAtPrevMonthEnd(plan, yyyyMm) {
   return computePlanPayloadAtMonthEnd(plan, prevKey);
 }
 
-function csvEscape(v) {
+function csvEscape(v: unknown): string {
   const s = String(v == null ? '' : v);
   if (/["\n,]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
   return s;
 }
 
-export function buildMonthCsv(planNow, checkinsNow, yyyyMm) {
+export function buildMonthCsv(planNow: FinancialPlan, checkinsNow: unknown[], yyyyMm: string): string | null {
   const startPayload = computePlanPayloadAtPrevMonthEnd(planNow, yyyyMm);
   const endPayload = computePlanPayloadAtMonthEnd(planNow, yyyyMm);
   if (!endPayload) return null;
 
-  const lines = [];
+  const lines: string[] = [];
   lines.push('section,yyyyMm,type,id,name,at,date,amount,startBalance,endBalance,note');
 
   // Summary balances: debts
-  const startDebts = (startPayload && Array.isArray(startPayload.debts) ? startPayload.debts : []).reduce(function (m, d) {
+  const startDebts = (startPayload && Array.isArray(startPayload.debts) ? startPayload.debts : []).reduce(function (
+    m: Record<string, any>,
+    d: any
+  ) {
     m[String(d.id || '')] = d;
     return m;
   }, {});
-  (endPayload.debts || []).forEach(function (d) {
+  (endPayload.debts || []).forEach(function (d: any) {
     const sd = startDebts[String(d.id || '')];
     lines.push(
       [
@@ -190,11 +237,14 @@ export function buildMonthCsv(planNow, checkinsNow, yyyyMm) {
   });
 
   // Summary balances: savings
-  const startAcc = (startPayload && Array.isArray(startPayload.savingsAccounts) ? startPayload.savingsAccounts : []).reduce(function (m, a) {
+  const startAcc = (startPayload && Array.isArray(startPayload.savingsAccounts) ? startPayload.savingsAccounts : []).reduce(function (
+    m: Record<string, any>,
+    a: any
+  ) {
     m[String(a.id || '')] = a;
     return m;
   }, {});
-  (endPayload.savingsAccounts || []).forEach(function (a) {
+  (endPayload.savingsAccounts || []).forEach(function (a: any) {
     const sa = startAcc[String(a.id || '')];
     lines.push(
       [
@@ -214,10 +264,10 @@ export function buildMonthCsv(planNow, checkinsNow, yyyyMm) {
   });
 
   // Transactions: debt payments in month (from current plan histories)
-  const debtsNow = Array.isArray(planNow && planNow.debts) ? planNow.debts : [];
-  debtsNow.forEach(function (d) {
+  const debtsNow = Array.isArray(planNow && (planNow as any).debts) ? ((planNow as any).debts as any[]) : [];
+  debtsNow.forEach(function (d: any) {
     const hist = Array.isArray(d && d.paymentHistory) ? d.paymentHistory : [];
-    hist.forEach(function (p) {
+    hist.forEach(function (p: any) {
       if (!p || typeof p.at !== 'string') return;
       if (!isoInLocalYyyyMm(p.at, yyyyMm)) return;
       lines.push(
@@ -239,10 +289,10 @@ export function buildMonthCsv(planNow, checkinsNow, yyyyMm) {
   });
 
   // Transactions: savings deposits in month
-  const accNow = getSavingsAccounts(planNow || {});
-  accNow.forEach(function (a) {
+  const accNow = getSavingsAccounts((planNow || {}) as FinancialPlan);
+  accNow.forEach(function (a: any) {
     const hist = Array.isArray(a && a.depositHistory) ? a.depositHistory : [];
-    hist.forEach(function (p) {
+    hist.forEach(function (p: any) {
       if (!p || typeof p.at !== 'string') return;
       if (!isoInLocalYyyyMm(p.at, yyyyMm)) return;
       lines.push(
@@ -264,7 +314,7 @@ export function buildMonthCsv(planNow, checkinsNow, yyyyMm) {
   });
 
   // Check-ins in month
-  (Array.isArray(checkinsNow) ? checkinsNow : []).forEach(function (c) {
+  (Array.isArray(checkinsNow) ? checkinsNow : []).forEach(function (c: any) {
     const ds = String((c && c.date) || '');
     if (!dateFieldInYyyyMm(ds, yyyyMm)) return;
     lines.push(
@@ -291,24 +341,34 @@ export function buildMonthCsv(planNow, checkinsNow, yyyyMm) {
  * Build a month-end checkpoint payload suitable for import.
  * The payload restores plan balances + histories and check-ins up through the month end.
  */
-export function buildMonthCheckpointPayload(planNow, checkinsNow, yyyyMm) {
+export function buildMonthCheckpointPayload(
+  planNow: FinancialPlan,
+  checkinsNow: unknown[],
+  yyyyMm: string
+): {
+  schema: 'pennypath.month-checkpoint';
+  version: 1;
+  yyyyMm: string;
+  exportedAt: string;
+  payload: { plan: MonthExportPlanPayload; checkins: Array<CheckInEntry & { createdAt?: string }> };
+} | null {
   const endPayload = computePlanPayloadAtMonthEnd(planNow, yyyyMm);
   if (!endPayload) return null;
   const cutoff = endOfMonthLocal(yyyyMm);
 
   const checkins = (Array.isArray(checkinsNow) ? checkinsNow : [])
-    .filter(function (c) {
+    .filter(function (c: any) {
       const ds = String((c && c.date) || '');
       // date fields are YYYY-MM-DD; keep anything <= cutoff month end
       if (ds.length < 10) return false;
       const dt = new Date(ds + 'T12:00:00');
       if (!Number.isFinite(dt.getTime())) return false;
-      return dt.getTime() <= cutoff.getTime();
+      return cutoff ? dt.getTime() <= cutoff.getTime() : false;
     })
-    .map(function (c) {
+    .map(function (c: any) {
       return {
         id: String((c && c.id) || ''),
-        date: String((c && c.date) || ''),
+        date: String((c && c.date) || '') as any,
         note: String((c && c.note) || ''),
         createdAt: String((c && c.createdAt) || ''),
       };

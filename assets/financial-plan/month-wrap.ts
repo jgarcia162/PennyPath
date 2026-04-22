@@ -12,8 +12,8 @@ import {
   MONTH_WRAP_ARCHIVES_KEY,
 } from './plan-data';
 import { applyPlanOverrides, savePlanOverrides, isFinancialPlanDemoMode } from './persistence';
-import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
-import { buildMonthCheckpointPayload } from './monthly-export.js';
+import { syncLegacySavingsFromAccounts } from './savings-accounts';
+import { buildMonthCheckpointPayload } from './monthly-export';
 import { getWorkingMonthYm } from './plan-derived';
 import { monthLabel, yyyyMmFromDate } from './monthly-activity';
 

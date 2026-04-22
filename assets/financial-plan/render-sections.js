@@ -3,7 +3,7 @@
  */
 
 import { DEFAULT_DEBT_APR_PCT, DEFAULT_SAVINGS_APY_PCT, PLAN } from './plan-data';
-import { ensureSavingsGoals, accountContributesToGoal } from './savings-goals.js';
+import { ensureSavingsGoals, accountContributesToGoal } from './savings-goals';
 import { numOr, formatMoneyInput } from './utils';
 
 /** Normalize legacy sort keys for UI + sorting. */

@@ -6,13 +6,13 @@
 
 import type { DerivedPlanMetrics, EndOfPlanLiquidSummary, FinancialPlan, SavingsAccount, YyyyMm } from '../../types/index.js';
 import { numOr } from './utils';
-import { getSavingsAccounts } from './savings-accounts.js';
+import { getSavingsAccounts } from './savings-accounts';
 import {
   ensureSavingsGoals,
   sumBalancesTowardGoal,
   ID_GOAL_HYSA,
   ID_GOAL_EFUND,
-} from './savings-goals.js';
+} from './savings-goals';
 import { projectPayoffTimeline, projectDebtPayoffYm } from './payoff-projection.js';
 import { isoInLocalYyyyMm, monthLabel, yyyyMmFromDate } from './monthly-activity';
 

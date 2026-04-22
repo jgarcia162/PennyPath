@@ -4,7 +4,7 @@
 
 import { PLAN, DEMO_MODE_STORAGE_KEY, STORAGE_KEY } from './plan-data';
 import { applyPlanOverrides } from './persistence';
-import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
+import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import {
   summarizeMonth,
   collectMonthsWithActivity,
@@ -21,7 +21,7 @@ import {
   percentChange,
 } from './history-visuals.js';
 import { createMoneyFormatters, escapeHtml } from './utils';
-import { buildMonthCsv, buildMonthCheckpointPayload } from './monthly-export.js';
+import { buildMonthCsv, buildMonthCheckpointPayload } from './monthly-export';
 
 const { moneyExact } = createMoneyFormatters();
 
