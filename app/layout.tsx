@@ -30,6 +30,11 @@ export default function RootLayout({ children }: { children: ReactNode }) {
               <a className="text-slate-700 hover:text-slate-900" href="/real-estate">
                 Real estate
               </a>
+              <form action="/auth/logout" method="post">
+                <button type="submit" className="text-slate-700 hover:text-slate-900">
+                  Logout
+                </button>
+              </form>
             </nav>
           </header>
           {children}
