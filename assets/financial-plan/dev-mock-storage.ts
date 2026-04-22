@@ -1,7 +1,10 @@
 /**
  * Clears Financial Plan–related localStorage keys and seeds mock balances + check-ins for UI development.
+ *
+ * Converted from `dev-mock-storage.js` with no logic changes.
  */
 
+import type { CheckInServiceEntry, FinancialPlan, MoneyLedgerItem, SavingsAccount } from '../../types/index.js';
 import {
   STORAGE_KEY,
   BADGES_STORAGE_KEY,
@@ -10,11 +13,11 @@ import {
   DEMO_MODE_STORAGE_KEY,
   MONTH_WRAP_ROLLBACK_KEY,
   MONTH_WRAP_ARCHIVES_KEY,
-} from './plan-data.js';
-import { applyPlanPayloadFromObject } from './persistence.js';
+} from './plan-data';
+import { applyPlanPayloadFromObject } from './persistence';
 
-export const CHECKIN_STORAGE_KEY = 'financial-plan-v3-aggressive.checkins';
-export const THEME_STORAGE_KEY = 'financial-plan-v3-aggressive.theme';
+export const CHECKIN_STORAGE_KEY = 'financial-plan-v3-aggressive.checkins' as const;
+export const THEME_STORAGE_KEY = 'financial-plan-v3-aggressive.theme' as const;
 
 /** Keys removed before seeding (Financial Plan app only — does not touch Real Estate keys). */
 export const FINANCIAL_PLAN_STORAGE_KEYS = [
@@ -27,25 +30,28 @@ export const FINANCIAL_PLAN_STORAGE_KEYS = [
   DEMO_MODE_STORAGE_KEY,
   MONTH_WRAP_ROLLBACK_KEY,
   MONTH_WRAP_ARCHIVES_KEY,
-];
+] as const;
 
 /** Months of payment/deposit history to generate (~1.5 years). */
-export const MOCK_HISTORY_MONTHS = 18;
+export const MOCK_HISTORY_MONTHS = 18 as const;
 
-function newId(prefix) {
+function newId(prefix: string): string {
   return prefix + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
 
-function isoLocal(y, mo, day, h, min) {
+function isoLocal(y: number, mo: number, day: number, h?: number | null, min?: number): string {
   return new Date(y, mo, Math.min(28, day), h == null ? 12 : h, min || 0, 0).toISOString();
 }
 
 /**
  * Multiple payments per month (realistic staggered dates).
- * @param {{ amountBase: number, day: number, h?: number }[]} templates
+ * @param templates
  */
-function buildPaymentHistoryFromTemplates(monthsBack, templates) {
-  const out = [];
+function buildPaymentHistoryFromTemplates(
+  monthsBack: number,
+  templates: { amountBase: number; day: number; h?: number }[]
+): MoneyLedgerItem[] {
+  const out: MoneyLedgerItem[] = [];
   const n = monthsBack | 0;
   const now = new Date();
   for (let m = 0; m < n; m++) {
@@ -66,8 +72,8 @@ function buildPaymentHistoryFromTemplates(monthsBack, templates) {
   return out;
 }
 
-function buildCarPaymentHistory(monthsBack) {
-  const out = [];
+function buildCarPaymentHistory(monthsBack: number): MoneyLedgerItem[] {
+  const out: MoneyLedgerItem[] = [];
   const n = Math.min(monthsBack, 16);
   const now = new Date();
   for (let m = 0; m < n; m++) {
@@ -90,8 +96,8 @@ function buildCarPaymentHistory(monthsBack) {
   return out;
 }
 
-function buildStudentPaymentHistory(monthsBack) {
-  const out = [];
+function buildStudentPaymentHistory(monthsBack: number): MoneyLedgerItem[] {
+  const out: MoneyLedgerItem[] = [];
   const n = monthsBack | 0;
   const now = new Date();
   for (let m = 0; m < n; m++) {
@@ -109,11 +115,12 @@ function buildStudentPaymentHistory(monthsBack) {
 
 /**
  * Several deposits per month per account (different days).
- * @param {number} monthsBack
- * @param {{ base: number, days: number[], mult?: number }} spec
  */
-function buildRichDepositHistory(monthsBack, spec) {
-  const out = [];
+function buildRichDepositHistory(
+  monthsBack: number,
+  spec: { base: number; days: number[]; mult?: number }
+): MoneyLedgerItem[] {
+  const out: MoneyLedgerItem[] = [];
   const n = monthsBack | 0;
   const now = new Date();
   const mult = spec.mult != null ? spec.mult : 1;
@@ -138,7 +145,7 @@ function buildRichDepositHistory(monthsBack, spec) {
 /**
  * Payload shape matches persistence.savePlanOverrides().
  */
-export function buildMockBalancesPayload() {
+export function buildMockBalancesPayload(): Record<string, unknown> {
   const months = MOCK_HISTORY_MONTHS;
 
   const ccPayments = buildPaymentHistoryFromTemplates(months, [
@@ -166,54 +173,20 @@ export function buildMockBalancesPayload() {
   const kidsCurrent = 8920;
   const ibondsCurrent = 2400;
 
+  const savingsAccounts: Array<Pick<SavingsAccount, 'id' | 'name' | 'current' | 'apyPct' | 'depositHistory'>> = [
+    { id: 'hysa', name: 'Joint Savings', current: hysaCurrent, apyPct: 3.25, depositHistory: hysaDep },
+    { id: 'jose', name: 'Jose — personal', current: joseCurrent, apyPct: 4.15, depositHistory: joseDep },
+    { id: 'sher', name: 'Sherlyna — personal', current: sherCurrent, apyPct: 0, depositHistory: sherDep },
+    { id: 'vacation', name: 'Vacation fund', current: vacationCurrent, apyPct: 3.5, depositHistory: vacationDep },
+    { id: 'kids', name: 'Kids — 529', current: kidsCurrent, apyPct: 0, depositHistory: kidsDep },
+    { id: 'ibonds', name: 'I-Bonds ladder', current: ibondsCurrent, apyPct: 0, depositHistory: ibondsDep },
+  ];
+
   return {
     hysaBalance: hysaCurrent,
     joseSavings: joseCurrent,
     sherlynaSavings: sherCurrent,
-    savingsAccounts: [
-      {
-        id: 'hysa',
-        name: 'Joint Savings',
-        current: hysaCurrent,
-        apyPct: 3.25,
-        depositHistory: hysaDep,
-      },
-      {
-        id: 'jose',
-        name: 'Jose — personal',
-        current: joseCurrent,
-        apyPct: 4.15,
-        depositHistory: joseDep,
-      },
-      {
-        id: 'sher',
-        name: 'Sherlyna — personal',
-        current: sherCurrent,
-        apyPct: 0,
-        depositHistory: sherDep,
-      },
-      {
-        id: 'vacation',
-        name: 'Vacation fund',
-        current: vacationCurrent,
-        apyPct: 3.5,
-        depositHistory: vacationDep,
-      },
-      {
-        id: 'kids',
-        name: 'Kids — 529',
-        current: kidsCurrent,
-        apyPct: 0,
-        depositHistory: kidsDep,
-      },
-      {
-        id: 'ibonds',
-        name: 'I-Bonds ladder',
-        current: ibondsCurrent,
-        apyPct: 0,
-        depositHistory: ibondsDep,
-      },
-    ],
+    savingsAccounts,
     debts: [
       {
         id: 'cc',
@@ -252,7 +225,7 @@ export function buildMockBalancesPayload() {
   };
 }
 
-export function buildMockCheckins() {
+export function buildMockCheckins(): CheckInServiceEntry[] {
   const notes = [
     'Reviewed budget — on track for debt snowball.',
     'Emergency fund discussion; bumped HYSA auto-transfer.',
@@ -286,7 +259,7 @@ export function buildMockCheckins() {
     'Annual insurance review complete.',
     'Goals: debt under $20k on CC.',
   ];
-  const out = [];
+  const out: CheckInServiceEntry[] = [];
   const now = new Date();
   let noteIdx = 0;
   for (let m = 0; m < 20; m++) {
@@ -299,7 +272,7 @@ export function buildMockCheckins() {
       const dd = String(d.getDate()).padStart(2, '0');
       out.push({
         id: 'c_seed_' + noteIdx,
-        date: y + '-' + mo + '-' + dd,
+        date: (y + '-' + mo + '-' + dd) as any,
         note: notes[noteIdx % notes.length],
         createdAt: new Date(y, d.getMonth(), d.getDate(), 10 + (noteIdx % 6), 0, 0).toISOString(),
       });
@@ -311,14 +284,13 @@ export function buildMockCheckins() {
 
 /**
  * Clears Financial Plan storage keys and writes mock balances, check-ins, and dev-friendly flags.
- * @param {{ clearTheme?: boolean }} [opts] — if clearTheme is false, theme key is left unchanged after delete (default: clear and set light).
  */
-export function seedDevMockStorage(opts) {
+export function seedDevMockStorage(opts?: { clearTheme?: boolean }): { ok: true } {
   const clearTheme = !(opts && opts.clearTheme === false);
 
   FINANCIAL_PLAN_STORAGE_KEYS.forEach(function (key) {
     try {
-      localStorage.removeItem(key);
+      localStorage.removeItem(String(key));
     } catch (e) {}
   });
 
@@ -344,6 +316,7 @@ export function seedDevMockStorage(opts) {
 }
 
 /** Apply rich mock balances to an in-memory plan (sample-data mode; does not write localStorage). */
-export function applyDemoPlanSnapshot(plan) {
+export function applyDemoPlanSnapshot(plan: FinancialPlan): void {
   applyPlanPayloadFromObject(plan, buildMockBalancesPayload());
 }
+

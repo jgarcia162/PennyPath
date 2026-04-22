@@ -2,8 +2,8 @@
  * Goal 2 (debts) and Goal 3 (savings) editors: save / undo / reset, separate last-saved snapshots.
  */
 
-import { PLAN, PLAN_DEFAULTS } from './plan-data.js';
-import { applyPlanOverrides, savePlanOverrides } from './persistence.js';
+import { PLAN, PLAN_DEFAULTS } from './plan-data';
+import { applyPlanOverrides, savePlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts.js';
 import {
   readDebtsEditorIntoPlan,

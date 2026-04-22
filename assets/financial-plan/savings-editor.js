@@ -2,10 +2,10 @@
  * Savings editor DOM ↔ PLAN, snapshots, remove deposit helpers.
  */
 
-import { PLAN, PLAN_DEFAULTS, DEFAULT_SAVINGS_APY_PCT } from './plan-data.js';
+import { PLAN, PLAN_DEFAULTS, DEFAULT_SAVINGS_APY_PCT } from './plan-data';
 import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils';
 import { appendSavingsEditorEmptyState, buildSavingsEditorThead, buildSavingsRowTR } from './render-sections.js';
-import { normalizeDepositHistory, newDepositId } from './persistence.js';
+import { normalizeDepositHistory, newDepositId } from './persistence';
 import { ID_GOAL_HYSA, ensureSavingsGoals, getAccountGoalIds } from './savings-goals.js';
 import { defaultLogAtIsoForEdits } from './default-log-at';
 

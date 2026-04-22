@@ -1,13 +1,16 @@
 /**
  * Aggregate logged activity by calendar month (local dates for ISO timestamps;
  * YYYY-MM-DD for check-in date fields).
+ *
+ * Converted from `monthly-activity.js` with no logic changes.
  */
 
+import type { CheckInEntry, Debt, FinancialPlan, MoneyLedgerItem, SavingsAccount, YyyyMm } from '../../types/index.js';
 import { numOr } from './utils';
 import { getSavingsAccounts } from './savings-accounts.js';
 
-/** @param {string} iso */
-export function isoInLocalYyyyMm(iso, yyyyMm) {
+/** @param iso */
+export function isoInLocalYyyyMm(iso: string, yyyyMm: string): boolean {
   const dt = new Date(iso);
   if (!Number.isFinite(dt.getTime())) return false;
   const y = dt.getFullYear();
@@ -17,12 +20,12 @@ export function isoInLocalYyyyMm(iso, yyyyMm) {
 }
 
 /** Check-in form uses YYYY-MM-DD. */
-export function dateFieldInYyyyMm(dateStr, yyyyMm) {
+export function dateFieldInYyyyMm(dateStr: unknown, yyyyMm: string): boolean {
   if (typeof dateStr !== 'string' || dateStr.length < 7) return false;
   return dateStr.slice(0, 7) === yyyyMm;
 }
 
-export function monthLabel(yyyyMm) {
+export function monthLabel(yyyyMm: string): string {
   const parts = String(yyyyMm).split('-');
   const y = Number(parts[0]);
   const m = Number(parts[1]);
@@ -30,13 +33,13 @@ export function monthLabel(yyyyMm) {
   return new Date(y, m - 1, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
-export function yyyyMmFromDate(d) {
+export function yyyyMmFromDate(d: Date): YyyyMm {
   const y = d.getFullYear();
   const m = d.getMonth() + 1;
-  return y + '-' + String(m).padStart(2, '0');
+  return (y + '-' + String(m).padStart(2, '0')) as YyyyMm;
 }
 
-export function defaultCompareMonths() {
+export function defaultCompareMonths(): { monthA: YyyyMm; monthB: YyyyMm } {
   const now = new Date();
   const b = yyyyMmFromDate(now);
   const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
@@ -45,31 +48,31 @@ export function defaultCompareMonths() {
 }
 
 /**
- * @param {object} plan
- * @param {Array<{ date?: string }>} checkins
+ * @param plan
+ * @param checkins
  */
-export function collectMonthsWithActivity(plan, checkins) {
-  const set = new Set();
-  const debts = Array.isArray(plan.debts) ? plan.debts : [];
-  debts.forEach(function (d) {
+export function collectMonthsWithActivity(plan: FinancialPlan, checkins: Array<{ date?: string }>): string[] {
+  const set = new Set<string>();
+  const debts = Array.isArray((plan as any).debts) ? ((plan as any).debts as Debt[]) : [];
+  debts.forEach(function (d: any) {
     const hist = Array.isArray(d.paymentHistory) ? d.paymentHistory : [];
-    hist.forEach(function (p) {
+    hist.forEach(function (p: any) {
       if (!p || typeof p.at !== 'string') return;
       const dt = new Date(p.at);
       if (!Number.isFinite(dt.getTime())) return;
       set.add(yyyyMmFromDate(dt));
     });
   });
-  getSavingsAccounts(plan).forEach(function (acc) {
+  (getSavingsAccounts(plan) as SavingsAccount[]).forEach(function (acc: any) {
     const hist = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
-    hist.forEach(function (p) {
+    hist.forEach(function (p: any) {
       if (!p || typeof p.at !== 'string') return;
       const dt = new Date(p.at);
       if (!Number.isFinite(dt.getTime())) return;
       set.add(yyyyMmFromDate(dt));
     });
   });
-  (Array.isArray(checkins) ? checkins : []).forEach(function (c) {
+  (Array.isArray(checkins) ? checkins : []).forEach(function (c: any) {
     if (c && typeof c.date === 'string' && c.date.length >= 7) {
       set.add(c.date.slice(0, 7));
     }
@@ -81,16 +84,16 @@ export function collectMonthsWithActivity(plan, checkins) {
 
 /**
  * YYYY-MM values for the dashboard month picker (newest first): logged activity plus a window around the working month.
- * @param {object} plan
- * @param {Array} checkins
- * @param {string} workingYm YYYY-MM
  */
-export function collectDashboardMonthOptions(plan, checkins, workingYm) {
-  const set = new Set(collectMonthsWithActivity(plan, checkins || []));
-  const w =
-    typeof workingYm === 'string' && /^\d{4}-\d{2}$/.test(workingYm) ? workingYm : yyyyMmFromDate(new Date());
+export function collectDashboardMonthOptions(
+  plan: FinancialPlan,
+  checkins: unknown[],
+  workingYm: string
+): string[] {
+  const set = new Set<string>(collectMonthsWithActivity(plan, (checkins as any) || []));
+  const w = typeof workingYm === 'string' && /^\d{4}-\d{2}$/.test(workingYm) ? workingYm : yyyyMmFromDate(new Date());
   set.add(w);
-  const v = plan && plan.dashboardViewMonthYm;
+  const v = plan && (plan as any).dashboardViewMonthYm;
   if (typeof v === 'string' && /^\d{4}-\d{2}$/.test(v)) set.add(v);
   const parts = w.split('-');
   const y0 = Number(parts[0]);
@@ -108,35 +111,55 @@ export function collectDashboardMonthOptions(plan, checkins, workingYm) {
 
 /**
  * Chronological summaries for charting (oldest → newest).
- * @param {object} plan
- * @param {Array} checkins
- * @param {number} [maxMonths=24]
  */
-export function buildMonthlySeriesForChart(plan, checkins, maxMonths) {
-  const cap = Number.isFinite(maxMonths) ? Math.max(1, Math.floor(maxMonths)) : 24;
-  const months = collectMonthsWithActivity(plan, checkins)
-    .sort()
-    .slice(-cap);
+export function buildMonthlySeriesForChart(
+  plan: FinancialPlan,
+  checkins: unknown[],
+  maxMonths?: number
+): any[] {
+  const cap = Number.isFinite(maxMonths) ? Math.max(1, Math.floor(maxMonths as number)) : 24;
+  const months = collectMonthsWithActivity(plan, checkins as any).sort().slice(-cap);
   return months.map(function (ym) {
-    return summarizeMonth(plan, ym, checkins);
+    return summarizeMonth(plan, ym, checkins as any);
   });
 }
 
-/**
- * @param {object} plan
- * @param {string} yyyyMm
- * @param {Array<{ id?: string, date?: string, note?: string }>} checkins
- */
-export function summarizeMonth(plan, yyyyMm, checkins) {
-  const debts = Array.isArray(plan.debts) ? plan.debts : [];
-  const debtLines = [];
+export interface MonthlyDebtLine {
+  debtId: string;
+  debtName: string;
+  total: number;
+  payments: Array<Pick<MoneyLedgerItem, 'amount' | 'at'>>;
+}
+
+export interface MonthlySavingsLine {
+  accountId: string;
+  name: string;
+  total: number;
+  deposits: Array<Pick<MoneyLedgerItem, 'amount' | 'at'>>;
+}
+
+export interface MonthlySummary {
+  yyyyMm: string;
+  label: string;
+  debtLines: MonthlyDebtLine[];
+  debtPaymentsTotal: number;
+  savingsLines: MonthlySavingsLine[];
+  savingsDepositsTotal: number;
+  checkIns: CheckInEntry[];
+  checkInCount: number;
+  transactionCount: number;
+}
+
+export function summarizeMonth(plan: FinancialPlan, yyyyMm: string, checkins: unknown[]): MonthlySummary {
+  const debts = Array.isArray((plan as any).debts) ? ((plan as any).debts as Debt[]) : [];
+  const debtLines: MonthlyDebtLine[] = [];
   let debtPaymentsTotal = 0;
 
-  debts.forEach(function (d) {
+  debts.forEach(function (d: any) {
     const hist = Array.isArray(d.paymentHistory) ? d.paymentHistory : [];
-    const payments = [];
+    const payments: Array<Pick<MoneyLedgerItem, 'amount' | 'at'>> = [];
     let total = 0;
-    hist.forEach(function (p) {
+    hist.forEach(function (p: any) {
       if (!p || typeof p.at !== 'string') return;
       if (!isoInLocalYyyyMm(p.at, yyyyMm)) return;
       const amt = numOr(p.amount, 0);
@@ -152,14 +175,14 @@ export function summarizeMonth(plan, yyyyMm, checkins) {
     debtPaymentsTotal += total;
   });
 
-  const accs = getSavingsAccounts(plan);
-  const savingsLines = [];
+  const accs = getSavingsAccounts(plan) as SavingsAccount[];
+  const savingsLines: MonthlySavingsLine[] = [];
   let savingsDepositsTotal = 0;
-  accs.forEach(function (acc) {
+  accs.forEach(function (acc: any) {
     const hist = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
-    const deposits = [];
+    const deposits: Array<Pick<MoneyLedgerItem, 'amount' | 'at'>> = [];
     let total = 0;
-    hist.forEach(function (p) {
+    hist.forEach(function (p: any) {
       if (!p || typeof p.at !== 'string') return;
       if (!isoInLocalYyyyMm(p.at, yyyyMm)) return;
       const amt = numOr(p.amount, 0);
@@ -175,19 +198,19 @@ export function summarizeMonth(plan, yyyyMm, checkins) {
     savingsDepositsTotal += total;
   });
 
-  const ciList = (Array.isArray(checkins) ? checkins : [])
-    .filter(function (c) {
+  const ciList: CheckInEntry[] = (Array.isArray(checkins) ? checkins : [])
+    .filter(function (c: any) {
       return c && dateFieldInYyyyMm(c.date, yyyyMm);
     })
-    .map(function (c) {
+    .map(function (c: any) {
       return {
         id: String(c.id || ''),
-        date: String(c.date || ''),
+        date: String(c.date || '') as any,
         note: String(c.note || ''),
       };
     })
     .sort(function (a, b) {
-      return String(b.date).localeCompare(String(a.date));
+      return String((b as any).date).localeCompare(String((a as any).date));
     });
 
   const transactionCount =
@@ -210,3 +233,4 @@ export function summarizeMonth(plan, yyyyMm, checkins) {
     transactionCount: transactionCount,
   };
 }
+

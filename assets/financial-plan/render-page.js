@@ -2,9 +2,9 @@
  * Main page render: binds PLAN + derived metrics to DOM ids.
  */
 
-import { PLAN } from './plan-data.js';
-import { derived, getWorkingMonthYm } from './plan-derived.js';
-import { collectDashboardMonthOptions, monthLabel } from './monthly-activity.js';
+import { PLAN } from './plan-data';
+import { derived, getWorkingMonthYm } from './plan-derived';
+import { collectDashboardMonthOptions, monthLabel } from './monthly-activity';
 import { createMoneyFormatters, setText, setHtml, numOr } from './utils';
 import {
   renderGoal2Debts,
