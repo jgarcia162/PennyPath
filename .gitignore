@@ -1,6 +1,8 @@
 .env
 .DS_Store
 node_modules/
+.next/
+dist/
 
 # Local HTML backups — use git history instead of committing duplicates
 *.backup*.html
