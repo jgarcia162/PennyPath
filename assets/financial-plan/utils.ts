@@ -66,20 +66,13 @@ export function setText(id: string, text: string): void {
 }
 
 /**
- * Sets an element's HTML content.
+ * Inserts raw HTML into the DOM.
  *
- * By default, this **sanitizes** by escaping HTML (see `escapeHtml`).
- * To intentionally insert trusted markup, pass `{ unsafe: true }`.
+ * Callers MUST sanitize any untrusted input before calling (see `escapeHtml`).
  */
-export function setHtml(
-  id: string,
-  html: string,
-  options?: { unsafe?: boolean }
-): void {
+export function setHtml(id: string, html: string): void {
   const el = document.getElementById(id);
-  if (!el) return;
-  const unsafe = !!(options && options.unsafe);
-  el.innerHTML = unsafe ? html : escapeHtml(html);
+  if (el) el.innerHTML = html;
 }
 
 function toStrPreserveFalsy(v: unknown): string {
