@@ -1,13 +1,17 @@
 'use client';
 
-import { createSupabaseBrowserClient } from './supabase/browser';
-import { STORAGE_KEY } from '../assets/financial-plan/plan-data';
+import { STORAGE_KEY, PLAN } from '../assets/financial-plan/plan-data';
+import {
+  AI_BILL_CALENDAR_CACHE_LS_KEY,
+  AI_BILL_CALENDAR_COLUMNS_LS_KEY,
+  AI_PAYOFF_PLAN_CACHE_LS_KEY,
+} from '../assets/financial-plan/storage-keys';
+import { applyPlanPayloadFromObject, savePlanOverrides } from '../assets/financial-plan/persistence';
+import { getRepositories } from './repositories';
 
-const LEGACY_STORAGE_KEY = 'pennypath.plan';
-
-function readLegacyPlanPayload(): unknown | null {
+function safeReadJson(key: string): any | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) return null;
     return JSON.parse(raw);
   } catch {
@@ -15,51 +19,61 @@ function readLegacyPlanPayload(): unknown | null {
   }
 }
 
-function clearLegacyPlanPayload(): void {
+function safeRemoveKey(key: string): void {
   try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {}
-  try {
-    localStorage.removeItem(LEGACY_STORAGE_KEY);
+    localStorage.removeItem(key);
   } catch {}
 }
 
 /**
- * One-time migration: if the current user has no `financial_plans` row yet,
- * copy any existing localStorage plan payload into Supabase, then clear localStorage.
+ * One-time migration utility for logged-in users.
  *
- * Errors are intentionally silent to match the existing storage-layer behavior.
+ * - Migrates plan payload from localStorage STORAGE_KEY → Supabase via repositories.
+ * - Migrates AI cache keys from localStorage → `ai_cache` row.
+ *
+ * Any errors are logged and swallowed; migration should never block dashboard boot.
  */
-export async function migrateLocalStoragePlanToSupabase(): Promise<void> {
+export async function migrateLocalStorageToSupabase(): Promise<void> {
   try {
-    const supabase = createSupabaseBrowserClient();
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData?.user) return;
+    const repos = getRepositories();
 
-    const userId = userData.user.id;
+    // If the user already has a row, nothing to migrate.
+    const existing = await repos.planConfigRepository.load();
+    if (existing) return;
 
-    const { data: existing, error: existingErr } = await supabase
-      .from('financial_plans')
-      .select('id')
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (existingErr) return;
-    if (existing && existing.id) return;
+    const planPayload = safeReadJson(STORAGE_KEY);
+    if (planPayload && typeof planPayload === 'object') {
+      // Normalize into the in-memory plan using existing logic, then persist the full plan via repositories.
+      applyPlanPayloadFromObject(PLAN as any, planPayload);
+      await savePlanOverrides();
+    }
 
-    const payload = readLegacyPlanPayload();
-    if (!payload || typeof payload !== 'object') return;
+    const payoffCache = safeReadJson(AI_PAYOFF_PLAN_CACHE_LS_KEY);
+    if (payoffCache && typeof payoffCache === 'object' && typeof payoffCache.text === 'string') {
+      await repos.aiCacheRepository.setPayoffPlan(payoffCache as any);
+    }
 
-    const { error: upsertErr } = await supabase.from('financial_plans').upsert(
-      {
-        user_id: userId,
-        payload: payload as any,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' }
-    );
-    if (upsertErr) return;
+    const calCache = safeReadJson(AI_BILL_CALENDAR_CACHE_LS_KEY);
+    if (calCache && typeof calCache === 'object') {
+      const maybeCalendar = (calCache as any).events ? calCache : (calCache as any).data;
+      if (maybeCalendar && typeof maybeCalendar === 'object' && Array.isArray((maybeCalendar as any).events)) {
+        await repos.aiCacheRepository.setBillCalendar(maybeCalendar as any);
+      }
+    }
 
-    clearLegacyPlanPayload();
-  } catch {}
+    const colCache = safeReadJson(AI_BILL_CALENDAR_COLUMNS_LS_KEY);
+    if (colCache && typeof colCache === 'object') {
+      await repos.aiCacheRepository.getBillCalendarColumns(colCache);
+    }
+
+    // If we got this far, clear the legacy keys so it never runs again.
+    safeRemoveKey(STORAGE_KEY);
+    safeRemoveKey(AI_PAYOFF_PLAN_CACHE_LS_KEY);
+    safeRemoveKey(AI_BILL_CALENDAR_CACHE_LS_KEY);
+    safeRemoveKey(AI_BILL_CALENDAR_COLUMNS_LS_KEY);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('[PennyPath] migrateLocalStorageToSupabase failed', e);
+  }
 }
 

@@ -22,7 +22,7 @@ import {
   DEFAULT_SAVINGS_APY_PCT,
   DEMO_MODE_STORAGE_KEY,
 } from './plan-data';
-import { createSupabaseBrowserClient } from '../../lib/supabase/browser';
+import { getRepositories } from '../../lib/repositories';
 import { numOr } from './utils';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { yyyyMmFromDate } from './monthly-activity';
@@ -266,63 +266,75 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
 
 export async function applyPlanOverrides(): Promise<void> {
   try {
-    const supabase = createSupabaseBrowserClient();
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData || !userData.user) return;
-    const userId = userData.user.id;
-    const { data, error } = await supabase
-      .from('financial_plans')
-      .select('payload')
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (error || !data || !data.payload) return;
-    applyPlanPayloadFromObject(PLAN as any, data.payload);
-  } catch (e) {}
+    const repos = getRepositories();
+    const [cfg, debts, savingsAccounts, savingsGoals] = await Promise.all([
+      repos.planConfigRepository.load(),
+      repos.debtRepository.list(),
+      repos.savingsAccountRepository.list(),
+      repos.savingsGoalRepository.list(),
+    ]);
+    if (!cfg && (!debts || !debts.length) && (!savingsAccounts || !savingsAccounts.length) && (!savingsGoals || !savingsGoals.length)) {
+      return;
+    }
+    applyPlanPayloadFromObject(PLAN as any, {
+      ...(cfg || {}),
+      debts: debts || [],
+      savingsAccounts: savingsAccounts || [],
+      savingsGoals: savingsGoals || [],
+    });
+  } catch (e) {
+    // keep silent (matches prior localStorage persistence behavior)
+  }
 }
 
 export async function savePlanOverrides(): Promise<void> {
   if (isFinancialPlanDemoMode()) return;
   try {
-    const payload = {
-      goalHysa: (PLAN as any).goalHysa,
-      hysaGoalByYm: (PLAN as any).hysaGoalByYm,
-      hysaGoalBy: (PLAN as any).hysaGoalBy,
-      labels: {
-        hysaGoalByShort:
-          (PLAN as any).labels && (PLAN as any).labels.hysaGoalByShort ? (PLAN as any).labels.hysaGoalByShort : '',
-        goalHysaWhen: (PLAN as any).labels && (PLAN as any).labels.goalHysaWhen ? (PLAN as any).labels.goalHysaWhen : '',
-      },
-      hysaBalance: (PLAN as any).hysaBalance,
-      joseSavings: (PLAN as any).joseSavings,
-      sherlynaSavings: (PLAN as any).sherlynaSavings,
-      savingsAccounts: (PLAN as any).savingsAccounts,
-      debts: (PLAN as any).debts,
-      debtsEditorSort: normalizeDebtsEditorSortForStorage((PLAN as any).debtsEditorSort),
-      debtsProgressSort: normalizeDebtsProgressSortForStorage((PLAN as any).debtsProgressSort),
-      workingMonthYm:
-        typeof (PLAN as any).workingMonthYm === 'string' && /^\d{4}-\d{2}$/.test((PLAN as any).workingMonthYm)
-          ? (PLAN as any).workingMonthYm
-          : yyyyMmFromDate(new Date()),
-      dashboardViewMonthYm:
-        typeof (PLAN as any).dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test((PLAN as any).dashboardViewMonthYm)
-          ? (PLAN as any).dashboardViewMonthYm
-          : '',
-      savingsGoals: Array.isArray((PLAN as any).savingsGoals) ? (PLAN as any).savingsGoals : [],
-    };
+    const repos = getRepositories();
 
-    const supabase = createSupabaseBrowserClient();
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData || !userData.user) return;
-    const userId = userData.user.id;
+    // Save scalar / config fields.
+    await repos.planConfigRepository.save(PLAN as any);
 
-    await supabase.from('financial_plans').upsert(
-      {
-        user_id: userId,
-        payload: payload,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' }
+    // Debts: remove missing, upsert current, upsert payment history.
+    const existingDebts = await repos.debtRepository.list();
+    const nextDebtIds = new Set((PLAN as any).debts ? (PLAN as any).debts.map((d: any) => String(d.id)) : []);
+    await Promise.all(
+      (existingDebts || [])
+        .filter((d) => d && !nextDebtIds.has(String(d.id)))
+        .map((d) => repos.debtRepository.remove(String(d.id)))
     );
-  } catch (e) {}
+    const debts = Array.isArray((PLAN as any).debts) ? (PLAN as any).debts : [];
+    for (const debt of debts) {
+      await repos.debtRepository.update(debt);
+      const ph = Array.isArray(debt.paymentHistory) ? debt.paymentHistory : [];
+      for (const p of ph) {
+        await repos.debtRepository.addPayment(String(debt.id), { id: String(p.id), amount: Number(p.amount), at: String(p.at) });
+      }
+    }
+
+    // Savings accounts: remove missing, upsert current, upsert deposit history.
+    const existingAccounts = await repos.savingsAccountRepository.list();
+    const nextAccIds = new Set(
+      (PLAN as any).savingsAccounts ? (PLAN as any).savingsAccounts.map((a: any) => String(a.id)) : []
+    );
+    await Promise.all(
+      (existingAccounts || [])
+        .filter((a) => a && !nextAccIds.has(String(a.id)))
+        .map((a) => repos.savingsAccountRepository.remove(String(a.id)))
+    );
+    const accounts = Array.isArray((PLAN as any).savingsAccounts) ? (PLAN as any).savingsAccounts : [];
+    for (const acc of accounts) {
+      await repos.savingsAccountRepository.update(acc);
+      const dh = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
+      for (const d of dh) {
+        await repos.savingsAccountRepository.addDeposit(String(acc.id), { id: String(d.id), amount: Number(d.amount), at: String(d.at) });
+      }
+    }
+
+    // Goals: replace list.
+    await repos.savingsGoalRepository.save(Array.isArray((PLAN as any).savingsGoals) ? (PLAN as any).savingsGoals : []);
+  } catch (e) {
+    // keep silent (matches prior localStorage persistence behavior)
+  }
 }
 

@@ -3,12 +3,7 @@
  */
 
 import type { FinancialCalendarResponse, FinancialPlan } from '../../types/index.js';
-import {
-  AI_PAYOFF_PLAN_CACHE_LS_KEY,
-  AI_BILL_CALENDAR_CACHE_LS_KEY,
-  AI_BILL_CALENDAR_COLUMNS_LS_KEY,
-} from './storage-keys';
-import { createSupabaseBrowserClient } from '../../lib/supabase/browser';
+import { getRepositories } from '../../lib/repositories';
 import { numOr } from './utils';
 
 const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
@@ -191,19 +186,9 @@ function planSnapshot(plan: FinancialPlan): any {
 
 async function loadAiPayoffExcerpt(): Promise<string> {
   try {
-    const supabase = createSupabaseBrowserClient();
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData || !userData.user) return '';
-    const userId = userData.user.id;
-    const { data, error } = await supabase
-      .from('ai_cache')
-      .select('payoff_plan')
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (error || !data || typeof data.payoff_plan !== 'string' || !data.payoff_plan) return '';
-    const o = JSON.parse(data.payoff_plan);
-    if (!o || typeof (o as any).text !== 'string') return '';
-    const t = String((o as any).text).trim();
+    const cache = await getRepositories().aiCacheRepository.getPayoffPlan();
+    if (!cache || typeof cache.text !== 'string') return '';
+    const t = String(cache.text).trim();
     return t.length > 7000 ? t.slice(0, 7000) + '\n…' : t;
   } catch (e) {
     return '';
@@ -560,34 +545,13 @@ function renderCalendar(host: HTMLElement, norm: any): void {
 
 async function saveCalendarCache(payload: any): Promise<void> {
   try {
-    const supabase = createSupabaseBrowserClient();
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData || !userData.user) return;
-    const userId = userData.user.id;
-    await supabase.from('ai_cache').upsert(
-      {
-        user_id: userId,
-        bill_calendar: payload,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' }
-    );
+    await getRepositories().aiCacheRepository.setBillCalendar(payload as FinancialCalendarResponse);
   } catch (e) {}
 }
 
 async function loadCalendarCache(): Promise<any | null> {
   try {
-    const supabase = createSupabaseBrowserClient();
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData || !userData.user) return null;
-    const userId = userData.user.id;
-    const { data, error } = await supabase
-      .from('ai_cache')
-      .select('bill_calendar')
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (error || !data || !data.bill_calendar) return null;
-    return data.bill_calendar;
+    return await getRepositories().aiCacheRepository.getBillCalendar();
   } catch (e) {
     return null;
   }
@@ -687,35 +651,14 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
     // eslint-disable-next-line @typescript-eslint/no-floating-promises
     void (async function () {
       try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: userData, error: userErr } = await supabase.auth.getUser();
-        if (userErr || !userData || !userData.user) return;
-        const userId = userData.user.id;
-        await supabase.from('ai_cache').upsert(
-          {
-            user_id: userId,
-            bill_calendar_columns: readColumnMap(),
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: 'user_id' }
-        );
+        await getRepositories().aiCacheRepository.getBillCalendarColumns(readColumnMap());
       } catch (e) {}
     })();
   }
 
   async function loadColumnMapFromStorage() {
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: userData, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !userData || !userData.user) return null;
-      const userId = userData.user.id;
-      const { data, error } = await supabase
-        .from('ai_cache')
-        .select('bill_calendar_columns')
-        .eq('user_id', userId)
-        .maybeSingle();
-      if (error || !data || !data.bill_calendar_columns) return null;
-      return data.bill_calendar_columns as any;
+      return await getRepositories().aiCacheRepository.getColumns();
     } catch (e) {
       return null;
     }
@@ -723,10 +666,11 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
 
   void (async function () {
     const savedCols = await loadColumnMapFromStorage();
-    if (savedCols) {
-      if (typeof savedCols.name === 'string') colName.value = savedCols.name;
-      if (typeof savedCols.amount === 'string') colAmount.value = savedCols.amount;
-      if (typeof savedCols.due_day === 'string') colDue.value = savedCols.due_day;
+    if (savedCols && typeof savedCols === 'object') {
+      const anyCols = savedCols as any;
+      if (typeof anyCols.name === 'string') colName.value = anyCols.name;
+      if (typeof anyCols.amount === 'string') colAmount.value = anyCols.amount;
+      if (typeof anyCols.due_day === 'string') colDue.value = anyCols.due_day;
     }
   })();
 
@@ -905,8 +849,8 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
 
   void (async function () {
     const cached = await loadCalendarCache();
-    if (cached && cached.data && Array.isArray(cached.data.events)) {
-      renderCalendar(host, cached.data);
+    if (cached && Array.isArray(cached.events)) {
+      renderCalendar(host, cached);
       setStatus('Showing saved calendar — generate again to refresh.');
     }
   })();
