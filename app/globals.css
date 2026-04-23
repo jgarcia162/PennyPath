@@ -243,11 +243,57 @@ body {
 }
 
 .auth-page__toggle input {
+  /* Hide native checkbox, replace with custom */
+  -webkit-appearance: none;
+  appearance: none;
   margin-top: 3px;
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
-  accent-color: var(--gold);
-  flex-shrink: 0;
+  border: 2px solid rgba(60, 68, 82, 0.35);
+  border-radius: 5px;
+  background: var(--paper);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+}
+
+.auth-page__toggle input:checked {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.auth-page__toggle input:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 6px;
+  height: 10px;
+  border: 2px solid var(--cream);
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.auth-page__toggle input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(115, 134, 168, 0.28);
+  border-color: var(--ink);
+}
+
+:root[data-theme='dark'] .auth-page__toggle input {
+  background: rgba(20, 24, 34, 0.95);
+  border-color: rgba(200, 205, 220, 0.3);
+}
+
+:root[data-theme='dark'] .auth-page__toggle input:checked {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+:root[data-theme='dark'] .auth-page__toggle input:checked::after {
+  border-color: #141820;
 }
 
 .auth-page__toggle-hint {
@@ -894,11 +940,56 @@ body {
   margin: 0;
 }
 .re-pm-toggle input {
+  -webkit-appearance: none;
+  appearance: none;
   margin-top: 3px;
+  flex-shrink: 0;
   width: 18px;
   height: 18px;
-  accent-color: var(--gold);
-  flex-shrink: 0;
+  border: 2px solid rgba(60, 68, 82, 0.35);
+  border-radius: 5px;
+  background: var(--paper);
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+}
+
+.re-pm-toggle input:checked {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.re-pm-toggle input:checked::after {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 1px;
+  width: 6px;
+  height: 10px;
+  border: 2px solid var(--cream);
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg);
+}
+
+.re-pm-toggle input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(115, 134, 168, 0.28);
+  border-color: var(--ink);
+}
+
+:root[data-theme='dark'] .re-pm-toggle input {
+  background: rgba(20, 24, 34, 0.95);
+  border-color: rgba(200, 205, 220, 0.3);
+}
+
+:root[data-theme='dark'] .re-pm-toggle input:checked {
+  background: var(--gold);
+  border-color: var(--gold);
+}
+
+:root[data-theme='dark'] .re-pm-toggle input:checked::after {
+  border-color: #141820;
 }
 .re-pm-toggle .re-pm-toggle-hint {
   display: block;
