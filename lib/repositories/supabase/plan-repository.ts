@@ -3,7 +3,7 @@ import type { FinancialPlan } from '../../../types/index.js';
 import { createSupabaseBrowserClient } from '../../supabase/browser';
 import { applyPlanPayloadFromObject } from '../../../assets/financial-plan/persistence';
 import { yyyyMmFromDate } from '../../../assets/financial-plan/monthly-activity';
-import type { PlanRepository } from '../types';
+import type { PlanConfigRepository } from '../types';
 
 function normalizeDebtsEditorSortForStorage(sort: unknown): string {
   if (sort === 'balance') return 'balance-desc';
@@ -52,8 +52,8 @@ function buildPlanPayloadForStorage(plan: FinancialPlan): unknown {
  * Uses `financial_plans.payload` as a single JSONB document per user.
  * Clean surface area so callers can be kept stable while we iterate on persistence.
  */
-export class SupabasePlanRepository implements PlanRepository {
-  async load(): Promise<FinancialPlan | null> {
+export class SupabasePlanConfigRepository implements PlanConfigRepository {
+  async load(): Promise<Partial<FinancialPlan> | null> {
     try {
       const supabase = createSupabaseBrowserClient();
       const { data: userData, error: userErr } = await supabase.auth.getUser();

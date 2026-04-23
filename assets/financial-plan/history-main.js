@@ -271,37 +271,53 @@ function wireExportImport() {
 
   exportCsvBtn.addEventListener('click', function () {
     if (!ensureNotDemoMode()) return;
-    applyPlanOverrides();
-    syncLegacySavingsFromAccounts(PLAN);
-    const yyyyMm = exportMonthInput.value;
-    const checkins = loadCheckins();
-    const csv = buildMonthCsv(PLAN, checkins, yyyyMm);
-    if (!csv) {
-      setHint('Could not build CSV (invalid month).');
-      return;
-    }
-    const ok = downloadTextFile('pennypath-activity-' + String(yyyyMm) + '.csv', csv, 'text/csv;charset=utf-8');
-    setHint(ok ? 'Exported CSV for ' + String(yyyyMm) + '.' : 'CSV export failed in this browser.');
+    Promise.resolve()
+      .then(function () {
+        return applyPlanOverrides();
+      })
+      .then(function () {
+        syncLegacySavingsFromAccounts(PLAN);
+        const yyyyMm = exportMonthInput.value;
+        const checkins = loadCheckins();
+        const csv = buildMonthCsv(PLAN, checkins, yyyyMm);
+        if (!csv) {
+          setHint('Could not build CSV (invalid month).');
+          return;
+        }
+        const ok = downloadTextFile('pennypath-activity-' + String(yyyyMm) + '.csv', csv, 'text/csv;charset=utf-8');
+        setHint(ok ? 'Exported CSV for ' + String(yyyyMm) + '.' : 'CSV export failed in this browser.');
+      })
+      .catch(function () {
+        setHint('Export failed. Try again.');
+      });
   });
 
   exportJsonBtn.addEventListener('click', function () {
     if (!ensureNotDemoMode()) return;
-    applyPlanOverrides();
-    syncLegacySavingsFromAccounts(PLAN);
-    const yyyyMm = exportMonthInput.value;
-    const checkins = loadCheckins();
-    const payload = buildMonthCheckpointPayload(PLAN, checkins, yyyyMm);
-    if (!payload) {
-      setHint('Could not build backup (invalid month).');
-      return;
-    }
-    const content = JSON.stringify(payload, null, 2) + '\n';
-    const ok = downloadTextFile(
-      'pennypath-checkpoint-' + String(yyyyMm) + '.json',
-      content,
-      'application/json;charset=utf-8'
-    );
-    setHint(ok ? 'Exported backup checkpoint for ' + String(yyyyMm) + '.' : 'Backup export failed in this browser.');
+    Promise.resolve()
+      .then(function () {
+        return applyPlanOverrides();
+      })
+      .then(function () {
+        syncLegacySavingsFromAccounts(PLAN);
+        const yyyyMm = exportMonthInput.value;
+        const checkins = loadCheckins();
+        const payload = buildMonthCheckpointPayload(PLAN, checkins, yyyyMm);
+        if (!payload) {
+          setHint('Could not build backup (invalid month).');
+          return;
+        }
+        const content = JSON.stringify(payload, null, 2) + '\n';
+        const ok = downloadTextFile(
+          'pennypath-checkpoint-' + String(yyyyMm) + '.json',
+          content,
+          'application/json;charset=utf-8'
+        );
+        setHint(ok ? 'Exported backup checkpoint for ' + String(yyyyMm) + '.' : 'Backup export failed in this browser.');
+      })
+      .catch(function () {
+        setHint('Export failed. Try again.');
+      });
   });
 
   importInput.addEventListener('change', function () {

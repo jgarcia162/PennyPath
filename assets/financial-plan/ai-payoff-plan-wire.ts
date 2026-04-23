@@ -4,10 +4,7 @@
  */
 
 import type { FinancialPlan } from '../../types/index.js';
-import { AI_PAYOFF_PLAN_CACHE_LS_KEY } from './storage-keys';
-import { createSupabaseBrowserClient } from '../../lib/supabase/browser';
-
-const LS_KEY_CACHE = AI_PAYOFF_PLAN_CACHE_LS_KEY;
+import { getRepositories } from '../../lib/repositories';
 
 /** Optional override for API origin (shared with real-estate-plan.html). */
 const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
@@ -119,21 +116,14 @@ function buildFingerprint(plan: any): string {
 
 async function loadCache(): Promise<{ text: string; fingerprint: string; truncated: boolean; at: unknown } | null> {
   try {
-    const supabase = createSupabaseBrowserClient();
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData || !userData.user) return null;
-    const userId = userData.user.id;
-    const { data, error } = await supabase
-      .from('ai_cache')
-      .select('payoff_plan')
-      .eq('user_id', userId)
-      .maybeSingle();
-    if (error || !data || typeof data.payoff_plan !== 'string' || !data.payoff_plan) return null;
-    const o = JSON.parse(data.payoff_plan);
-    if (!o || typeof o !== 'object') return null;
-    const anyO = o as any;
-    if (typeof anyO.text !== 'string' || typeof anyO.fingerprint !== 'string') return null;
-    return { text: anyO.text, fingerprint: anyO.fingerprint, truncated: !!anyO.truncated, at: anyO.at };
+    const cache = await getRepositories().aiCacheRepository.getPayoffPlan();
+    if (!cache) return null;
+    return {
+      text: cache.text,
+      fingerprint: cache.fingerprint,
+      truncated: !!cache.truncated,
+      at: cache.at,
+    };
   } catch (e) {
     return null;
   }
@@ -141,23 +131,12 @@ async function loadCache(): Promise<{ text: string; fingerprint: string; truncat
 
 async function saveCache(fingerprint: string, text: string, truncated: boolean): Promise<void> {
   try {
-    const supabase = createSupabaseBrowserClient();
-    const { data: userData, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !userData || !userData.user) return;
-    const userId = userData.user.id;
-    await supabase.from('ai_cache').upsert(
-      {
-        user_id: userId,
-        payoff_plan: JSON.stringify({
-          fingerprint: fingerprint,
-          text: text,
-          truncated: !!truncated,
-          at: new Date().toISOString(),
-        }),
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'user_id' }
-    );
+    await getRepositories().aiCacheRepository.setPayoffPlan({
+      fingerprint: fingerprint,
+      text: text,
+      truncated: !!truncated,
+      at: new Date().toISOString(),
+    });
   } catch (e) {
     if (shouldLogLocalStorageErrors() && typeof console !== 'undefined' && console.warn) {
       console.warn('[PennyPath] AI payoff plan cache: write failed', e);
