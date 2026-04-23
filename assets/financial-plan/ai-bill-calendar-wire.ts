@@ -8,6 +8,7 @@ import {
   AI_BILL_CALENDAR_CACHE_LS_KEY,
   AI_BILL_CALENDAR_COLUMNS_LS_KEY,
 } from './storage-keys';
+import { createSupabaseBrowserClient } from '../../lib/supabase/browser';
 import { numOr } from './utils';
 
 const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
@@ -188,26 +189,34 @@ function planSnapshot(plan: FinancialPlan): any {
   };
 }
 
-function loadAiPayoffExcerpt() {
+async function loadAiPayoffExcerpt(): Promise<string> {
   try {
-    const raw = localStorage.getItem(AI_PAYOFF_PLAN_CACHE_LS_KEY);
-    if (!raw) return '';
-    const o = JSON.parse(raw);
-    if (!o || typeof o.text !== 'string') return '';
-    const t = o.text.trim();
+    const supabase = createSupabaseBrowserClient();
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData || !userData.user) return '';
+    const userId = userData.user.id;
+    const { data, error } = await supabase
+      .from('ai_cache')
+      .select('payoff_plan')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error || !data || typeof data.payoff_plan !== 'string' || !data.payoff_plan) return '';
+    const o = JSON.parse(data.payoff_plan);
+    if (!o || typeof (o as any).text !== 'string') return '';
+    const t = String((o as any).text).trim();
     return t.length > 7000 ? t.slice(0, 7000) + '\n…' : t;
   } catch (e) {
     return '';
   }
 }
 
-function buildCalendarPrompt(
+async function buildCalendarPrompt(
   plan: FinancialPlan,
   bills: Array<{ name: string; amount: number; due_day: number }>,
   monthsAhead: number
-): string {
+): Promise<string> {
   const snap = planSnapshot(plan);
-  const strat = loadAiPayoffExcerpt();
+  const strat = await loadAiPayoffExcerpt();
   const today = new Date();
   const rangeStart = new Date(today.getFullYear(), today.getMonth(), 1);
   const rangeEnd = new Date(rangeStart);
@@ -549,17 +558,36 @@ function renderCalendar(host: HTMLElement, norm: any): void {
   });
 }
 
-function saveCalendarCache(payload: any): void {
+async function saveCalendarCache(payload: any): Promise<void> {
   try {
-    localStorage.setItem(AI_BILL_CALENDAR_CACHE_LS_KEY, JSON.stringify(payload));
+    const supabase = createSupabaseBrowserClient();
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData || !userData.user) return;
+    const userId = userData.user.id;
+    await supabase.from('ai_cache').upsert(
+      {
+        user_id: userId,
+        bill_calendar: payload,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
+    );
   } catch (e) {}
 }
 
-function loadCalendarCache(): any | null {
+async function loadCalendarCache(): Promise<any | null> {
   try {
-    const raw = localStorage.getItem(AI_BILL_CALENDAR_CACHE_LS_KEY);
-    if (!raw) return null;
-    return JSON.parse(raw);
+    const supabase = createSupabaseBrowserClient();
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData || !userData.user) return null;
+    const userId = userData.user.id;
+    const { data, error } = await supabase
+      .from('ai_cache')
+      .select('bill_calendar')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error || !data || !data.bill_calendar) return null;
+    return data.bill_calendar;
   } catch (e) {
     return null;
   }
@@ -656,29 +684,51 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
   }
 
   function saveColumnMapToStorage() {
-    try {
-      localStorage.setItem(AI_BILL_CALENDAR_COLUMNS_LS_KEY, JSON.stringify(readColumnMap()));
-    } catch (e) {}
+    // eslint-disable-next-line @typescript-eslint/no-floating-promises
+    void (async function () {
+      try {
+        const supabase = createSupabaseBrowserClient();
+        const { data: userData, error: userErr } = await supabase.auth.getUser();
+        if (userErr || !userData || !userData.user) return;
+        const userId = userData.user.id;
+        await supabase.from('ai_cache').upsert(
+          {
+            user_id: userId,
+            bill_calendar_columns: readColumnMap(),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id' }
+        );
+      } catch (e) {}
+    })();
   }
 
-  function loadColumnMapFromStorage() {
+  async function loadColumnMapFromStorage() {
     try {
-      const raw = localStorage.getItem(AI_BILL_CALENDAR_COLUMNS_LS_KEY);
-      if (!raw) return null;
-      const o = JSON.parse(raw);
-      if (!o || typeof o !== 'object') return null;
-      return o as any;
+      const supabase = createSupabaseBrowserClient();
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData || !userData.user) return null;
+      const userId = userData.user.id;
+      const { data, error } = await supabase
+        .from('ai_cache')
+        .select('bill_calendar_columns')
+        .eq('user_id', userId)
+        .maybeSingle();
+      if (error || !data || !data.bill_calendar_columns) return null;
+      return data.bill_calendar_columns as any;
     } catch (e) {
       return null;
     }
   }
 
-  const savedCols = loadColumnMapFromStorage();
-  if (savedCols) {
-    if (typeof savedCols.name === 'string') colName.value = savedCols.name;
-    if (typeof savedCols.amount === 'string') colAmount.value = savedCols.amount;
-    if (typeof savedCols.due_day === 'string') colDue.value = savedCols.due_day;
-  }
+  void (async function () {
+    const savedCols = await loadColumnMapFromStorage();
+    if (savedCols) {
+      if (typeof savedCols.name === 'string') colName.value = savedCols.name;
+      if (typeof savedCols.amount === 'string') colAmount.value = savedCols.amount;
+      if (typeof savedCols.due_day === 'string') colDue.value = savedCols.due_day;
+    }
+  })();
 
   function setStatus(t: any) {
     if (statusEl) statusEl.textContent = t || '';
@@ -733,12 +783,12 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
 
   let storedManualPrompt = '';
 
-  function openManualPromptDialog() {
+  async function openManualPromptDialog() {
     if (!promptDialogEl || !promptTextarea) return;
     if (!parsedRows || !parsedRows.length) {
       return;
     }
-    storedManualPrompt = buildCalendarPrompt(plan, parsedRows, 3);
+    storedManualPrompt = await buildCalendarPrompt(plan, parsedRows, 3);
     promptTextarea.value = storedManualPrompt;
     if (promptFeedback) promptFeedback.textContent = '';
     if (btnPromptShare) {
@@ -752,7 +802,9 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
   }
 
   if (btnOpenPrompt) {
-    btnOpenPrompt.addEventListener('click', openManualPromptDialog);
+    btnOpenPrompt.addEventListener('click', function () {
+      void openManualPromptDialog();
+    });
   }
   if (btnPromptClose && promptDialogEl) {
     btnPromptClose.addEventListener('click', function () {
@@ -833,11 +885,11 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
     host.textContent = '';
     let calendarPrompt = '';
     try {
-      calendarPrompt = buildCalendarPrompt(plan, parsedRows, 3);
+      calendarPrompt = await buildCalendarPrompt(plan, parsedRows, 3);
       const data = await callFinancialCalendarApi(calendarPrompt);
       const norm = normalizeEvents(data);
       renderCalendar(host, norm);
-      saveCalendarCache({ at: new Date().toISOString(), data: norm });
+      await saveCalendarCache({ at: new Date().toISOString(), data: norm });
       setStatus('Calendar ready — ' + norm.events.length + ' event(s).');
     } catch (err) {
   const msg = err && (err as any).message ? String((err as any).message) : 'Something went wrong.';
@@ -851,11 +903,13 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
     }
   });
 
-  const cached = loadCalendarCache();
-  if (cached && cached.data && Array.isArray(cached.data.events)) {
-    renderCalendar(host, cached.data);
-    setStatus('Showing saved calendar — generate again to refresh.');
-  }
+  void (async function () {
+    const cached = await loadCalendarCache();
+    if (cached && cached.data && Array.isArray(cached.data.events)) {
+      renderCalendar(host, cached.data);
+      setStatus('Showing saved calendar — generate again to refresh.');
+    }
+  })();
 
   return {
     refreshAfterPlanChange: function () {

@@ -18,11 +18,11 @@ import type {
 import {
   PLAN,
   PLAN_DEFAULTS,
-  STORAGE_KEY,
   DEFAULT_DEBT_APR_PCT,
   DEFAULT_SAVINGS_APY_PCT,
   DEMO_MODE_STORAGE_KEY,
 } from './plan-data';
+import { createSupabaseBrowserClient } from '../../lib/supabase/browser';
 import { numOr } from './utils';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { yyyyMmFromDate } from './monthly-activity';
@@ -264,45 +264,64 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
   ensureSavingsGoals(plan as any);
 }
 
-export function applyPlanOverrides(): void {
+export async function applyPlanOverrides(): Promise<void> {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return;
-    const o = JSON.parse(raw);
-    applyPlanPayloadFromObject(PLAN as any, o);
+    const supabase = createSupabaseBrowserClient();
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData || !userData.user) return;
+    const userId = userData.user.id;
+    const { data, error } = await supabase
+      .from('financial_plans')
+      .select('payload')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error || !data || !data.payload) return;
+    applyPlanPayloadFromObject(PLAN as any, data.payload);
   } catch (e) {}
 }
 
-export function savePlanOverrides(): void {
+export async function savePlanOverrides(): Promise<void> {
   if (isFinancialPlanDemoMode()) return;
   try {
-    localStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({
-        goalHysa: (PLAN as any).goalHysa,
-        hysaGoalByYm: (PLAN as any).hysaGoalByYm,
-        hysaGoalBy: (PLAN as any).hysaGoalBy,
-        labels: {
-          hysaGoalByShort: (PLAN as any).labels && (PLAN as any).labels.hysaGoalByShort ? (PLAN as any).labels.hysaGoalByShort : '',
-          goalHysaWhen: (PLAN as any).labels && (PLAN as any).labels.goalHysaWhen ? (PLAN as any).labels.goalHysaWhen : '',
-        },
-        hysaBalance: (PLAN as any).hysaBalance,
-        joseSavings: (PLAN as any).joseSavings,
-        sherlynaSavings: (PLAN as any).sherlynaSavings,
-        savingsAccounts: (PLAN as any).savingsAccounts,
-        debts: (PLAN as any).debts,
-        debtsEditorSort: normalizeDebtsEditorSortForStorage((PLAN as any).debtsEditorSort),
-        debtsProgressSort: normalizeDebtsProgressSortForStorage((PLAN as any).debtsProgressSort),
-        workingMonthYm:
-          typeof (PLAN as any).workingMonthYm === 'string' && /^\d{4}-\d{2}$/.test((PLAN as any).workingMonthYm)
-            ? (PLAN as any).workingMonthYm
-            : yyyyMmFromDate(new Date()),
-        dashboardViewMonthYm:
-          typeof (PLAN as any).dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test((PLAN as any).dashboardViewMonthYm)
-            ? (PLAN as any).dashboardViewMonthYm
-            : '',
-        savingsGoals: Array.isArray((PLAN as any).savingsGoals) ? (PLAN as any).savingsGoals : [],
-      })
+    const payload = {
+      goalHysa: (PLAN as any).goalHysa,
+      hysaGoalByYm: (PLAN as any).hysaGoalByYm,
+      hysaGoalBy: (PLAN as any).hysaGoalBy,
+      labels: {
+        hysaGoalByShort:
+          (PLAN as any).labels && (PLAN as any).labels.hysaGoalByShort ? (PLAN as any).labels.hysaGoalByShort : '',
+        goalHysaWhen: (PLAN as any).labels && (PLAN as any).labels.goalHysaWhen ? (PLAN as any).labels.goalHysaWhen : '',
+      },
+      hysaBalance: (PLAN as any).hysaBalance,
+      joseSavings: (PLAN as any).joseSavings,
+      sherlynaSavings: (PLAN as any).sherlynaSavings,
+      savingsAccounts: (PLAN as any).savingsAccounts,
+      debts: (PLAN as any).debts,
+      debtsEditorSort: normalizeDebtsEditorSortForStorage((PLAN as any).debtsEditorSort),
+      debtsProgressSort: normalizeDebtsProgressSortForStorage((PLAN as any).debtsProgressSort),
+      workingMonthYm:
+        typeof (PLAN as any).workingMonthYm === 'string' && /^\d{4}-\d{2}$/.test((PLAN as any).workingMonthYm)
+          ? (PLAN as any).workingMonthYm
+          : yyyyMmFromDate(new Date()),
+      dashboardViewMonthYm:
+        typeof (PLAN as any).dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test((PLAN as any).dashboardViewMonthYm)
+          ? (PLAN as any).dashboardViewMonthYm
+          : '',
+      savingsGoals: Array.isArray((PLAN as any).savingsGoals) ? (PLAN as any).savingsGoals : [],
+    };
+
+    const supabase = createSupabaseBrowserClient();
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData || !userData.user) return;
+    const userId = userData.user.id;
+
+    await supabase.from('financial_plans').upsert(
+      {
+        user_id: userId,
+        payload: payload,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
     );
   } catch (e) {}
 }

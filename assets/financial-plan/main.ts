@@ -61,11 +61,11 @@ function patchCheckInsForDemoMode(): void {
   }
 }
 
-function loadPlanForMode(): void {
+async function loadPlanForMode(): Promise<void> {
   if (isFinancialPlanDemoMode()) {
     applyDemoPlanSnapshot(PLAN);
   } else {
-    applyPlanOverrides();
+    await applyPlanOverrides();
   }
   syncLegacySavingsFromAccounts(PLAN);
 }
@@ -102,7 +102,7 @@ function wireWipeAllButton(): void {
     if (origCheckInList && svc) {
       svc.list = origCheckInList;
     }
-    applyPlanOverrides();
+    void applyPlanOverrides();
     syncLegacySavingsFromAccounts(PLAN);
     render();
     initEditorSnapshots();
@@ -110,12 +110,12 @@ function wireWipeAllButton(): void {
   });
 }
 
-function init(): void {
+async function init(): Promise<void> {
   if (isFinancialPlanDemoMode()) {
     document.body.classList.add('financial-plan-demo-mode');
   }
   patchCheckInsForDemoMode();
-  loadPlanForMode();
+  await loadPlanForMode();
   syncFinancialPlanDemoBanner();
   render();
   initEditorSnapshots();
@@ -133,7 +133,9 @@ function init(): void {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', init);
+  document.addEventListener('DOMContentLoaded', function () {
+    void init();
+  });
 } else {
-  init();
+  void init();
 }
