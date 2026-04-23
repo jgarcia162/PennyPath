@@ -122,7 +122,7 @@ export function wrapUpWorkingMonth(render?: () => void): void {
     window.alert('Turn off sample data in Settings before wrapping up a month.');
     return;
   }
-  applyPlanOverrides();
+  void applyPlanOverrides();
   const plan = asFinancialPlan(PLAN);
   syncLegacySavingsFromAccounts(plan);
   const ym = getWorkingMonthYm(plan) as YyyyMm;
@@ -175,7 +175,7 @@ export function wrapUpWorkingMonth(render?: () => void): void {
   appendMonthArchive(checkpoint);
   PLAN.workingMonthYm = nextYm;
   PLAN.dashboardViewMonthYm = '';
-  savePlanOverrides();
+  void savePlanOverrides();
   syncLegacySavingsFromAccounts(plan);
   if (typeof render === 'function') render();
 }
@@ -224,7 +224,7 @@ export function undoLastMonthWrap(render?: () => void): void {
     localStorage.removeItem(MONTH_WRAP_ROLLBACK_KEY);
   } catch (e) {}
 
-  applyPlanOverrides();
+  void applyPlanOverrides();
   const plan = asFinancialPlan(PLAN);
   syncLegacySavingsFromAccounts(plan);
   if (typeof render === 'function') render();
@@ -243,7 +243,7 @@ export function wireDashboardMonthSelector(render: () => void): void {
   sel.addEventListener('change', function () {
     const v = sel.value;
     PLAN.dashboardViewMonthYm = v === '' ? '' : (v as any);
-    savePlanOverrides();
+    void savePlanOverrides();
     if (typeof render === 'function') render();
   });
 }

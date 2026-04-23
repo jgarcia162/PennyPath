@@ -5,6 +5,7 @@
 
 import type { FinancialPlan } from '../../types/index.js';
 import { AI_PAYOFF_PLAN_CACHE_LS_KEY } from './storage-keys';
+import { createSupabaseBrowserClient } from '../../lib/supabase/browser';
 
 const LS_KEY_CACHE = AI_PAYOFF_PLAN_CACHE_LS_KEY;
 
@@ -116,11 +117,19 @@ function buildFingerprint(plan: any): string {
   }
 }
 
-function loadCache(): { text: string; fingerprint: string; truncated: boolean; at: unknown } | null {
+async function loadCache(): Promise<{ text: string; fingerprint: string; truncated: boolean; at: unknown } | null> {
   try {
-    const raw = localStorage.getItem(LS_KEY_CACHE);
-    if (!raw) return null;
-    const o = JSON.parse(raw);
+    const supabase = createSupabaseBrowserClient();
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData || !userData.user) return null;
+    const userId = userData.user.id;
+    const { data, error } = await supabase
+      .from('ai_cache')
+      .select('payoff_plan')
+      .eq('user_id', userId)
+      .maybeSingle();
+    if (error || !data || typeof data.payoff_plan !== 'string' || !data.payoff_plan) return null;
+    const o = JSON.parse(data.payoff_plan);
     if (!o || typeof o !== 'object') return null;
     const anyO = o as any;
     if (typeof anyO.text !== 'string' || typeof anyO.fingerprint !== 'string') return null;
@@ -130,20 +139,28 @@ function loadCache(): { text: string; fingerprint: string; truncated: boolean; a
   }
 }
 
-function saveCache(fingerprint: string, text: string, truncated: boolean): void {
+async function saveCache(fingerprint: string, text: string, truncated: boolean): Promise<void> {
   try {
-    localStorage.setItem(
-      LS_KEY_CACHE,
-      JSON.stringify({
-        fingerprint: fingerprint,
-        text: text,
-        truncated: !!truncated,
-        at: new Date().toISOString(),
-      })
+    const supabase = createSupabaseBrowserClient();
+    const { data: userData, error: userErr } = await supabase.auth.getUser();
+    if (userErr || !userData || !userData.user) return;
+    const userId = userData.user.id;
+    await supabase.from('ai_cache').upsert(
+      {
+        user_id: userId,
+        payoff_plan: JSON.stringify({
+          fingerprint: fingerprint,
+          text: text,
+          truncated: !!truncated,
+          at: new Date().toISOString(),
+        }),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'user_id' }
     );
   } catch (e) {
     if (shouldLogLocalStorageErrors() && typeof console !== 'undefined' && console.warn) {
-      console.warn('[PennyPath] AI payoff plan cache: localStorage.setItem failed', e);
+      console.warn('[PennyPath] AI payoff plan cache: write failed', e);
     }
   }
 }
@@ -614,8 +631,8 @@ export function wireAiPayoffPlan(plan: FinancialPlan): { refreshAfterPlanChange:
     if (refineBtn) refineBtn.disabled = !hasPlan;
   }
 
-  function applyCacheToOutput() {
-    const cache = loadCache();
+  async function applyCacheToOutput() {
+    const cache = await loadCache();
     const fp = buildFingerprint(plan);
     if (cache && cache.text && cache.fingerprint === fp) {
       lastAiPlanText = cache.text;
@@ -646,7 +663,7 @@ export function wireAiPayoffPlan(plan: FinancialPlan): { refreshAfterPlanChange:
     syncRefineControls();
   }
 
-  applyCacheToOutput();
+  void applyCacheToOutput();
 
   function activateOriginal() {
     setSelected(tabOriginal, true);
@@ -693,7 +710,7 @@ export function wireAiPayoffPlan(plan: FinancialPlan): { refreshAfterPlanChange:
         }
         const text = result.text;
         lastAiPlanText = text;
-        saveCache(fp, text, result.truncated);
+        await saveCache(fp, text, result.truncated);
         displayPlanInScroll(scrollEl, outRoot, toolbarEl, expandBtn, text, {
           truncated: result.truncated,
         });
@@ -745,7 +762,7 @@ export function wireAiPayoffPlan(plan: FinancialPlan): { refreshAfterPlanChange:
         }
         const text = result.text;
         lastAiPlanText = text;
-        saveCache(fp, text, result.truncated);
+        await saveCache(fp, text, result.truncated);
         displayPlanInScroll(scrollEl, outRoot, toolbarEl, expandBtn, text, {
           truncated: result.truncated,
         });
@@ -763,6 +780,8 @@ export function wireAiPayoffPlan(plan: FinancialPlan): { refreshAfterPlanChange:
   }
 
   return {
-    refreshAfterPlanChange: applyCacheToOutput,
+    refreshAfterPlanChange: function () {
+      void applyCacheToOutput();
+    },
   };
 }

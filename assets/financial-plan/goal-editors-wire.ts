@@ -136,7 +136,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
     sortSel.addEventListener('change', function () {
       readDebtsEditorIntoPlan();
       (PLAN as any).debtsEditorSort = sortSel.value;
-      savePlanOverrides();
+      void savePlanOverrides();
       render();
       lastSavedDebts = cloneDebtsSnapshot();
       setSaveNeeds('btn-save-goal2-debts', false);
@@ -150,7 +150,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
     progressSortSel.addEventListener('change', function () {
       readDebtsEditorIntoPlan();
       (PLAN as any).debtsProgressSort = progressSortSel.value;
-      savePlanOverrides();
+      void savePlanOverrides();
       render();
       lastSavedDebts = cloneDebtsSnapshot();
       setSaveNeeds('btn-save-goal2-debts', false);
@@ -199,7 +199,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         e.preventDefault();
         // Apply payment(s) from inputs + persist immediately (no bottom Save required).
         readDebtsEditorIntoPlan();
-        savePlanOverrides();
+        void savePlanOverrides();
         render();
         setSaveNeeds('btn-save-goal2-debts', false);
         showGoal2Saved();
@@ -237,7 +237,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         const paymentId = btn.getAttribute('data-payment-id');
         if (debtId == null || paymentId == null) return;
         removeDebtPayment(debtId, paymentId, showGoal2Unsaved, render);
-        savePlanOverrides();
+        void savePlanOverrides();
         lastSavedDebts = cloneDebtsSnapshot();
       },
     });
@@ -247,7 +247,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   if (saveBtn) {
     saveBtn.addEventListener('click', function () {
       readDebtsEditorIntoPlan();
-      savePlanOverrides();
+      void savePlanOverrides();
       render();
       setSaveNeeds('btn-save-goal2-debts', false);
       showGoal2Saved();
@@ -328,7 +328,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         e.preventDefault();
         readSavingsEditorIntoPlan();
         syncLegacySavingsFromAccounts(PLAN);
-        savePlanOverrides();
+        void savePlanOverrides();
         render();
         setSaveNeeds('btn-save-goal3-savings', false);
         showGoal3Saved();
@@ -372,7 +372,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         if (sid == null || depId == null) return;
         removeSavingsDeposit(sid, depId, showGoal3Unsaved, render);
         syncLegacySavingsFromAccounts(PLAN);
-        savePlanOverrides();
+        void savePlanOverrides();
         lastSavedSavings = cloneSavingsSnapshot();
       },
     });
@@ -383,7 +383,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
     saveBtn.addEventListener('click', function () {
       readSavingsEditorIntoPlan();
       syncLegacySavingsFromAccounts(PLAN);
-      savePlanOverrides();
+      void savePlanOverrides();
       render();
       setSaveNeeds('btn-save-goal3-savings', false);
       showGoal3Saved();
