@@ -78,7 +78,7 @@ export function wireGoalTargetsEditor(render: () => void): void {
           targetAmount: 0,
           goalByYm: '',
         });
-        savePlanOverrides();
+        void savePlanOverrides();
         if (typeof render === 'function') render();
         return;
       }
@@ -99,7 +99,7 @@ export function wireGoalTargetsEditor(render: () => void): void {
         });
         ensureSavingsGoals(PLAN);
         syncJointHysaPlanFieldsFromGoals(PLAN);
-        savePlanOverrides();
+        void savePlanOverrides();
         if (typeof render === 'function') render();
       }
     });
@@ -119,7 +119,7 @@ export function wireGoalTargetsEditor(render: () => void): void {
 
     syncJointHysaPlanFieldsFromGoals(PLAN);
 
-    savePlanOverrides();
+    void savePlanOverrides();
     if (typeof render === 'function') render();
     flashStatus('Saved in this browser');
   });

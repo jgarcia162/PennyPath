@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 
+import { migrateLocalStoragePlanToSupabase } from '../../lib/migrate-localstorage';
+
 export default function DashboardPage() {
   useEffect(() => {
     let cancelled = false;
@@ -18,6 +20,8 @@ export default function DashboardPage() {
         await import('../../assets/financial-plan/payoff-projection.js');
         await import('../../assets/checkin-service');
         await import('../../assets/badges');
+
+        await migrateLocalStoragePlanToSupabase();
 
         // Entrypoint: wires UI and features (reads DOM immediately if document is ready).
         await import('../../assets/financial-plan/main');
