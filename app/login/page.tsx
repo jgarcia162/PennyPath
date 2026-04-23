@@ -4,12 +4,18 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { fontPlayfair } from '../fonts';
-import { createSupabaseBrowserClient } from '../../lib/supabase/browser';
+import {
+  createSupabaseBrowserClient,
+  getSaveLoginPreference,
+  setSaveLoginPreference,
+} from '../../lib/supabase/browser';
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [saveLogin, setSaveLogin] = useState(() => getSaveLoginPreference());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -18,7 +24,8 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const supabase = createSupabaseBrowserClient();
+      setSaveLoginPreference(saveLogin);
+      const supabase = createSupabaseBrowserClient({ saveLogin });
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
@@ -74,15 +81,42 @@ export default function LoginPage() {
                 <label className="auth-page__label" htmlFor="password">
                   Password
                 </label>
-                <input
-                  id="password"
-                  className="auth-page__input"
-                  type="password"
-                  autoComplete="current-password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
+                <div className="auth-page__input-wrap">
+                  <input
+                    id="password"
+                    className="auth-page__input auth-page__input--has-reveal"
+                    type={showPassword ? 'text' : 'password'}
+                    autoComplete="current-password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="auth-page__password-reveal"
+                    onClick={() => setShowPassword((v) => !v)}
+                    aria-pressed={showPassword}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? 'Hide' : 'Show'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="auth-page__toggle">
+                <label className="auth-page__toggle-label">
+                  <input
+                    type="checkbox"
+                    checked={saveLogin}
+                    onChange={(e) => setSaveLogin(e.target.checked)}
+                  />
+                  <span>
+                    Save login
+                    <span className="auth-page__toggle-hint">
+                      Keep me signed in on this device (uncheck on shared computers).
+                    </span>
+                  </span>
+                </label>
               </div>
 
               {error ? <p className="auth-page__error">{error}</p> : null}

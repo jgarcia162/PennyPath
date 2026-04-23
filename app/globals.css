@@ -162,6 +162,48 @@ body {
   box-shadow: 0 0 0 3px rgba(115, 134, 168, 0.18);
 }
 
+.auth-page__input-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+
+.auth-page__input--has-reveal {
+  padding-right: 4.75rem;
+}
+
+.auth-page__password-reveal {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 8px 10px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink);
+  background: rgba(115, 134, 168, 0.14);
+  border: 1px solid rgba(60, 68, 82, 0.12);
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.auth-page__password-reveal:hover {
+  background: rgba(115, 134, 168, 0.24);
+  color: #4a5a70;
+}
+
+.auth-page__password-reveal:focus-visible {
+  outline: 2px solid rgba(115, 134, 168, 0.65);
+  outline-offset: 2px;
+}
+
 .auth-page__hint {
   font-size: 12px;
   line-height: 1.45;
@@ -178,6 +220,52 @@ body {
   border-radius: 10px;
   padding: 10px 12px;
   margin: 0 0 16px;
+}
+
+.auth-page__toggle {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: rgba(60, 68, 82, 0.04);
+  border: 1px solid rgba(60, 68, 82, 0.08);
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+}
+
+.auth-page__toggle-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 600;
+  margin: 0;
+}
+
+.auth-page__toggle input {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  accent-color: var(--gold);
+  flex-shrink: 0;
+}
+
+.auth-page__toggle-hint {
+  display: block;
+  font-size: 12px;
+  font-weight: 450;
+  color: var(--md-on-surface-variant);
+  margin-top: 6px;
+}
+
+:root[data-theme='dark'] .auth-page__toggle {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: rgba(230, 232, 240, 0.9);
+}
+
+:root[data-theme='dark'] .auth-page__toggle-hint {
+  color: rgba(200, 205, 220, 0.72);
 }
 
 .auth-page__submit {
@@ -254,6 +342,17 @@ body {
   background: rgba(20, 24, 34, 0.95);
   border-color: rgba(200, 205, 220, 0.12);
   color: rgba(233, 233, 246, 0.92);
+}
+
+:root[data-theme='dark'] .auth-page__password-reveal {
+  color: rgba(200, 210, 240, 0.9);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(200, 205, 220, 0.14);
+}
+
+:root[data-theme='dark'] .auth-page__password-reveal:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(233, 233, 246, 0.96);
 }
 
 /* Home (landing) — same surfaces + header as dashboard / auth */
