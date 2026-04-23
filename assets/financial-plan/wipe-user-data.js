@@ -32,7 +32,7 @@ export function wipeAllUserData() {
     localStorage.removeItem(AI_BILL_CALENDAR_COLUMNS_LS_KEY);
   } catch (e) {}
   applyBlankFinancialBalances(PLAN);
-  savePlanOverrides();
+  void savePlanOverrides();
   try {
     if (window.CheckInService && typeof window.CheckInService.clearAll === 'function') {
       window.CheckInService.clearAll();
