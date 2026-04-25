@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 import { fontPlayfair } from '../fonts';
@@ -9,15 +10,39 @@ import {
   getSaveLoginPreference,
   setSaveLoginPreference,
 } from '../../lib/supabase/browser';
+import { enableTrialSession } from '../../lib/trial/trial-session';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const takeAPeek = searchParams.get('takeAPeek') === '1';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [saveLogin, setSaveLogin] = useState(() => getSaveLoginPreference());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  async function onStartTrial() {
+    setError(null);
+    setLoading(true);
+    try {
+      // Trial should never persist across browser restarts.
+      setSaveLoginPreference(false);
+      enableTrialSession();
+
+      const supabase = createSupabaseBrowserClient({ saveLogin: false });
+      const { error: authError } = await supabase.auth.signInAnonymously();
+      if (authError) {
+        setError(authError.message);
+        return;
+      }
+      router.push('/dashboard');
+      router.refresh();
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -58,9 +83,24 @@ export default function LoginPage() {
         <div className="auth-page__inner">
           <p className="auth-page__eyebrow">Account</p>
           <h1 className={`auth-page__title ${fontPlayfair.className}`}>Log in</h1>
-          <p className="auth-page__lede">Use your email and password to access your planner.</p>
+          <p className="auth-page__lede">
+            {takeAPeek
+              ? 'Start a time-boxed trial with sample data, or use your email and password to access your planner.'
+              : 'Use your email and password to access your planner.'}
+          </p>
 
           <div className="auth-page__card">
+            {takeAPeek ? (
+              <div style={{ marginBottom: 16 }}>
+                <button type="button" className="auth-page__submit" onClick={onStartTrial} disabled={loading}>
+                  {loading ? 'Starting trial…' : 'Take a peek (sample account)'}
+                </button>
+                <p className="auth-page__hint" style={{ marginTop: 10 }}>
+                  This is a temporary session with demo data. Your changes reset when you leave.
+                </p>
+                <hr style={{ margin: '18px 0', border: 'none', borderTop: '1px solid rgba(60, 68, 82, 0.12)' }} />
+              </div>
+            ) : null}
             <form onSubmit={onSubmit}>
               <div className="auth-page__field">
                 <label className="auth-page__label" htmlFor="email">
