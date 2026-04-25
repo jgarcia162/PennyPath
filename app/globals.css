@@ -617,6 +617,8 @@ body {
   padding: 0;
   max-width: min(92vw, 520px);
   background: transparent;
+  margin: auto;
+  inset: 0;
 }
 
 .trial-expired-dialog::backdrop {
