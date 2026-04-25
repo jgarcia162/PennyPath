@@ -40,9 +40,19 @@ function render(): void {
 /** Preserve real list() when toggling sample-data mode or after reset. */
 let origCheckInList: null | (() => any[]) = null;
 
+function isDeveloperUnlocked(): boolean {
+  try {
+    return localStorage.getItem('pennypath.developer.unlocked') === '1';
+  } catch (e) {
+    return false;
+  }
+}
+
 function syncFinancialPlanDemoBanner(): void {
   const el = document.getElementById('financial-plan-demo-banner');
-  if (el) el.hidden = !isFinancialPlanDemoMode();
+  // Only show the sample-data banner when developer mode is unlocked (where the toggle exists).
+  // Trial / "Take a peek" uses demo mode too, but should not show dev-only instructions.
+  if (el) el.hidden = !(isFinancialPlanDemoMode() && isDeveloperUnlocked());
 }
 
 function patchCheckInsForDemoMode(): void {

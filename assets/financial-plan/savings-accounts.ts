@@ -22,7 +22,7 @@ export function getSavingsAccounts(plan: FinancialPlan): SavingsAccount[] {
     },
     {
       id: 'jose',
-      name: 'Jose — personal',
+      name: 'Avery — personal',
       current: numOr(plan.joseSavings, 0),
       apyPct: 0,
       goalIds: [],
@@ -31,7 +31,7 @@ export function getSavingsAccounts(plan: FinancialPlan): SavingsAccount[] {
     },
     {
       id: 'sher',
-      name: 'Sherlyna — personal',
+      name: 'Jordan — personal',
       current: numOr(plan.sherlynaSavings, 0),
       apyPct: 0,
       goalIds: [],

@@ -16,8 +16,8 @@ export function getSavingsAccounts(plan) {
       apyPct: numOr(plan.hysaApy, 0) * 100,
       depositHistory: [],
     },
-    { id: 'jose', name: 'Jose — personal', current: numOr(plan.joseSavings, 0), apyPct: 0, depositHistory: [] },
-    { id: 'sher', name: 'Sherlyna — personal', current: numOr(plan.sherlynaSavings, 0), apyPct: 0, depositHistory: [] },
+    { id: 'jose', name: 'Avery — personal', current: numOr(plan.joseSavings, 0), apyPct: 0, depositHistory: [] },
+    { id: 'sher', name: 'Jordan — personal', current: numOr(plan.sherlynaSavings, 0), apyPct: 0, depositHistory: [] },
   ];
 }
 
