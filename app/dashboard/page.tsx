@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 
 import { migrateLocalStorageToSupabase } from '../../lib/migrate-localstorage';
-import { clearDemoModeIfTrialEnded } from '../../lib/trial/trial-session';
+import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
 
 export default function DashboardPage() {
   useEffect(() => {
@@ -13,6 +13,7 @@ export default function DashboardPage() {
       // Everything below assumes a browser environment and the DOM nodes rendered by this page.
       // Load order matches `financial-plan-v3-aggressive.html`.
       try {
+        maybeEnableTrialSessionFromUrl();
         clearDemoModeIfTrialEnded();
         await import('../../assets/safe-api-origin');
         await import('../../assets/theme-service');

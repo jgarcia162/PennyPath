@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-import { clearDemoModeIfTrialEnded } from '../../lib/trial/trial-session';
+import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
 
 export default function RealEstatePage() {
   useEffect(() => {
@@ -11,6 +11,7 @@ export default function RealEstatePage() {
 
     async function boot() {
       try {
+        maybeEnableTrialSessionFromUrl();
         clearDemoModeIfTrialEnded();
         // Load order matches `real-estate-plan.html`.
         await import('../../assets/theme-service');
