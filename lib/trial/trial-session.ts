@@ -17,6 +17,21 @@ export function enableTrialSession() {
   }
 }
 
+export function maybeEnableTrialSessionFromUrl() {
+  if (typeof window === 'undefined') return;
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('trial') !== '1') return;
+    enableTrialSession();
+
+    // Clear the URL so refresh/back doesn't re-trigger.
+    url.searchParams.delete('trial');
+    window.history.replaceState({}, '', url.toString());
+  } catch {
+    // ignore
+  }
+}
+
 export function isTrialSessionActive(): boolean {
   if (typeof window === 'undefined') return false;
   try {

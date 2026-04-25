@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 
-import { clearDemoModeIfTrialEnded } from '../../lib/trial/trial-session';
+import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
 
 export default function HistoryPage() {
   useEffect(() => {
@@ -11,6 +11,7 @@ export default function HistoryPage() {
 
     async function boot() {
       try {
+        maybeEnableTrialSessionFromUrl();
         clearDemoModeIfTrialEnded();
         // Load order matches `history.html`.
         await import('../../assets/theme-service');
