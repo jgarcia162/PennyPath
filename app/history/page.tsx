@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 
+import { clearDemoModeIfTrialEnded } from '../../lib/trial/trial-session';
+
 export default function HistoryPage() {
   useEffect(() => {
     let cancelled = false;
@@ -9,6 +11,7 @@ export default function HistoryPage() {
 
     async function boot() {
       try {
+        clearDemoModeIfTrialEnded();
         // Load order matches `history.html`.
         await import('../../assets/theme-service');
         await import('../../assets/color-palette-service');

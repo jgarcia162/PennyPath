@@ -2,6 +2,8 @@
 
 import { useEffect } from 'react';
 
+import { clearDemoModeIfTrialEnded } from '../../lib/trial/trial-session';
+
 export default function RealEstatePage() {
   useEffect(() => {
     let cancelled = false;
@@ -9,6 +11,7 @@ export default function RealEstatePage() {
 
     async function boot() {
       try {
+        clearDemoModeIfTrialEnded();
         // Load order matches `real-estate-plan.html`.
         await import('../../assets/theme-service');
         await import('../../assets/color-palette-service');
