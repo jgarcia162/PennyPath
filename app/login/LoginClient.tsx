@@ -8,6 +8,7 @@ import {
   getSaveLoginPreference,
   setSaveLoginPreference,
 } from '../../lib/supabase/browser';
+import { enableTrialSession } from '../../lib/trial/trial-session';
 
 export default function LoginClient() {
   const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
@@ -19,6 +20,27 @@ export default function LoginClient() {
   const [saveLogin, setSaveLogin] = useState(() => getSaveLoginPreference());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  async function onStartTrial() {
+    setError(null);
+    setLoading(true);
+    try {
+      // Trial should never persist across browser restarts.
+      setSaveLoginPreference(false);
+      enableTrialSession();
+
+      const supabase = createSupabaseBrowserClient({ saveLogin: false });
+      const { error: authError } = await supabase.auth.signInAnonymously();
+      if (authError) {
+        setError(authError.message);
+        return;
+      }
+
+      window.location.href = '/dashboard';
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,11 +89,9 @@ export default function LoginClient() {
           <div className="auth-page__card">
             {takeAPeek ? (
               <div style={{ marginBottom: 16 }}>
-                <form action="/auth/trial-login" method="post">
-                  <button type="submit" className="auth-page__submit" disabled={loading}>
-                    {loading ? 'Starting trial…' : 'Take a peek (sample account)'}
-                  </button>
-                </form>
+                <button type="button" className="auth-page__submit" onClick={onStartTrial} disabled={loading}>
+                  {loading ? 'Starting trial…' : 'Take a peek (sample account)'}
+                </button>
                 <p className="auth-page__hint" style={{ marginTop: 10 }}>
                   This is a temporary session with demo data. Your changes reset when you leave.
                 </p>
