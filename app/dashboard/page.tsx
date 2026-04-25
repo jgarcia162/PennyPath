@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { TrialCountdown } from '../components/TrialCountdown';
 import { migrateLocalStorageToSupabase } from '../../lib/migrate-localstorage';
 import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
 
@@ -57,6 +58,7 @@ export default function DashboardPage() {
           </a>
         </nav>
         <div className="site-header__settings">
+          <TrialCountdown />
           <button
             type="button"
             className="site-settings-btn"
