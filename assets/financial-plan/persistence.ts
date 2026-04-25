@@ -116,7 +116,7 @@ function migrateLegacySavingsFromJson(o: any): SavingsAccount[] {
     },
     {
       id: 'jose',
-      name: 'Jose — personal',
+      name: 'Avery — personal',
       current: typeof o.joseSavings === 'number' && Number.isFinite(o.joseSavings) ? o.joseSavings : 0,
       apyPct: 0,
       goalIds: [],
@@ -125,7 +125,7 @@ function migrateLegacySavingsFromJson(o: any): SavingsAccount[] {
     },
     {
       id: 'sher',
-      name: 'Sherlyna — personal',
+      name: 'Jordan — personal',
       current: typeof o.sherlynaSavings === 'number' && Number.isFinite(o.sherlynaSavings) ? o.sherlynaSavings : 0,
       apyPct: 0,
       goalIds: [],
