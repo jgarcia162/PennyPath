@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 
+import { TrialCountdown } from '../components/TrialCountdown';
 import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
 
 export default function HistoryPage() {
@@ -49,6 +50,7 @@ export default function HistoryPage() {
           </a>
         </nav>
         <div className="site-header__settings">
+          <TrialCountdown />
           <button
             type="button"
             className="site-settings-btn"
