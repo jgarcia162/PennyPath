@@ -66,10 +66,13 @@ export function readSavingsEditorIntoPlan(): void {
     }
 
     const goalIds: string[] = [];
-    row.querySelectorAll('input[data-field="goalId"]:checked').forEach(function (cb: Element) {
-      const gid = cb.getAttribute('data-goal-id');
-      if (gid) goalIds.push(String(gid));
-    });
+    const sel = row.querySelector('select[data-field="goalIds"]') as HTMLSelectElement | null;
+    if (sel) {
+      Array.from(sel.selectedOptions || []).forEach(function (opt) {
+        const v = String(opt && opt.value ? opt.value : '').trim();
+        if (v) goalIds.push(v);
+      });
+    }
     const countTowardsGoal = goalIds.indexOf(ID_GOAL_HYSA) >= 0;
 
     next.push({
