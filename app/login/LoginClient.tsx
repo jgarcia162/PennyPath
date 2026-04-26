@@ -8,7 +8,7 @@ import {
   getSaveLoginPreference,
   setSaveLoginPreference,
 } from '../../lib/supabase/browser';
-import { enableTrialSession } from '../../lib/trial/trial-session';
+import { clearTrialSession, enableTrialSession } from '../../lib/trial/trial-session';
 
 export default function LoginClient() {
   const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
@@ -47,6 +47,8 @@ export default function LoginClient() {
     setError(null);
     setLoading(true);
     try {
+      // If the user previously took a peek in this tab, clear any leftover trial markers.
+      clearTrialSession();
       setSaveLoginPreference(saveLogin);
       const supabase = createSupabaseBrowserClient({ saveLogin });
       const { error: authError } = await supabase.auth.signInWithPassword({
