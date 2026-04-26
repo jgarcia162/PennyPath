@@ -9,6 +9,34 @@ import { numOr, formatMoneyInput } from './utils';
 
 type MoneyFn = (n: number) => string;
 
+function closeAllSavingsGoalsDropdowns(except?: Element | null): void {
+  document.querySelectorAll('.editor-savings-goals-dd.is-open').forEach(function (el) {
+    if (except && el === except) return;
+    el.classList.remove('is-open');
+    const btn = el.querySelector('button.editor-savings-goals-dd__btn') as HTMLButtonElement | null;
+    if (btn) btn.setAttribute('aria-expanded', 'false');
+  });
+}
+
+let savingsGoalsDdGlobalHandlersInstalled = false;
+function ensureSavingsGoalsDdGlobalHandlers(): void {
+  if (savingsGoalsDdGlobalHandlersInstalled) return;
+  savingsGoalsDdGlobalHandlersInstalled = true;
+
+  document.addEventListener('click', function (e) {
+    const t = e.target as HTMLElement | null;
+    if (!t) return;
+    const dd = t.closest('.editor-savings-goals-dd');
+    if (dd) return;
+    closeAllSavingsGoalsDropdowns();
+  });
+
+  document.addEventListener('keydown', function (e) {
+    if ((e as KeyboardEvent).key !== 'Escape') return;
+    closeAllSavingsGoalsDropdowns();
+  });
+}
+
 /** Normalize legacy sort keys for UI + sorting. */
 export function normalizeDebtsEditorSort(mode: unknown): string {
   const m = mode || 'saved';
@@ -356,6 +384,7 @@ export function buildSavingsEditorThead(): HTMLTableSectionElement {
  * @returns {HTMLTableRowElement}
  */
 export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal[]): HTMLTableRowElement {
+  ensureSavingsGoalsDdGlobalHandlers();
   const row = document.createElement('tr');
   row.className = 'savings-row';
   row.setAttribute('data-savings-id', String(acc.id));
@@ -386,32 +415,95 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   if (goals.length === 0) {
     tdGoal.textContent = '—';
   } else {
-    const wrap = document.createElement('div');
-    wrap.className = 'editor-savings-goals-select-wrap';
+    const dd = document.createElement('div');
+    dd.className = 'editor-savings-goals-dd';
 
-    const sel = document.createElement('select');
-    sel.className = 'editor-savings-goals-select';
-    sel.multiple = true;
-    sel.setAttribute('data-field', 'goalIds');
-    sel.setAttribute('aria-label', 'Savings goals for this account');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'editor-savings-goals-dd__btn';
+    btn.setAttribute('data-action', 'toggle-goals');
+    btn.setAttribute('aria-haspopup', 'menu');
+    btn.setAttribute('aria-expanded', 'false');
+
+    const menu = document.createElement('div');
+    menu.className = 'editor-savings-goals-dd__menu';
+    menu.setAttribute('role', 'menu');
+
+    function selectedGoalLabels(): string[] {
+      const labels: string[] = [];
+      goals.forEach(function (g) {
+        const gid = String(g && g.id ? g.id : '');
+        if (!gid) return;
+        if (accountContributesToGoal(acc, gid)) labels.push(String(g.name || gid));
+      });
+      return labels;
+    }
+
+    function syncButtonLabel(): void {
+      const picked: string[] = [];
+      dd.querySelectorAll('input[data-field="goalId"]:checked').forEach(function (el) {
+        const rowEl = el as HTMLInputElement;
+        const label = rowEl.getAttribute('data-goal-name');
+        if (label) picked.push(String(label));
+      });
+      if (picked.length === 0) {
+        btn.textContent = 'Goals';
+      } else if (picked.length <= 2) {
+        btn.textContent = picked.join(', ');
+      } else {
+        btn.textContent = picked.length + ' goals';
+      }
+    }
 
     goals.forEach(function (g) {
       const gid = String(g && g.id ? g.id : '');
       if (!gid) return;
-      const opt = document.createElement('option');
-      opt.value = gid;
-      opt.textContent = String(g.name || gid);
-      opt.selected = accountContributesToGoal(acc, gid);
-      sel.appendChild(opt);
+      const label = document.createElement('label');
+      label.className = 'editor-savings-goals-dd__item';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.setAttribute('data-field', 'goalId');
+      cb.setAttribute('data-goal-id', gid);
+      cb.setAttribute('data-goal-name', String(g.name || gid));
+      cb.setAttribute('aria-label', 'Count toward ' + String(g.name || gid));
+      cb.checked = accountContributesToGoal(acc, gid);
+      const span = document.createElement('span');
+      span.className = 'editor-savings-goals-dd__item-text';
+      span.textContent = String(g.name || gid);
+      label.appendChild(cb);
+      label.appendChild(span);
+      menu.appendChild(label);
     });
 
-    const hint = document.createElement('div');
-    hint.className = 'editor-savings-goals-select-hint';
-    hint.textContent = 'Select one or more goals';
+    btn.textContent = selectedGoalLabels().length ? selectedGoalLabels().slice(0, 2).join(', ') : 'Goals';
+    syncButtonLabel();
 
-    wrap.appendChild(sel);
-    wrap.appendChild(hint);
-    tdGoal.appendChild(wrap);
+    function close(): void {
+      dd.classList.remove('is-open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+    function toggle(): void {
+      const willOpen = !dd.classList.contains('is-open');
+      closeAllSavingsGoalsDropdowns(dd);
+      if (willOpen) {
+        dd.classList.add('is-open');
+        btn.setAttribute('aria-expanded', 'true');
+      } else {
+        close();
+      }
+    }
+
+    btn.addEventListener('click', function (e) {
+      e.preventDefault();
+      toggle();
+    });
+    menu.addEventListener('change', function () {
+      syncButtonLabel();
+    });
+
+    dd.appendChild(btn);
+    dd.appendChild(menu);
+    tdGoal.appendChild(dd);
   }
 
   const rmTd = document.createElement('td');
