@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { clearTrialSession, getTrialEndsAtMs, isTrialSessionActive } from '../../lib/trial/trial-session';
 
@@ -16,7 +16,18 @@ export function TrialCountdown() {
   const [expired, setExpired] = useState(false);
   const dlgRef = useRef<HTMLDialogElement | null>(null);
 
-  const active = useMemo(() => (typeof window === 'undefined' ? false : isTrialSessionActive()), []);
+  const [active, setActive] = useState(false);
+
+  useEffect(() => {
+    const sync = () => {
+      setActive(typeof window !== 'undefined' && isTrialSessionActive());
+    };
+    sync();
+    window.addEventListener('pennypath:trialchange', sync as any);
+    return () => {
+      window.removeEventListener('pennypath:trialchange', sync as any);
+    };
+  }, []);
 
   useEffect(() => {
     if (!active) return;
@@ -41,7 +52,6 @@ export function TrialCountdown() {
 
     return () => {
       if (interval) window.clearInterval(interval);
-      if (raf) window.cancelAnimationFrame(raf);
     };
   }, [active]);
 
@@ -66,7 +76,8 @@ export function TrialCountdown() {
     window.location.href = '/login';
   }
 
-  if (!active || remainingMs == null) return null;
+  if (!active) return null;
+  if (remainingMs == null) return null;
 
   const remainingLabel = remainingMs > 0 ? formatRemaining(remainingMs) : '0:00';
 

@@ -4,6 +4,15 @@ const DEMO_MODE_KEY = 'financial-plan.historyDemo';
 
 export const DEFAULT_TRIAL_DURATION_MS = 15 * 60 * 1000;
 
+function notifyTrialChange() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.dispatchEvent(new CustomEvent('pennypath:trialchange'));
+  } catch {
+    // ignore
+  }
+}
+
 export function enableTrialSession() {
   if (typeof window === 'undefined') return;
 
@@ -26,6 +35,8 @@ export function enableTrialSession() {
   } catch {
     // ignore
   }
+
+  notifyTrialChange();
 }
 
 export function maybeEnableTrialSessionFromUrl() {
@@ -77,6 +88,8 @@ export function clearTrialSession() {
   } catch {
     // ignore
   }
+
+  notifyTrialChange();
 }
 
 /**
