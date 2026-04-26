@@ -173,13 +173,63 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
   const kidsCurrent = 8920;
   const ibondsCurrent = 2400;
 
-  const savingsAccounts: Array<Pick<SavingsAccount, 'id' | 'name' | 'current' | 'apyPct' | 'depositHistory'>> = [
-    { id: 'hysa', name: 'Joint Savings', current: hysaCurrent, apyPct: 3.25, depositHistory: hysaDep },
-    { id: 'jose', name: 'Jose — personal', current: joseCurrent, apyPct: 4.15, depositHistory: joseDep },
-    { id: 'sher', name: 'Sherlyna — personal', current: sherCurrent, apyPct: 0, depositHistory: sherDep },
-    { id: 'vacation', name: 'Vacation fund', current: vacationCurrent, apyPct: 3.5, depositHistory: vacationDep },
-    { id: 'kids', name: 'Kids — 529', current: kidsCurrent, apyPct: 0, depositHistory: kidsDep },
-    { id: 'ibonds', name: 'I-Bonds ladder', current: ibondsCurrent, apyPct: 0, depositHistory: ibondsDep },
+  const savingsAccounts: Array<
+    Pick<SavingsAccount, 'id' | 'name' | 'current' | 'apyPct' | 'depositHistory' | 'goalIds' | 'countTowardsGoal'>
+  > = [
+    {
+      id: 'hysa',
+      name: 'Joint Savings',
+      current: hysaCurrent,
+      apyPct: 3.25,
+      goalIds: ['goal-hysa', 'goal-efund'],
+      countTowardsGoal: true,
+      depositHistory: hysaDep,
+    },
+    {
+      id: 'jose',
+      name: 'Avery — personal',
+      current: joseCurrent,
+      apyPct: 4.15,
+      goalIds: ['goal-personal', 'goal-efund'],
+      countTowardsGoal: false,
+      depositHistory: joseDep,
+    },
+    {
+      id: 'sher',
+      name: 'Jordan — personal',
+      current: sherCurrent,
+      apyPct: 0,
+      goalIds: ['goal-personal', 'goal-efund'],
+      countTowardsGoal: false,
+      depositHistory: sherDep,
+    },
+    {
+      id: 'vacation',
+      name: 'Vacation fund',
+      current: vacationCurrent,
+      apyPct: 3.5,
+      goalIds: [],
+      countTowardsGoal: false,
+      depositHistory: vacationDep,
+    },
+    {
+      id: 'kids',
+      name: 'Kids — 529',
+      current: kidsCurrent,
+      apyPct: 0,
+      goalIds: [],
+      countTowardsGoal: false,
+      depositHistory: kidsDep,
+    },
+    {
+      id: 'ibonds',
+      name: 'I-Bonds ladder',
+      current: ibondsCurrent,
+      apyPct: 0,
+      goalIds: [],
+      countTowardsGoal: false,
+      depositHistory: ibondsDep,
+    },
   ];
 
   return {
@@ -187,6 +237,11 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     joseSavings: joseCurrent,
     sherlynaSavings: sherCurrent,
     savingsAccounts,
+    savingsGoals: [
+      { id: 'goal-hysa', name: 'Joint HYSA', targetAmount: 50000, goalByYm: '2027-06' },
+      { id: 'goal-efund', name: 'Emergency fund', targetAmount: 36000, goalByYm: '' },
+      { id: 'goal-personal', name: 'Personal savings', targetAmount: 25000, goalByYm: '' },
+    ],
     debts: [
       {
         id: 'cc',

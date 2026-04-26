@@ -115,7 +115,7 @@ export function buildMockMonthlySeries() {
       },
       {
         accountId: 'jose',
-        name: 'Jose — personal',
+        name: 'Avery — personal',
         total: money(savJose),
         deposits:
           savJose > 0.01
@@ -124,7 +124,7 @@ export function buildMockMonthlySeries() {
       },
       {
         accountId: 'sher',
-        name: 'Sherlyna — personal',
+        name: 'Jordan — personal',
         total: money(savSher),
         deposits:
           savSher > 0.01

@@ -2,7 +2,9 @@
 
 import { useEffect } from 'react';
 
+import { TrialCountdown } from '../components/TrialCountdown';
 import { migrateLocalStorageToSupabase } from '../../lib/migrate-localstorage';
+import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
 
 export default function DashboardPage() {
   useEffect(() => {
@@ -12,6 +14,8 @@ export default function DashboardPage() {
       // Everything below assumes a browser environment and the DOM nodes rendered by this page.
       // Load order matches `financial-plan-v3-aggressive.html`.
       try {
+        maybeEnableTrialSessionFromUrl();
+        clearDemoModeIfTrialEnded();
         await import('../../assets/safe-api-origin');
         await import('../../assets/theme-service');
         await import('../../assets/color-palette-service');
@@ -54,6 +58,7 @@ export default function DashboardPage() {
           </a>
         </nav>
         <div className="site-header__settings">
+          <TrialCountdown />
           <button
             type="button"
             className="site-settings-btn"

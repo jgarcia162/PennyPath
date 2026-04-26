@@ -35,7 +35,7 @@ export const PLAN: FinancialPlan = {
     },
     {
       id: 'jose',
-      name: 'Jose — personal',
+      name: 'Avery — personal',
       current: 4103.96,
       apyPct: 0,
       goalIds: ['goal-efund', 'goal-personal'],
@@ -44,7 +44,7 @@ export const PLAN: FinancialPlan = {
     },
     {
       id: 'sher',
-      name: 'Sherlyna — personal',
+      name: 'Jordan — personal',
       current: 20000,
       apyPct: 0,
       goalIds: ['goal-efund', 'goal-personal'],
@@ -129,7 +129,7 @@ export const PLAN_DEFAULTS: Pick<
     },
     {
       id: 'jose',
-      name: 'Jose — personal',
+      name: 'Avery — personal',
       current: 0,
       apyPct: 0,
       goalIds: [],
@@ -138,7 +138,7 @@ export const PLAN_DEFAULTS: Pick<
     },
     {
       id: 'sher',
-      name: 'Sherlyna — personal',
+      name: 'Jordan — personal',
       current: 0,
       apyPct: 0,
       goalIds: [],

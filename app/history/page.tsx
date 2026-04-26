@@ -2,6 +2,9 @@
 
 import { useEffect } from 'react';
 
+import { TrialCountdown } from '../components/TrialCountdown';
+import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
+
 export default function HistoryPage() {
   useEffect(() => {
     let cancelled = false;
@@ -9,6 +12,8 @@ export default function HistoryPage() {
 
     async function boot() {
       try {
+        maybeEnableTrialSessionFromUrl();
+        clearDemoModeIfTrialEnded();
         // Load order matches `history.html`.
         await import('../../assets/theme-service');
         await import('../../assets/color-palette-service');
@@ -45,6 +50,7 @@ export default function HistoryPage() {
           </a>
         </nav>
         <div className="site-header__settings">
+          <TrialCountdown />
           <button
             type="button"
             className="site-settings-btn"

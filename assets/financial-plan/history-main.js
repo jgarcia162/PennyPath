@@ -214,9 +214,17 @@ function getChartSeries(plan, checkins, demo) {
   return buildMonthlySeriesForChart(plan, checkins, 24);
 }
 
+function isDeveloperUnlocked() {
+  try {
+    return localStorage.getItem('pennypath.developer.unlocked') === '1';
+  } catch (e) {
+    return false;
+  }
+}
+
 function syncDemoBanner(demo) {
   const ban = document.getElementById('history-demo-banner');
-  if (ban) ban.hidden = !demo;
+  if (ban) ban.hidden = !(demo && isDeveloperUnlocked());
 }
 
 function downloadTextFile(filename, content, mime) {
