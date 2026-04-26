@@ -27,8 +27,8 @@ import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap';
 const aiPayoffUi = wireAiPayoffPlan(PLAN);
 const billCalUi = wireBillPaymentCalendar(PLAN);
 
-function render(): void {
-  renderPlanPage();
+function render(opts?: { skipDebtsEditor?: boolean }): void {
+  renderPlanPage(opts);
   if (aiPayoffUi && aiPayoffUi.refreshAfterPlanChange) {
     aiPayoffUi.refreshAfterPlanChange();
   }
