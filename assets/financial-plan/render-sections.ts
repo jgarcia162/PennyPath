@@ -386,24 +386,32 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   if (goals.length === 0) {
     tdGoal.textContent = '—';
   } else {
+    const wrap = document.createElement('div');
+    wrap.className = 'editor-savings-goals-select-wrap';
+
+    const sel = document.createElement('select');
+    sel.className = 'editor-savings-goals-select';
+    sel.multiple = true;
+    sel.setAttribute('data-field', 'goalIds');
+    sel.setAttribute('aria-label', 'Savings goals for this account');
+
     goals.forEach(function (g) {
       const gid = String(g && g.id ? g.id : '');
       if (!gid) return;
-      const label = document.createElement('label');
-      label.className = 'editor-savings-goal-check';
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.setAttribute('data-field', 'goalId');
-      cb.setAttribute('data-goal-id', gid);
-      cb.setAttribute('aria-label', 'Count toward ' + String(g.name || gid));
-      cb.checked = accountContributesToGoal(acc, gid);
-      const span = document.createElement('span');
-      span.className = 'editor-savings-goal-check__text';
-      span.textContent = String(g.name || gid);
-      label.appendChild(cb);
-      label.appendChild(span);
-      tdGoal.appendChild(label);
+      const opt = document.createElement('option');
+      opt.value = gid;
+      opt.textContent = String(g.name || gid);
+      opt.selected = accountContributesToGoal(acc, gid);
+      sel.appendChild(opt);
     });
+
+    const hint = document.createElement('div');
+    hint.className = 'editor-savings-goals-select-hint';
+    hint.textContent = 'Select one or more goals';
+
+    wrap.appendChild(sel);
+    wrap.appendChild(hint);
+    tdGoal.appendChild(wrap);
   }
 
   const rmTd = document.createElement('td');
@@ -546,7 +554,7 @@ export function renderGoal3SavingsAccounts(
     if (!anyGoal) {
       const none = document.createElement('div');
       none.className = 'goal3-savings-not-goal';
-      none.textContent = 'Not assigned to any savings goal — use checkboxes in the savings editor.';
+      none.textContent = 'Not assigned to any savings goal — use the multi-select in the savings editor.';
       goalWrap.appendChild(none);
     }
 
