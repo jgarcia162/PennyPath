@@ -9,6 +9,7 @@ import {
   setSaveLoginPreference,
 } from '../../lib/supabase/browser';
 import { clearTrialSession, enableTrialSession } from '../../lib/trial/trial-session';
+import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
 
 export default function LoginClient() {
   const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
@@ -20,9 +21,11 @@ export default function LoginClient() {
   const [saveLogin, setSaveLogin] = useState(() => getSaveLoginPreference());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [busyLabel, setBusyLabel] = useState('Signing in…');
 
   async function onStartTrial() {
     setError(null);
+    setBusyLabel('Starting trial…');
     setLoading(true);
     try {
       // Trial should never persist across browser restarts.
@@ -33,11 +36,12 @@ export default function LoginClient() {
       const { error: authError } = await supabase.auth.signInAnonymously();
       if (authError) {
         setError(authError.message);
+        setLoading(false);
         return;
       }
 
       window.location.href = '/dashboard';
-    } finally {
+    } catch {
       setLoading(false);
     }
   }
@@ -45,6 +49,7 @@ export default function LoginClient() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    setBusyLabel('Signing in…');
     setLoading(true);
     try {
       // If the user previously took a peek in this tab, clear any leftover trial markers.
@@ -57,16 +62,18 @@ export default function LoginClient() {
       });
       if (authError) {
         setError(authError.message);
+        setLoading(false);
         return;
       }
       window.location.href = '/dashboard';
-    } finally {
+    } catch {
       setLoading(false);
     }
   }
 
   return (
     <div className="auth-page">
+      {loading ? <AppLoadingOverlay message={busyLabel} ariaLabel={busyLabel} /> : null}
       <header className="auth-page__header">
         <a className={`auth-page__brand ${fontPlayfair.className}`} href="/">
           PennyPath

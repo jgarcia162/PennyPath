@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
+import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
+import { LogoutForm } from '../components/LogoutForm';
 import { TrialCountdown } from '../components/TrialCountdown';
 import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
 
 export default function RealEstatePage() {
+  const [booting, setBooting] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
     document.body.classList.add('re-page');
@@ -32,6 +36,8 @@ export default function RealEstatePage() {
         if (cancelled) return;
         // eslint-disable-next-line no-console
         console.error('Failed to boot Real Estate page:', e);
+      } finally {
+        if (!cancelled) setBooting(false);
       }
     }
 
@@ -44,6 +50,9 @@ export default function RealEstatePage() {
 
   return (
     <div>
+      {booting ? (
+        <AppLoadingOverlay message="Loading real estate planner…" ariaLabel="Loading real estate planner" />
+      ) : null}
       <header className="site-header no-print">
         <nav className="site-nav" aria-label="Site">
           <a className="site-nav__tab" href="/dashboard">
@@ -110,11 +119,11 @@ export default function RealEstatePage() {
             <li>
               <div className="site-settings-menu-section">
                 <span className="site-settings-menu-label">Account</span>
-                <form action="/auth/logout" method="post">
+                <LogoutForm>
                   <button type="submit" className="site-settings-item">
                     Log out
                   </button>
-                </form>
+                </LogoutForm>
               </div>
             </li>
           </ul>
@@ -198,6 +207,14 @@ export default function RealEstatePage() {
             </div>
             <div className="re-search-dropdown" id="re-search-dropdown" hidden role="listbox" aria-label="Search results"></div>
             <p className="re-search-status" id="re-search-status" aria-live="polite"></p>
+            <div id="re-ai-loading" className="re-ai-loading-panel" hidden role="status" aria-live="polite">
+              <div className="ai-payoff-loading">
+                <span className="ai-payoff-loading__spinner" aria-hidden="true" />
+                <p className="ai-payoff-loading__label" id="re-ai-loading-label">
+                  Researching market with AI…
+                </p>
+              </div>
+            </div>
             <div className="re-current-market">
               <strong>Current market:</strong> <span id="re-current-label">—</span>
             </div>

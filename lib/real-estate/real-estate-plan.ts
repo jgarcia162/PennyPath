@@ -327,9 +327,23 @@ export function initRealEstatePlan(): void {
       };
     }
 
+    function setAiResearchLoading(show: boolean, label: string) {
+      var wrap = document.getElementById('re-ai-loading');
+      var lbl = document.getElementById('re-ai-loading-label');
+      if (lbl) (lbl as HTMLElement).textContent = label || '';
+      if (wrap) (wrap as HTMLElement).hidden = !show;
+    }
+
     function runAiForPlace(place: any, isRefresh: any) {
-      setSearchStatus(isRefresh ? 'Refreshing AI estimates…' : 'Researching market with AI…');
+      var busyLabel = isRefresh ? 'Refreshing AI estimates…' : 'Researching market with AI…';
+      setSearchStatus('');
+      setAiResearchLoading(true, busyLabel);
       setAiNotes('', false);
+      var aiBusy = document.getElementById('re-ai-btn') as HTMLButtonElement | null;
+      var refBusy = document.getElementById('re-refresh-btn') as HTMLButtonElement | null;
+      if (aiBusy) aiBusy.disabled = true;
+      if (refBusy) refBusy.disabled = true;
+
       return fetchAiResearch(place)
         .then(function (data) {
           var inputs = mapAiToInputs(data);
@@ -390,6 +404,10 @@ export function initRealEstatePlan(): void {
               '<p class="balance-field-hint" style="margin-top:10px;">If the key is set, check <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" rel="noopener">Gemini API billing / quota</a>. Run <code>npm run research-server</code> and open <code>http://127.0.0.1:8787/real-estate-plan.html</code>.</p>';
           }
           setAiNotes(html, true);
+        })
+        .finally(function () {
+          setAiResearchLoading(false, '');
+          setButtonsState();
         });
     }
 

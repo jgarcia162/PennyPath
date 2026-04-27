@@ -1,11 +1,15 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
+import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
+import { LogoutForm } from '../components/LogoutForm';
 import { TrialCountdown } from '../components/TrialCountdown';
 import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
 
 export default function HistoryPage() {
+  const [booting, setBooting] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
     document.body.classList.add('history-page');
@@ -25,6 +29,8 @@ export default function HistoryPage() {
         if (cancelled) return;
         // eslint-disable-next-line no-console
         console.error('Failed to boot History page:', e);
+      } finally {
+        if (!cancelled) setBooting(false);
       }
     }
 
@@ -37,6 +43,9 @@ export default function HistoryPage() {
 
   return (
     <div>
+      {booting ? (
+        <AppLoadingOverlay message="Loading history…" ariaLabel="Loading history page" />
+      ) : null}
       <header className="site-header no-print">
         <nav className="site-nav" aria-label="Site">
           <a className="site-nav__tab" href="/dashboard">
@@ -112,11 +121,11 @@ export default function HistoryPage() {
             <li>
               <div className="site-settings-menu-section">
                 <span className="site-settings-menu-label">Account</span>
-                <form action="/auth/logout" method="post">
+                <LogoutForm>
                   <button type="submit" className="site-settings-item">
                     Log out
                   </button>
-                </form>
+                </LogoutForm>
               </div>
             </li>
           </ul>

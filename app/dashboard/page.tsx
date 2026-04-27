@@ -1,12 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
+import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
+import { LogoutForm } from '../components/LogoutForm';
 import { TrialCountdown } from '../components/TrialCountdown';
 import { migrateLocalStorageToSupabase } from '../../lib/migrate-localstorage';
 import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
 
 export default function DashboardPage() {
+  const [booting, setBooting] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -34,6 +38,8 @@ export default function DashboardPage() {
         // Keep the page usable even if wiring fails; surface a console error for debugging.
         // eslint-disable-next-line no-console
         console.error('Failed to boot Financial Plan dashboard:', e);
+      } finally {
+        if (!cancelled) setBooting(false);
       }
     }
 
@@ -45,6 +51,9 @@ export default function DashboardPage() {
 
   return (
     <div>
+      {booting ? (
+        <AppLoadingOverlay message="Loading your financial plan…" ariaLabel="Loading financial plan application" />
+      ) : null}
       <header className="site-header no-print">
         <nav className="site-nav" aria-label="Site">
           <a className="site-nav__tab site-nav__tab--active" href="/dashboard" aria-current="page">
@@ -134,11 +143,11 @@ export default function DashboardPage() {
             <li>
               <div className="site-settings-menu-section">
                 <span className="site-settings-menu-label">Account</span>
-                <form action="/auth/logout" method="post">
+                <LogoutForm>
                   <button type="submit" className="site-settings-item">
                     Log out
                   </button>
-                </form>
+                </LogoutForm>
               </div>
             </li>
           </ul>

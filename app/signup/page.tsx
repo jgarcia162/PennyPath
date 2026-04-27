@@ -9,6 +9,7 @@ import {
   getSaveLoginPreference,
   setSaveLoginPreference,
 } from '../../lib/supabase/browser';
+import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
 
 export default function SignupPage() {
   const router = useRouter();
@@ -32,17 +33,19 @@ export default function SignupPage() {
       });
       if (authError) {
         setError(authError.message);
+        setLoading(false);
         return;
       }
       router.push('/dashboard');
       router.refresh();
-    } finally {
+    } catch {
       setLoading(false);
     }
   }
 
   return (
     <div className="auth-page">
+      {loading ? <AppLoadingOverlay message="Creating account…" ariaLabel="Creating account" /> : null}
       <header className="auth-page__header">
         <a className={`auth-page__brand ${fontPlayfair.className}`} href="/">
           PennyPath

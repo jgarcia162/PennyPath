@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+import { AppLoadingOverlay } from './AppLoadingOverlay';
 import { clearTrialSession, getTrialEndsAtMs, isTrialSessionActive } from '../../lib/trial/trial-session';
 
 function formatRemaining(ms: number): string {
@@ -17,6 +18,7 @@ export function TrialCountdown() {
   const dlgRef = useRef<HTMLDialogElement | null>(null);
 
   const [active, setActive] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   useEffect(() => {
     const sync = () => {
@@ -67,6 +69,7 @@ export function TrialCountdown() {
   }, [expired]);
 
   async function logoutAndReset() {
+    setSigningOut(true);
     clearTrialSession();
     try {
       await fetch('/auth/logout', { method: 'POST' });
@@ -83,6 +86,7 @@ export function TrialCountdown() {
 
   return (
     <>
+      {signingOut ? <AppLoadingOverlay message="Signing out…" /> : null}
       <div
         className="trial-countdown"
         role="status"
