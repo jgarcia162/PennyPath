@@ -2343,7 +2343,8 @@ body.financial-plan-demo-mode #checkin-form {
 /* Edge editor drawers (tabs + expanding editor). */
 .dashboard-edge-editors {
   position: fixed;
-  right: 0;
+  /* Keep clear of the browser scrollbar / overlay controls. */
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 320; /* above toolwins (300) and site header (100) */
@@ -2370,7 +2371,8 @@ body.financial-plan-demo-mode #checkin-form {
   cursor: pointer;
   border-top-left-radius: 14px;
   border-bottom-left-radius: 14px;
-  padding: 14px 10px;
+  /* Wider click target and more breathing room for vertical label. */
+  padding: 16px 16px;
   box-shadow: 0 10px 26px rgba(60, 68, 82, 0.12);
   transition: transform 180ms ease, box-shadow 180ms ease, background 150ms ease, border-color 150ms ease, color 150ms ease;
 }
@@ -2380,6 +2382,8 @@ body.financial-plan-demo-mode #checkin-form {
   transform: rotate(180deg); /* read top-to-bottom */
   font-size: 11px;
   line-height: 1;
+  /* Add end-padding so text doesn't crowd rounded corners. */
+  padding: 8px 0;
   /* Approach 1: “always legible” outline on mixed backgrounds. */
   text-shadow:
     0 1px 0 rgba(255, 255, 255, 0.55),
@@ -2411,9 +2415,9 @@ body.financial-plan-demo-mode #checkin-form {
   position: fixed;
   top: 50%;
   /* Leave room so the vertical tabs remain visible/clickable. */
-  right: 56px;
+  right: 84px;
   z-index: 315;
-  width: min(660px, calc(100vw - 56px - 16px));
+  width: min(660px, calc(100vw - 84px - 16px));
   max-height: calc(100vh - 160px);
   overflow: auto;
   padding: 0 0 0 0;
