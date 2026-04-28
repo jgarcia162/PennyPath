@@ -71,7 +71,19 @@
     if (!parsed) return fallback;
 
     if (isApprovedOrigin(parsed, same)) {
-      return parsed.replace(/\/$/, '');
+      var chosen = parsed.replace(/\/$/, '');
+      if (same) {
+        var sameTrim = same.replace(/\/$/, '');
+        // Real (non-loopback) page: never send API calls to a leftover dev loopback URL in storage.
+        if (!isLoopbackOrigin(sameTrim) && isLoopbackOrigin(chosen)) {
+          return sameTrim;
+        }
+        // Two loopback origins (e.g. Next on :3000 vs old `npm run research-server` on :8787): follow the tab.
+        if (isLoopbackOrigin(sameTrim) && isLoopbackOrigin(chosen) && chosen !== sameTrim) {
+          return sameTrim;
+        }
+      }
+      return chosen;
     }
     return fallback;
   }
