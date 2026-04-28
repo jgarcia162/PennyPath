@@ -23,6 +23,7 @@ import { wireBadges, renderBadges } from './features.js';
 import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage';
 import { wipeAllUserData } from './wipe-user-data.js';
 import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap';
+import { getTrialSeed, isTrialSessionActive } from '../../lib/trial/trial-session';
 
 const aiPayoffUi = wireAiPayoffPlan(PLAN);
 const billCalUi = wireBillPaymentCalendar(PLAN);
@@ -64,7 +65,8 @@ function patchCheckInsForDemoMode(): void {
   if (!origCheckInList) return;
   if (isFinancialPlanDemoMode()) {
     svc.list = function () {
-      return buildMockCheckins();
+      const seed = isTrialSessionActive() ? getTrialSeed() : null;
+      return buildMockCheckins(seed);
     };
   } else {
     svc.list = origCheckInList;
@@ -73,7 +75,8 @@ function patchCheckInsForDemoMode(): void {
 
 async function loadPlanForMode(): Promise<void> {
   if (isFinancialPlanDemoMode()) {
-    applyDemoPlanSnapshot(PLAN);
+    const seed = isTrialSessionActive() ? getTrialSeed() : null;
+    applyDemoPlanSnapshot(PLAN, { seed });
   } else {
     await applyPlanOverrides();
   }

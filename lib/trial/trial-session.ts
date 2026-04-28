@@ -1,5 +1,6 @@
 const TRIAL_SESSION_KEY = 'pennypath:trial-session';
 const TRIAL_ENDS_AT_KEY = 'pennypath:trial-ends-at';
+const TRIAL_SEED_KEY = 'pennypath:trial-seed';
 const DEMO_MODE_KEY = 'financial-plan.historyDemo';
 
 export const DEFAULT_TRIAL_DURATION_MS = 15 * 60 * 1000;
@@ -25,6 +26,16 @@ export function enableTrialSession() {
   try {
     if (!window.sessionStorage.getItem(TRIAL_ENDS_AT_KEY)) {
       window.sessionStorage.setItem(TRIAL_ENDS_AT_KEY, String(Date.now() + DEFAULT_TRIAL_DURATION_MS));
+    }
+  } catch {
+    // ignore
+  }
+
+  // One seed per trial session (changes each time "Take a peek" starts).
+  try {
+    if (!window.sessionStorage.getItem(TRIAL_SEED_KEY)) {
+      const seed = Date.now().toString(36) + '_' + Math.random().toString(36).slice(2);
+      window.sessionStorage.setItem(TRIAL_SEED_KEY, seed);
     }
   } catch {
     // ignore
@@ -75,11 +86,22 @@ export function getTrialEndsAtMs(): number | null {
   }
 }
 
+export function getTrialSeed(): string | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.sessionStorage.getItem(TRIAL_SEED_KEY);
+    return raw ? String(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
 export function clearTrialSession() {
   if (typeof window === 'undefined') return;
   try {
     window.sessionStorage.removeItem(TRIAL_SESSION_KEY);
     window.sessionStorage.removeItem(TRIAL_ENDS_AT_KEY);
+    window.sessionStorage.removeItem(TRIAL_SEED_KEY);
   } catch {
     // ignore
   }

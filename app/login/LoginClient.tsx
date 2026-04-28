@@ -96,17 +96,15 @@ export default function LoginClient() {
           </p>
 
           <div className="auth-page__card">
-            {takeAPeek ? (
-              <div style={{ marginBottom: 16 }}>
-                <button type="button" className="auth-page__submit" onClick={onStartTrial} disabled={loading}>
-                  {loading ? 'Starting trial…' : 'Take a peek (sample account)'}
-                </button>
-                <p className="auth-page__hint" style={{ marginTop: 10 }}>
-                  This is a temporary session with demo data. Your changes reset when you leave.
-                </p>
-                <hr style={{ margin: '18px 0', border: 'none', borderTop: '1px solid rgba(60, 68, 82, 0.12)' }} />
-              </div>
-            ) : null}
+            <div style={{ marginBottom: 16 }}>
+              <button type="button" className="auth-page__submit" onClick={onStartTrial} disabled={loading}>
+                {loading ? 'Starting trial…' : 'Take a peek (sample account)'}
+              </button>
+              <p className="auth-page__hint" style={{ marginTop: 10 }}>
+                This is a temporary session with demo data. Your changes reset when you leave.
+              </p>
+              <hr style={{ margin: '18px 0', border: 'none', borderTop: '1px solid rgba(60, 68, 82, 0.12)' }} />
+            </div>
 
             <form onSubmit={onSubmit}>
               <div className="auth-page__field">
