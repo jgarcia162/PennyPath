@@ -39,6 +39,43 @@ function newId(prefix: string): string {
   return prefix + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
 
+function hashSeed(seed: string): number {
+  // FNV-1a-ish: stable across runtimes, cheap, good enough for demo randomness.
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function makeRng(seed: number): () => number {
+  // xorshift32 → [0, 1)
+  let x = seed >>> 0;
+  return function () {
+    x ^= x << 13;
+    x ^= x >>> 17;
+    x ^= x << 5;
+    // eslint-disable-next-line no-bitwise
+    return ((x >>> 0) & 0xffffffff) / 0x100000000;
+  };
+}
+
+function pick<T>(rng: () => number, xs: T[]): T {
+  return xs[Math.max(0, Math.min(xs.length - 1, Math.floor(rng() * xs.length)))];
+}
+
+function randInt(rng: () => number, min: number, max: number): number {
+  const a = Math.min(min, max);
+  const b = Math.max(min, max);
+  return a + Math.floor(rng() * (b - a + 1));
+}
+
+function randMoney(rng: () => number, min: number, max: number, step: number = 1): number {
+  const n = randInt(rng, 0, Math.max(0, Math.floor((max - min) / step)));
+  return Math.round((min + n * step) * 100) / 100;
+}
+
 function isoLocal(y: number, mo: number, day: number, h?: number | null, min?: number): string {
   return new Date(y, mo, Math.min(28, day), h == null ? 12 : h, min || 0, 0).toISOString();
 }
@@ -280,7 +317,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
   };
 }
 
-export function buildMockCheckins(): CheckInServiceEntry[] {
+export function buildMockCheckins(seed?: string | null): CheckInServiceEntry[] {
   const notes = [
     'Reviewed budget — on track for debt snowball.',
     'Emergency fund discussion; bumped HYSA auto-transfer.',
@@ -314,21 +351,24 @@ export function buildMockCheckins(): CheckInServiceEntry[] {
     'Annual insurance review complete.',
     'Goals: debt under $20k on CC.',
   ];
+  const rng = seed ? makeRng(hashSeed(seed)) : null;
   const out: CheckInServiceEntry[] = [];
   const now = new Date();
   let noteIdx = 0;
   for (let m = 0; m < 20; m++) {
-    const perMonth = m % 3 === 0 ? 2 : 1;
+    const perMonth = rng ? (rng() < 0.35 ? 2 : 1) : m % 3 === 0 ? 2 : 1;
     for (let k = 0; k < perMonth; k++) {
-      const day = 2 + (noteIdx % 20) + k * 6;
+      const jitter = rng ? randInt(rng, -1, 3) : 0;
+      const day = 2 + (noteIdx % 20) + k * 6 + jitter;
       const d = new Date(now.getFullYear(), now.getMonth() - m, Math.min(28, day));
       const y = d.getFullYear();
       const mo = String(d.getMonth() + 1).padStart(2, '0');
       const dd = String(d.getDate()).padStart(2, '0');
+      const note = rng ? pick(rng, notes) : notes[noteIdx % notes.length];
       out.push({
         id: 'c_seed_' + noteIdx,
         date: (y + '-' + mo + '-' + dd) as any,
-        note: notes[noteIdx % notes.length],
+        note: note,
         createdAt: new Date(y, d.getMonth(), d.getDate(), 10 + (noteIdx % 6), 0, 0).toISOString(),
       });
       noteIdx++;
@@ -371,7 +411,141 @@ export function seedDevMockStorage(opts?: { clearTheme?: boolean }): { ok: true 
 }
 
 /** Apply rich mock balances to an in-memory plan (sample-data mode; does not write localStorage). */
-export function applyDemoPlanSnapshot(plan: FinancialPlan): void {
-  applyPlanPayloadFromObject(plan, buildMockBalancesPayload());
+export function applyDemoPlanSnapshot(plan: FinancialPlan, opts?: { seed?: string | null }): void {
+  const seed = opts && typeof opts.seed === 'string' ? opts.seed : null;
+  if (!seed) {
+    applyPlanPayloadFromObject(plan, buildMockBalancesPayload());
+    return;
+  }
+
+  const rng = makeRng(hashSeed(seed));
+  const months = MOCK_HISTORY_MONTHS;
+
+  const firstNames = ['Avery', 'Jordan', 'Casey', 'Taylor', 'Morgan', 'Riley', 'Sam', 'Alex', 'Jamie'];
+  const kidNames = ['Kids', '529', 'College', 'Future'];
+
+  const hysaName = pick(rng, ['Joint Savings', 'Family HYSA', 'Primary Savings']);
+  const hysaApy = randMoney(rng, 2.75, 4.75, 0.05);
+  const hysaCurrent = randMoney(rng, 12000, 52000, 50);
+  const personal1Name = pick(rng, firstNames) + ' — personal';
+  const personal2Name = pick(rng, firstNames) + ' — personal';
+
+  const joseCurrent = randMoney(rng, 1500, 12000, 25);
+  const sherCurrent = randMoney(rng, 3500, 28000, 25);
+
+  const hysaDep = buildRichDepositHistory(months, {
+    base: randMoney(rng, 220, 650, 5),
+    days: [2, 9, 17, 24].map(function (d) {
+      return Math.min(28, d + randInt(rng, -1, 1));
+    }),
+    mult: randMoney(rng, 0.9, 1.4, 0.05),
+  });
+  const joseDep = buildRichDepositHistory(months, { base: randMoney(rng, 50, 160, 5), days: [5, 20], mult: 0.9 });
+  const sherDep = buildRichDepositHistory(months, { base: randMoney(rng, 120, 320, 5), days: [6, 14, 22], mult: 1.0 });
+
+  const savingsGoals = [
+    {
+      id: 'goal-hysa',
+      name: pick(rng, ['Joint HYSA', 'Primary HYSA', 'Emergency HYSA']),
+      targetAmount: randInt(rng, 25000, 90000),
+      goalByYm: pick(rng, ['2027-03', '2027-06', '2027-09', '2028-01']),
+    },
+    { id: 'goal-efund', name: 'Emergency fund', targetAmount: randInt(rng, 18000, 54000), goalByYm: '' },
+    { id: 'goal-personal', name: 'Personal savings', targetAmount: randInt(rng, 8000, 32000), goalByYm: '' },
+    {
+      id: 'goal-kids',
+      name: pick(rng, kidNames) + ' fund',
+      targetAmount: randInt(rng, 6000, 40000),
+      goalByYm: pick(rng, ['', '2027-12', '2028-06']),
+    },
+  ];
+
+  const savingsAccounts: Array<
+    Pick<SavingsAccount, 'id' | 'name' | 'current' | 'apyPct' | 'depositHistory' | 'goalIds' | 'countTowardsGoal'>
+  > = [
+    {
+      id: 'hysa',
+      name: hysaName,
+      current: hysaCurrent,
+      apyPct: hysaApy,
+      goalIds: ['goal-hysa', 'goal-efund'],
+      countTowardsGoal: true,
+      depositHistory: hysaDep,
+    },
+    {
+      id: 'jose',
+      name: personal1Name,
+      current: joseCurrent,
+      apyPct: randMoney(rng, 0, 4.5, 0.05),
+      goalIds: ['goal-personal', 'goal-efund'],
+      countTowardsGoal: false,
+      depositHistory: joseDep,
+    },
+    {
+      id: 'sher',
+      name: personal2Name,
+      current: sherCurrent,
+      apyPct: randMoney(rng, 0, 4.5, 0.05),
+      goalIds: ['goal-personal', 'goal-efund'],
+      countTowardsGoal: false,
+      depositHistory: sherDep,
+    },
+  ];
+
+  const ccPayments = buildPaymentHistoryFromTemplates(months, [
+    { amountBase: randMoney(rng, 900, 3600, 25), day: 4 },
+    { amountBase: randMoney(rng, 150, 900, 25), day: 11 },
+    { amountBase: randMoney(rng, 50, 450, 10), day: 18 },
+  ]);
+
+  const debts = [
+    {
+      id: 'cc',
+      name: pick(rng, ['Credit Cards', 'Credit Card', 'Cards']),
+      current: randMoney(rng, 3500, 28000, 25),
+      paidOff: randMoney(rng, 0, 16000, 25),
+      aprPct: randMoney(rng, 0, 29.99, 0.25),
+      deferredAmount: 0,
+      deferredExpiresOn: '',
+      deferredMonthsRemaining: 0,
+      paymentHistory: ccPayments,
+    },
+  ];
+
+  if (rng() < 0.75) {
+    debts.push({
+      id: 'car',
+      name: pick(rng, ['Car loan', 'Auto loan']),
+      current: randMoney(rng, 2500, 22000, 50),
+      paidOff: randMoney(rng, 500, 12000, 50),
+      aprPct: randMoney(rng, 2.25, 8.75, 0.05),
+      deferredAmount: 0,
+      deferredExpiresOn: '',
+      deferredMonthsRemaining: 0,
+      paymentHistory: buildCarPaymentHistory(months),
+    } as any);
+  }
+  if (rng() < 0.65) {
+    debts.push({
+      id: 'student',
+      name: pick(rng, ['Student loan', 'Student loans']),
+      current: randMoney(rng, 4000, 38000, 50),
+      paidOff: randMoney(rng, 0, 18000, 50),
+      aprPct: randMoney(rng, 2.25, 7.25, 0.05),
+      deferredAmount: 0,
+      deferredExpiresOn: '',
+      deferredMonthsRemaining: 0,
+      paymentHistory: buildStudentPaymentHistory(months),
+    } as any);
+  }
+
+  applyPlanPayloadFromObject(plan, {
+    hysaBalance: hysaCurrent,
+    joseSavings: joseCurrent,
+    sherlynaSavings: sherCurrent,
+    savingsAccounts,
+    savingsGoals,
+    debts,
+  });
 }
 
