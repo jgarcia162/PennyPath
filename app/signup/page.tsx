@@ -22,6 +22,7 @@ export default function SignupPage() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
     setError(null);
     setLoading(true);
     try {
@@ -148,9 +149,13 @@ export default function SignupPage() {
               </div>
             </label>
 
-            {error ? <p className="auth-form__error">{error}</p> : null}
+            {error ? (
+              <p className="auth-form__error" role="alert" aria-live="assertive">
+                {error}
+              </p>
+            ) : null}
 
-            <button type="submit" className="auth-form__submit">
+            <button type="submit" className="auth-form__submit" disabled={loading}>
               {loading ? 'Creating…' : 'Create account →'}
             </button>
           </form>

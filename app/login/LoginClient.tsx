@@ -48,6 +48,7 @@ export default function LoginClient() {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (loading) return;
     setError(null);
     setBusyLabel('Signing in…');
     setLoading(true);
@@ -178,19 +179,27 @@ export default function LoginClient() {
               </div>
             </label>
 
-            {error ? <p className="auth-form__error">{error}</p> : null}
+            {error ? (
+              <p className="auth-form__error" role="status" aria-live="polite" aria-atomic="true">
+                {error}
+              </p>
+            ) : null}
 
             <button type="submit" className="auth-form__submit" disabled={loading}>
               {loading ? 'Signing in…' : 'Log in →'}
             </button>
           </form>
 
-          <div className="auth-form__divider">or</div>
+          {takeAPeek ? (
+            <>
+              <div className="auth-form__divider">or</div>
 
-          <button type="button" className="auth-form__peek" onClick={onStartTrial} disabled={loading}>
-            👀 Take a peek (sample account)
-          </button>
-          <p className="auth-form__peek-note">Temporary session with demo data. Resets when you leave.</p>
+              <button type="button" className="auth-form__peek" onClick={onStartTrial} disabled={loading}>
+                👀 Take a peek (sample account)
+              </button>
+              <p className="auth-form__peek-note">Temporary session with demo data. Resets when you leave.</p>
+            </>
+          ) : null}
 
           <div className="auth-form__footer">
             Don&apos;t have an account? <Link href="/signup">Sign up</Link>

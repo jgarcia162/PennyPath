@@ -45,7 +45,7 @@ body {
 .re-page h2,
 .re-page .re-hero-title,
 .re-page .section-title.re-heading {
-  font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
+  font-family: var(--font-display), georgia, serif;
 }
 .re-hero-title {
   font-size: clamp(32px, 5vw, 48px);
@@ -324,7 +324,7 @@ body {
   padding: 10px 14px;
   border: none;
   background: transparent;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 14px;
   color: var(--text);
   cursor: pointer;
@@ -370,7 +370,7 @@ body {
   color: var(--blue);
   font-weight: 700;
   cursor: pointer;
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--font-dm-sans), sans-serif;
   font-size: 13px;
   padding: 0;
 }

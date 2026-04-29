@@ -33,7 +33,7 @@
   --radius-lg:    22px;
   --radius-xl:    32px;
 
-  --font-display: var(--font-cormorant, 'Cormorant Garamond'), Georgia, serif;
+  --font-display: var(--font-cormorant, 'Cormorant Garamond'), georgia, serif;
   --font-body:    var(--font-outfit, 'Outfit'), system-ui, sans-serif;
   --font-mono:    var(--font-jetbrains, 'JetBrains Mono'), monospace;
 
@@ -453,8 +453,6 @@ textarea {
 .hero-stat-card--gold::before { background: linear-gradient(90deg, var(--gold), var(--gold-warm)); }
 .hero-stat-card__label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
 .hero-stat-card__value { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 500; color: var(--ink); margin-bottom: 10px; }
-.hero-stat-card__progress { }
-
 .hero-milestone-card {
   background: var(--paper);
   border: 1px solid var(--border);
@@ -705,7 +703,6 @@ textarea {
   align-items: center;
   justify-content: space-between;
 }
-.landing-footer__logo { }
 .landing-footer__logo .logo__text { color: rgba(250,247,240,0.7); font-size: 1.1rem; }
 .landing-footer__copy {
   font-size: 13px;
@@ -1386,7 +1383,6 @@ textarea {
   gap: 16px;
   margin-bottom: 16px;
 }
-.history-metric { }
 .history-metric__label {
   font-size: 11px;
   font-weight: 700;

@@ -1664,12 +1664,12 @@ input, textarea { font-family: inherit; }
      DEMO NAV
 ══════════════════════════════════════ -->
 <nav class="demo-nav">
-  <button class="demo-nav__btn active" onclick="showPage('landing')">🏠 Landing</button>
-  <button class="demo-nav__btn" onclick="showPage('login')">🔐 Login</button>
-  <button class="demo-nav__btn" onclick="showPage('signup')">✨ Sign Up</button>
-  <button class="demo-nav__btn" onclick="showPage('dashboard')">💰 Dashboard</button>
-  <button class="demo-nav__btn" onclick="showPage('history')">📅 History</button>
-  <button class="demo-nav__btn" onclick="showPage('realestate')">🏠 Real Estate</button>
+  <button type="button" class="demo-nav__btn active" data-page="landing" onclick="showPage('landing')">🏠 Landing</button>
+  <button type="button" class="demo-nav__btn" data-page="login" onclick="showPage('login')">🔐 Login</button>
+  <button type="button" class="demo-nav__btn" data-page="signup" onclick="showPage('signup')">✨ Sign Up</button>
+  <button type="button" class="demo-nav__btn" data-page="dashboard" onclick="showPage('dashboard')">💰 Dashboard</button>
+  <button type="button" class="demo-nav__btn" data-page="history" onclick="showPage('history')">📅 History</button>
+  <button type="button" class="demo-nav__btn" data-page="realestate" onclick="showPage('realestate')">🏠 Real Estate</button>
 </nav>
 
 
@@ -2644,20 +2644,11 @@ function showPage(id) {
     realestate: 'page-realestate'
   };
 
-  const navLabels = {
-    landing: '🏠 Landing',
-    login: '🔐 Login',
-    signup: '✨ Sign Up',
-    dashboard: '💰 Dashboard',
-    history: '📅 History',
-    realestate: '🏠 Real Estate'
-  };
-
   document.getElementById(pageMap[id]).classList.add('visible');
 
   // Find and activate the matching nav button
   document.querySelectorAll('.demo-nav__btn').forEach(btn => {
-    if (btn.textContent.trim() === navLabels[id]) {
+    if (btn.getAttribute('data-page') === id) {
       btn.classList.add('active');
     }
   });

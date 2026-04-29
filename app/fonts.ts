@@ -4,6 +4,7 @@ import { Cormorant_Garamond, DM_Sans, JetBrains_Mono, Outfit, Playfair_Display }
 export const fontDmSans = DM_Sans({
   subsets: ['latin'],
   display: 'swap',
+  variable: '--font-dm-sans',
   weight: ['400', '500', '600', '700'],
 });
 
@@ -25,6 +26,7 @@ export const fontCormorant = Cormorant_Garamond({
   display: 'swap',
   variable: '--font-cormorant',
   weight: ['400', '500', '600', '700'],
+  style: ['normal', 'italic'],
 });
 
 export const fontJetBrains = JetBrains_Mono({
