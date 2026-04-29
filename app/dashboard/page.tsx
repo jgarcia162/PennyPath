@@ -407,7 +407,6 @@ export default function DashboardPage() {
             </div>
 
             <div className="callout sage" id="callout-full-picture"></div>
-            <div className="callout purple" id="callout-why-12"></div>
           </div>
 
           {/* SECTION 03 */}
@@ -825,79 +824,6 @@ export default function DashboardPage() {
             </p>
           </div>
 
-          <div className="dashboard-goals-details no-print dashboard-goals-details--open" id="dashboard-goals-at-glance">
-            <button
-              type="button"
-              className="dashboard-goals-summary"
-              id="dashboard-goals-toggle"
-              aria-expanded="true"
-              aria-controls="dashboard-goals-panel"
-            >
-              <span className="dashboard-goals-summary-chevron" aria-hidden="true"></span>
-              <span className="section-eyebrow dashboard-goals-summary-eyebrow" id="dashboard-goals-heading">
-                Goals at a glance
-              </span>
-            </button>
-            <div
-              className="dashboard-goals-anim"
-              id="dashboard-goals-panel"
-              role="region"
-              aria-labelledby="dashboard-goals-heading"
-              aria-hidden="false"
-            >
-              <div className="dashboard-goals-inner">
-                <div className="goals-grid goals-grid--dashboard">
-                  <div className="goal-card secondary-a">
-                    <div className="goal-card-head">
-                      <div className="goal-tag">Goal 2</div>
-                    </div>
-                    <div className="goal-value" id="dash-goal-debt-amt"></div>
-                    <div className="goal-desc">
-                      Credit card debt — completely eliminated. No more interest eating our income.
-                    </div>
-                    <div className="goal-when" id="dash-goal-debt-when"></div>
-                    <div className="progress-wrap">
-                      <div className="progress-label-row debt">
-                        <span id="dash-debt-progress-left"></span>
-                        <span id="dash-debt-progress-right"></span>
-                      </div>
-                      <div className="progress-track">
-                        <div className="progress-fill-debt" id="dash-debt-progress-fill"></div>
-                      </div>
-                    </div>
-                    <div className="monthly-debt-goal-wrap" id="dash-monthly-debt-goal-section">
-                      <div className="monthly-debt-goal-head">
-                        <span className="monthly-debt-goal-title">This month toward debt</span>
-                        <span className="monthly-debt-goal-meta" id="dash-monthly-debt-goal-meta"></span>
-                      </div>
-                      <div className="progress-wrap monthly-debt-goal-bar">
-                        <div className="progress-label-row debt">
-                          <span id="dash-monthly-debt-paid-label"></span>
-                          <span id="dash-monthly-debt-pct-label"></span>
-                        </div>
-                        <div className="progress-track">
-                          <div className="progress-fill-debt" id="dash-monthly-debt-progress-fill"></div>
-                        </div>
-                      </div>
-                      <p className="monthly-debt-goal-hint" id="dash-monthly-debt-goal-hint"></p>
-                    </div>
-                  </div>
-
-                  <div className="goal-card secondary-b">
-                    <div className="goal-card-head">
-                      <div className="goal-tag">Goal 3 — Savings goals 🚨</div>
-                    </div>
-                    <div className="goal-value" id="dash-goal-efund-amt"></div>
-                    <div className="goal-desc" id="dash-goal-efund-desc"></div>
-                    <div className="goal-when" id="dash-goal-efund-when"></div>
-
-                    <div className="savings-goals-stack" id="dash-savings-goals-stack"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
           <div className="dashboard-tabs no-print" role="tablist" aria-label="Dashboard tabs">
             <button
               type="button"
@@ -1075,6 +1001,79 @@ export default function DashboardPage() {
               </div>
             </div>
           </section>
+
+          <div className="dashboard-goals-details no-print" id="dashboard-goals-at-glance">
+            <button
+              type="button"
+              className="dashboard-goals-summary"
+              id="dashboard-goals-toggle"
+              aria-expanded="false"
+              aria-controls="dashboard-goals-panel"
+            >
+              <span className="dashboard-goals-summary-chevron" aria-hidden="true"></span>
+              <span className="section-eyebrow dashboard-goals-summary-eyebrow" id="dashboard-goals-heading">
+                Goals at a glance
+              </span>
+            </button>
+            <div
+              className="dashboard-goals-anim"
+              id="dashboard-goals-panel"
+              role="region"
+              aria-labelledby="dashboard-goals-heading"
+              aria-hidden="true"
+            >
+              <div className="dashboard-goals-inner">
+                <div className="goals-grid goals-grid--dashboard">
+                  <div className="goal-card secondary-a">
+                    <div className="goal-card-head">
+                      <div className="goal-tag">Goal 2</div>
+                    </div>
+                    <div className="goal-value" id="dash-goal-debt-amt"></div>
+                    <div className="goal-desc">
+                      Credit card debt — completely eliminated. No more interest eating our income.
+                    </div>
+                    <div className="goal-when" id="dash-goal-debt-when"></div>
+                    <div className="progress-wrap">
+                      <div className="progress-label-row debt">
+                        <span id="dash-debt-progress-left"></span>
+                        <span id="dash-debt-progress-right"></span>
+                      </div>
+                      <div className="progress-track">
+                        <div className="progress-fill-debt" id="dash-debt-progress-fill"></div>
+                      </div>
+                    </div>
+                    <div className="monthly-debt-goal-wrap" id="dash-monthly-debt-goal-section">
+                      <div className="monthly-debt-goal-head">
+                        <span className="monthly-debt-goal-title">This month toward debt</span>
+                        <span className="monthly-debt-goal-meta" id="dash-monthly-debt-goal-meta"></span>
+                      </div>
+                      <div className="progress-wrap monthly-debt-goal-bar">
+                        <div className="progress-label-row debt">
+                          <span id="dash-monthly-debt-paid-label"></span>
+                          <span id="dash-monthly-debt-pct-label"></span>
+                        </div>
+                        <div className="progress-track">
+                          <div className="progress-fill-debt" id="dash-monthly-debt-progress-fill"></div>
+                        </div>
+                      </div>
+                      <p className="monthly-debt-goal-hint" id="dash-monthly-debt-goal-hint"></p>
+                    </div>
+                  </div>
+
+                  <div className="goal-card secondary-b">
+                    <div className="goal-card-head">
+                      <div className="goal-tag">Goal 3 — Savings goals 🚨</div>
+                    </div>
+                    <div className="goal-value" id="dash-goal-efund-amt"></div>
+                    <div className="goal-desc" id="dash-goal-efund-desc"></div>
+                    <div className="goal-when" id="dash-goal-efund-when"></div>
+
+                    <div className="savings-goals-stack" id="dash-savings-goals-stack"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <section
             className="dashboard-tab-panel"

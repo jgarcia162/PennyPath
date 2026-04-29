@@ -187,6 +187,10 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if (!row || !debtsHostEl.contains(row)) return;
       if (!(t as any).matches('input, textarea, select')) return;
       showGoal2Unsaved();
+      // Do not sync/render on Pay field while typing: readDebtsEditorIntoPlan() applies
+      // positive payment amounts and clears the input — the debounced input handler would
+      // commit partial amounts (e.g. "5" while typing "50") and make the field "disappear".
+      if ((t as any).matches && (t as any).matches('input[data-field="payment"]')) return;
       scheduleDebtsDraftSyncToPlanAndRender();
     }
     debtsHost.addEventListener('input', onDebtRowFieldActivity);

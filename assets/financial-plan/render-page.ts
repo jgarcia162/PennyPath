@@ -400,16 +400,6 @@ export function render(opts?: { skipDebtsEditor?: boolean }): void {
     { unsafe: true }
   );
 
-  setHtml(
-    'callout-why-12',
-    hasData
-      ? '<strong>💡 Why 12 months?</strong> Most financial advisors recommend 3 - 6 months of expenses. A 12-month fund gives you an extra layer of protection — enough runway to handle a job loss, major medical event, or large unexpected expense without ever touching a credit card again. At ' +
-          moneyExact(d.personalSavings) +
-          ", you're already ahead of most households."
-      : '<strong>💡 Why 12 months?</strong> Most financial advisors recommend 3–6 months of expenses. A 12-month fund adds extra runway for job loss, major medical costs, or large surprises — without leaning on credit cards. Your progress toward that fund will show here once you add account balances in Goal 3.',
-    { unsafe: true }
-  );
-
   setText('phase1-cc', money(PLAN.phase1.ccPayment) + '/mo');
   setText('phase1-hysa', money(PLAN.phase1.hysaDeposit) + '/mo');
   setText('phase1-dur', '~' + PLAN.monthsDebtPayoff + ' months');
