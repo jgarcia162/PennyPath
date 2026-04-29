@@ -3,10 +3,8 @@
  * (monthlyFixedExpenses, phase1, funBudget) plus optional custom lines and computed buffer.
  */
 
-import type { BudgetCategoryRole, BudgetCategoryRow, FinancialPlan } from '../../types/index.js';
+import type { BudgetCategoryRow, FinancialPlan } from '../../types/index.js';
 import { numOr, parseMoneyInput, roundMoney } from './utils';
-
-const CORE_ROLES: BudgetCategoryRole[] = ['expenses', 'cc', 'hysa', 'fun'];
 
 export function newBudgetCustomId(): string {
   return 'bcust_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
@@ -73,48 +71,44 @@ export function ensureBudgetCategories(plan: FinancialPlan): void {
     return;
   }
 
-  const defaults = createDefaultBudgetCategories(plan);
-  const defByRole = new Map<BudgetCategoryRole, BudgetCategoryRow>();
-  defaults.forEach(function (d) {
-    defByRole.set(d.role, d);
-  });
-
-  const firstOf = new Map<BudgetCategoryRole, BudgetCategoryRow>();
-  const customs: BudgetCategoryRow[] = [];
+  const out: BudgetCategoryRow[] = [];
+  let hasBuffer = false;
   for (let i = 0; i < raw.length; i++) {
     const r = raw[i];
     if (!r || typeof r !== 'object') continue;
-    const role = r.role;
-    if (role === 'custom') {
-      customs.push(r);
+    const role = String(r.role || '');
+    if (
+      role === 'expenses' ||
+      role === 'cc' ||
+      role === 'hysa' ||
+      role === 'fun' ||
+      role === 'custom' ||
+      role === 'buffer'
+    ) {
+      const normalized = {
+        ...r,
+        role: role as BudgetCategoryRow['role'],
+        id: r.id && String(r.id).length ? String(r.id) : role === 'custom' ? newBudgetCustomId() : 'cat-' + role,
+        label: String(r.label || '').trim() || 'Category',
+        amount: roundMoney(Math.max(0, numOr(r.amount, 0))),
+      } as BudgetCategoryRow;
+      if (normalized.role === 'buffer') {
+        if (hasBuffer) continue;
+        hasBuffer = true;
+      }
+      out.push(normalized);
       continue;
     }
-    if (role === 'buffer') {
-      if (!firstOf.has('buffer')) firstOf.set('buffer', r);
-      continue;
-    }
-    if (role === 'expenses' || role === 'cc' || role === 'hysa' || role === 'fun') {
-      if (!firstOf.has(role)) firstOf.set(role, r);
-      continue;
-    }
-    customs.push({
-      ...r,
-      role: 'custom',
-      id: r.id && String(r.id).length ? r.id : newBudgetCustomId(),
+  }
+  if (!hasBuffer) {
+    out.push({
+      id: 'cat-buffer',
+      role: 'buffer',
+      label: 'Buffer (rolls to savings if unused)',
+      emoji: '🛡️',
+      amount: 0,
     });
   }
-
-  const out: BudgetCategoryRow[] = [];
-  for (let j = 0; j < CORE_ROLES.length; j++) {
-    const cr = CORE_ROLES[j];
-    const existing = firstOf.get(cr);
-    const fallback = defByRole.get(cr);
-    if (existing) out.push(existing);
-    else if (fallback) out.push({ ...fallback });
-  }
-  for (let c = 0; c < customs.length; c++) out.push(customs[c]);
-  const bufRow = firstOf.get('buffer') || defByRole.get('buffer');
-  if (bufRow) out.push({ ...bufRow });
 
   (plan as any).budgetCategories = out;
 }
@@ -165,6 +159,11 @@ export function updateBufferRowAmount(plan: FinancialPlan): void {
 export function syncBudgetRowsToLegacyFields(plan: FinancialPlan): void {
   ensureBudgetCategories(plan);
   const rows = (plan as any).budgetCategories as BudgetCategoryRow[];
+  plan.monthlyFixedExpenses = 0;
+  if (!plan.phase1) (plan as any).phase1 = { ccPayment: 0, hysaDeposit: 0 };
+  plan.phase1.ccPayment = 0;
+  plan.phase1.hysaDeposit = 0;
+  plan.funBudget = 0;
   for (let i = 0; i < rows.length; i++) {
     const r = rows[i];
     const a = roundMoney(numOr(r.amount, 0));

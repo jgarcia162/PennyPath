@@ -59,7 +59,7 @@ export function renderBudgetBreakdown(
       const row = rows[i];
       const pct = pctOfBudget(rowAmt(row));
       const readonlyAmt = row.role === 'buffer';
-      const showRemove = row.role === 'custom';
+      const showRemove = row.role !== 'buffer';
       parts.push(
         '<div class="budget-row budget-row--editable" data-budget-id="' +
           escapeAttr(row.id) +

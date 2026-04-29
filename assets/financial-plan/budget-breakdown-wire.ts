@@ -84,7 +84,7 @@ export function wireBudgetBreakdown(render: RenderFn): void {
         return String(r.id) === String(id);
       });
       if (idx === -1) return;
-      if (rows[idx].role !== 'custom') return;
+      if (rows[idx].role === 'buffer') return;
       rows.splice(idx, 1);
       syncBudgetRowsToLegacyFields(PLAN as FinancialPlan);
       updateBufferRowAmount(PLAN as FinancialPlan);
