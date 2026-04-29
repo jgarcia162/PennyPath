@@ -1,11 +1,16 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
 import { LogoutForm } from '../components/LogoutForm';
 import { TrialCountdown } from '../components/TrialCountdown';
 import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
+
+function reSectionEyebrow(n: number): string {
+  return `Section ${String(n).padStart(2, '0')}`;
+}
 
 export default function RealEstatePage() {
   const [booting, setBooting] = useState(true);
@@ -54,6 +59,12 @@ export default function RealEstatePage() {
         <AppLoadingOverlay message="Loading real estate planner…" ariaLabel="Loading real estate planner" />
       ) : null}
       <header className="site-header no-print">
+        <Link href="/dashboard" className="site-header__brand logo" aria-label="PennyPath home">
+          <div className="logo__mark" aria-hidden="true">
+            🌿
+          </div>
+          <span className="logo__text">PennyPath</span>
+        </Link>
         <nav className="site-nav" aria-label="Site">
           <a className="site-nav__tab" href="/dashboard">
             💰 Financial Plan
@@ -158,26 +169,6 @@ export default function RealEstatePage() {
       </div>
 
       <div className="content">
-        <div className="section">
-          <div className="section-eyebrow">Section 01</div>
-          <h2 className="section-title re-heading" id="re-condo-heading">
-            Condo &amp; HOA risk
-          </h2>
-          <div className="callout red" style={{ marginBottom: 14 }}>
-            <strong>HOA &amp; structural risk</strong>
-            After the Surfside condominium collapse (2021), many U.S. associations faced sharper focus on reserve
-            funding, special assessments, and lender scrutiny. Before you buy, request the <em>reserve study</em> and{' '}
-            <em>milestone inspection</em> (where applicable) and read the minutes for assessment talk. Weak reserves can
-            turn a “cheap” condo into a cash-flow trap overnight.
-          </div>
-          <div className="callout sage">
-            <strong>Townhouses vs. condos</strong>
-            Townhouses often carry lower HOA fees and simpler maintenance lines than high-rise condos, which can improve
-            cash-flow math. Always model HOA as a first-class line item — it’s often the swing factor in rental markets
-            like yours.
-          </div>
-        </div>
-
         <div className="section" id="section-market-ai">
           <div className="section-eyebrow">Market &amp; location</div>
           <h2 className="section-title re-heading">City search &amp; AI estimates</h2>
@@ -229,7 +220,7 @@ export default function RealEstatePage() {
         </div>
 
         <div className="section">
-          <div className="section-eyebrow">Section 02</div>
+          <div className="section-eyebrow">{reSectionEyebrow(1)}</div>
           <h2 className="section-title re-heading">Live Cash Flow Calculator</h2>
           <p className="section-sub">
             Adjust inputs to match a specific listing or market assumptions. Press <strong>Recalculate</strong> or Enter
@@ -365,7 +356,7 @@ export default function RealEstatePage() {
         </div>
 
         <div className="section">
-          <div className="section-eyebrow">Section 03</div>
+          <div className="section-eyebrow">{reSectionEyebrow(2)}</div>
           <h2 className="section-title re-heading">Market snapshot</h2>
           <p className="section-sub" id="re-market-snapshot-sub">
             Select a city in <strong>Market &amp; location</strong> above; numbers update from your calculator inputs.
@@ -397,7 +388,7 @@ export default function RealEstatePage() {
         </div>
 
         <div className="section">
-          <div className="section-eyebrow">Section 04</div>
+          <div className="section-eyebrow">{reSectionEyebrow(3)}</div>
           <h2 className="section-title re-heading">Down Payment From HYSA</h2>
           <div className="re-stat-row">
             <div className="re-stat-card">
@@ -441,7 +432,7 @@ export default function RealEstatePage() {
         </div>
 
         <div className="section">
-          <div className="section-eyebrow">Section 05</div>
+          <div className="section-eyebrow">{reSectionEyebrow(4)}</div>
           <h2 className="section-title re-heading">FHA House Hack Strategy</h2>
           <div className="callout red" style={{ marginBottom: 14 }}>
             <strong>12-month owner-occupancy</strong>
@@ -458,7 +449,7 @@ export default function RealEstatePage() {
         </div>
 
         <div className="section">
-          <div className="section-eyebrow">Section 06</div>
+          <div className="section-eyebrow">{reSectionEyebrow(5)}</div>
           <div className="goal-card primary" style={{ marginTop: 8 }}>
             <div className="goal-tag">Verdict</div>
             <div
@@ -481,7 +472,7 @@ export default function RealEstatePage() {
         </div>
 
         <div className="section">
-          <div className="section-eyebrow">Section 07</div>
+          <div className="section-eyebrow">{reSectionEyebrow(6)}</div>
           <h2 className="section-title re-heading">Roadmap Timeline</h2>
           <div className="re-timeline">
             <div className="re-milestone">

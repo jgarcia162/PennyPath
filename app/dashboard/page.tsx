@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
@@ -55,6 +56,12 @@ export default function DashboardPage() {
         <AppLoadingOverlay message="Loading your financial plan…" ariaLabel="Loading financial plan application" />
       ) : null}
       <header className="site-header no-print">
+        <Link href="/dashboard" className="site-header__brand logo" aria-label="PennyPath home">
+          <div className="logo__mark" aria-hidden="true">
+            🌿
+          </div>
+          <span className="logo__text">PennyPath</span>
+        </Link>
         <nav className="site-nav" aria-label="Site">
           <a className="site-nav__tab site-nav__tab--active" href="/dashboard" aria-current="page">
             💰 Financial Plan
@@ -400,7 +407,6 @@ export default function DashboardPage() {
             </div>
 
             <div className="callout sage" id="callout-full-picture"></div>
-            <div className="callout purple" id="callout-why-12"></div>
           </div>
 
           {/* SECTION 03 */}
@@ -488,47 +494,40 @@ export default function DashboardPage() {
                 Monthly Budget Breakdown
               </div>
 
-              <div className="budget-wrap">
-                <div className="budget-header">
+              <div className="budget-controls no-print">
+                <button type="button" id="budget-edit-toggle" className="btn-undo" aria-pressed="false">
+                  Edit
+                </button>
+                <button type="button" id="budget-done-btn" className="btn-save" hidden>
+                  Done
+                </button>
+                <button type="button" id="budget-cancel-btn" className="btn-undo" hidden>
+                  Cancel
+                </button>
+                <button type="button" id="budget-undo-btn" className="btn-undo" hidden>
+                  Undo
+                </button>
+                <span id="budget-edit-status" className="budget-edit-status" aria-live="polite"></span>
+              </div>
+
+              <div id="budget-breakdown-wrap" className="budget-wrap budget-wrap--display">
+                <div className="budget-header budget-header--4">
                   <span>Category</span>
                   <span>Amount</span>
                   <span>%</span>
+                  <span className="budget-header__action" aria-hidden="true"></span>
                 </div>
-                <div className="budget-row">
-                  <span>🏠 Monthly Expenses</span>
-                  <span className="budget-amount" id="budget-expenses"></span>
-                  <span className="budget-pct" id="budget-pct-expenses"></span>
+                <div id="budget-breakdown-rows"></div>
+                <div className="budget-add-row no-print">
+                  <button type="button" className="btn-undo" id="budget-add-row-btn">
+                    + Add category
+                  </button>
                 </div>
-                <div className="budget-row">
-                  <span>
-                    💳 Credit Card Payoff <span className="chip red">Phase 1</span>
-                  </span>
-                  <span className="budget-amount" style={{ color: 'var(--red)' }} id="budget-cc"></span>
-                  <span className="budget-pct" id="budget-pct-cc"></span>
-                </div>
-                <div className="budget-row">
-                  <span>
-                    💰 HYSA Savings <span className="chip green">Phase 1</span>
-                  </span>
-                  <span className="budget-amount" style={{ color: 'var(--sage)' }} id="budget-hysa"></span>
-                  <span className="budget-pct" id="budget-pct-hysa"></span>
-                </div>
-                <div className="budget-row">
-                  <span>🎉 Fun Budget</span>
-                  <span className="budget-amount" style={{ color: 'var(--gold)' }} id="budget-fun"></span>
-                  <span className="budget-pct" id="budget-pct-fun"></span>
-                </div>
-                <div className="budget-row">
-                  <span>
-                    🛡️ Buffer <span style={{ fontSize: 12, color: '#aaa' }}>(rolls to savings if unused)</span>
-                  </span>
-                  <span className="budget-amount" id="budget-buffer"></span>
-                  <span className="budget-pct" id="budget-pct-buffer"></span>
-                </div>
-                <div className="budget-row total">
+                <div className="budget-row total budget-row--total-static">
                   <span>Total</span>
                   <span className="budget-amount" id="budget-total"></span>
                   <span className="budget-pct">100%</span>
+                  <span className="budget-header__action" aria-hidden="true"></span>
                 </div>
               </div>
 
@@ -710,21 +709,10 @@ export default function DashboardPage() {
           </div>
 
           {/* SECTION 04 */}
-          <div className="section" id="section-payoff-timeline">
-            <div className="section-eyebrow">Section 04</div>
-            <div className="section-title">Month-by-Month Payoff Timeline</div>
-            <p className="section-sub">
-              A simple projection of total credit card balance + interest, plus HYSA growth and deposits. Updates
-              automatically when you save new balances.
-            </p>
-            <div className="timeline-wrap" id="payoff-timeline"></div>
-          </div>
-
-          {/* SECTION 05 */}
           <div className="section section-checkins" id="section-checkins">
             <details className="checkin-collapsible" id="checkin-collapsible" open>
               <summary className="checkin-collapsible__summary">
-                <span className="section-eyebrow">Section 05</span>
+                <span className="section-eyebrow">Section 04</span>
                 <span className="section-title checkin-collapsible__title">Monthly Check-In Log</span>
               </summary>
               <div className="checkin-collapsible__body">
@@ -775,9 +763,9 @@ export default function DashboardPage() {
             </details>
           </div>
 
-          {/* SECTION 06 */}
+          {/* SECTION 05 */}
           <div className="section" id="section-milestones">
-            <div className="section-eyebrow">Section 06</div>
+            <div className="section-eyebrow">Section 05</div>
             <div className="section-title">Milestones</div>
             <div className="badges-grid" id="badges-grid"></div>
           </div>
@@ -827,79 +815,6 @@ export default function DashboardPage() {
               “Follow working month” keeps the bar aligned with wrap-up. Wrapping saves a snapshot, advances the working
               month, and resets the monthly bar for the new month. Use Undo once if you need to fix the previous month.
             </p>
-          </div>
-
-          <div className="dashboard-goals-details no-print dashboard-goals-details--open" id="dashboard-goals-at-glance">
-            <button
-              type="button"
-              className="dashboard-goals-summary"
-              id="dashboard-goals-toggle"
-              aria-expanded="true"
-              aria-controls="dashboard-goals-panel"
-            >
-              <span className="dashboard-goals-summary-chevron" aria-hidden="true"></span>
-              <span className="section-eyebrow dashboard-goals-summary-eyebrow" id="dashboard-goals-heading">
-                Goals at a glance
-              </span>
-            </button>
-            <div
-              className="dashboard-goals-anim"
-              id="dashboard-goals-panel"
-              role="region"
-              aria-labelledby="dashboard-goals-heading"
-              aria-hidden="false"
-            >
-              <div className="dashboard-goals-inner">
-                <div className="goals-grid goals-grid--dashboard">
-                  <div className="goal-card secondary-a">
-                    <div className="goal-card-head">
-                      <div className="goal-tag">Goal 2</div>
-                    </div>
-                    <div className="goal-value" id="dash-goal-debt-amt"></div>
-                    <div className="goal-desc">
-                      Credit card debt — completely eliminated. No more interest eating our income.
-                    </div>
-                    <div className="goal-when" id="dash-goal-debt-when"></div>
-                    <div className="progress-wrap">
-                      <div className="progress-label-row debt">
-                        <span id="dash-debt-progress-left"></span>
-                        <span id="dash-debt-progress-right"></span>
-                      </div>
-                      <div className="progress-track">
-                        <div className="progress-fill-debt" id="dash-debt-progress-fill"></div>
-                      </div>
-                    </div>
-                    <div className="monthly-debt-goal-wrap" id="dash-monthly-debt-goal-section">
-                      <div className="monthly-debt-goal-head">
-                        <span className="monthly-debt-goal-title">This month toward debt</span>
-                        <span className="monthly-debt-goal-meta" id="dash-monthly-debt-goal-meta"></span>
-                      </div>
-                      <div className="progress-wrap monthly-debt-goal-bar">
-                        <div className="progress-label-row debt">
-                          <span id="dash-monthly-debt-paid-label"></span>
-                          <span id="dash-monthly-debt-pct-label"></span>
-                        </div>
-                        <div className="progress-track">
-                          <div className="progress-fill-debt" id="dash-monthly-debt-progress-fill"></div>
-                        </div>
-                      </div>
-                      <p className="monthly-debt-goal-hint" id="dash-monthly-debt-goal-hint"></p>
-                    </div>
-                  </div>
-
-                  <div className="goal-card secondary-b">
-                    <div className="goal-card-head">
-                      <div className="goal-tag">Goal 3 — Savings goals 🚨</div>
-                    </div>
-                    <div className="goal-value" id="dash-goal-efund-amt"></div>
-                    <div className="goal-desc" id="dash-goal-efund-desc"></div>
-                    <div className="goal-when" id="dash-goal-efund-when"></div>
-
-                    <div className="savings-goals-stack" id="dash-savings-goals-stack"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
           </div>
 
           <div className="dashboard-tabs no-print" role="tablist" aria-label="Dashboard tabs">
@@ -1079,6 +994,79 @@ export default function DashboardPage() {
               </div>
             </div>
           </section>
+
+          <div className="dashboard-goals-details no-print" id="dashboard-goals-at-glance">
+            <button
+              type="button"
+              className="dashboard-goals-summary"
+              id="dashboard-goals-toggle"
+              aria-expanded="false"
+              aria-controls="dashboard-goals-panel"
+            >
+              <span className="dashboard-goals-summary-chevron" aria-hidden="true"></span>
+              <span className="section-eyebrow dashboard-goals-summary-eyebrow" id="dashboard-goals-heading">
+                Goals at a glance
+              </span>
+            </button>
+            <div
+              className="dashboard-goals-anim"
+              id="dashboard-goals-panel"
+              role="region"
+              aria-labelledby="dashboard-goals-heading"
+              aria-hidden="true"
+            >
+              <div className="dashboard-goals-inner">
+                <div className="goals-grid goals-grid--dashboard">
+                  <div className="goal-card secondary-a">
+                    <div className="goal-card-head">
+                      <div className="goal-tag">Goal 2</div>
+                    </div>
+                    <div className="goal-value" id="dash-goal-debt-amt"></div>
+                    <div className="goal-desc">
+                      Credit card debt — completely eliminated. No more interest eating our income.
+                    </div>
+                    <div className="goal-when" id="dash-goal-debt-when"></div>
+                    <div className="progress-wrap">
+                      <div className="progress-label-row debt">
+                        <span id="dash-debt-progress-left"></span>
+                        <span id="dash-debt-progress-right"></span>
+                      </div>
+                      <div className="progress-track">
+                        <div className="progress-fill-debt" id="dash-debt-progress-fill"></div>
+                      </div>
+                    </div>
+                    <div className="monthly-debt-goal-wrap" id="dash-monthly-debt-goal-section">
+                      <div className="monthly-debt-goal-head">
+                        <span className="monthly-debt-goal-title">This month toward debt</span>
+                        <span className="monthly-debt-goal-meta" id="dash-monthly-debt-goal-meta"></span>
+                      </div>
+                      <div className="progress-wrap monthly-debt-goal-bar">
+                        <div className="progress-label-row debt">
+                          <span id="dash-monthly-debt-paid-label"></span>
+                          <span id="dash-monthly-debt-pct-label"></span>
+                        </div>
+                        <div className="progress-track">
+                          <div className="progress-fill-debt" id="dash-monthly-debt-progress-fill"></div>
+                        </div>
+                      </div>
+                      <p className="monthly-debt-goal-hint" id="dash-monthly-debt-goal-hint"></p>
+                    </div>
+                  </div>
+
+                  <div className="goal-card secondary-b">
+                    <div className="goal-card-head">
+                      <div className="goal-tag">Goal 3 — Savings goals 🚨</div>
+                    </div>
+                    <div className="goal-value" id="dash-goal-efund-amt"></div>
+                    <div className="goal-desc" id="dash-goal-efund-desc"></div>
+                    <div className="goal-when" id="dash-goal-efund-when"></div>
+
+                    <div className="savings-goals-stack" id="dash-savings-goals-stack"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
 
           <section
             className="dashboard-tab-panel"

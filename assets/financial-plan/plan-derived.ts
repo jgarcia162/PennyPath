@@ -175,19 +175,33 @@ export function derived(plan: FinancialPlan): DerivedPlanMetrics {
   const towardEfund = efundRow ? efundRow.sum : personalSavings;
   const efundGap = efundRow ? efundRow.gap : Math.max(0, efundFallback - personalSavings);
   const efundPct = efundTarget > 0 ? Math.min(100, (Math.max(0, towardEfund) / efundTarget) * 100) : 0;
+  let customBudgetSum = 0;
+  const bcats = (plan as any).budgetCategories;
+  if (Array.isArray(bcats)) {
+    bcats.forEach(function (r: { role?: string; amount?: unknown }) {
+      if (r && r.role === 'custom') customBudgetSum += numOr(r.amount, 0);
+    });
+  }
+  customBudgetSum = Math.round(customBudgetSum * 100) / 100;
   const buffer =
     (plan as any).monthlyTakeHome -
     (plan as any).monthlyFixedExpenses -
     (plan as any).phase1.ccPayment -
     (plan as any).phase1.hysaDeposit -
-    (plan as any).funBudget;
-  const budgetParts = [
+    (plan as any).funBudget -
+    customBudgetSum;
+  const budgetParts: number[] = [
     (plan as any).monthlyFixedExpenses,
     (plan as any).phase1.ccPayment,
     (plan as any).phase1.hysaDeposit,
     (plan as any).funBudget,
-    buffer,
   ];
+  if (Array.isArray(bcats)) {
+    bcats.forEach(function (r: { role?: string; amount?: unknown }) {
+      if (r && r.role === 'custom') budgetParts.push(numOr(r.amount, 0));
+    });
+  }
+  budgetParts.push(buffer);
   const budgetTotal = budgetParts.reduce((a: number, b: number) => a + b, 0);
   const pctOfBudget = function (amt: number) {
     return budgetTotal > 0 ? Math.round((amt / budgetTotal) * 100) : 0;

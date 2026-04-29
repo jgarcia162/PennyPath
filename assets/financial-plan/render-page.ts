@@ -19,6 +19,7 @@ import {
 import { ensureSavingsGoals } from './savings-goals';
 import { renderPayoffTimeline, renderBadges } from './features.js';
 import { renderCheckIns } from './checkin-log';
+import { renderBudgetBreakdown } from './render-budget-breakdown';
 import {
   hasBalanceDataForProjections,
   hasDebtBalanceForInterest,
@@ -36,9 +37,9 @@ function setTextDash(id: string, text: string): void {
 }
 
 function setHtmlDash(id: string, html: string): void {
-  setHtml(id, html);
-  const dash = document.getElementById('dash-' + id);
-  if (dash) dash.innerHTML = html;
+  // Goal labels intentionally include trusted markup (e.g. <strong>).
+  setHtml(id, html, { unsafe: true });
+  setHtml('dash-' + id, html, { unsafe: true });
 }
 
 function setProgWidthDash(id: string, pct: number): void {
@@ -400,16 +401,6 @@ export function render(opts?: { skipDebtsEditor?: boolean }): void {
     { unsafe: true }
   );
 
-  setHtml(
-    'callout-why-12',
-    hasData
-      ? '<strong>💡 Why 12 months?</strong> Most financial advisors recommend 3 - 6 months of expenses. A 12-month fund gives you an extra layer of protection — enough runway to handle a job loss, major medical event, or large unexpected expense without ever touching a credit card again. At ' +
-          moneyExact(d.personalSavings) +
-          ", you're already ahead of most households."
-      : '<strong>💡 Why 12 months?</strong> Most financial advisors recommend 3–6 months of expenses. A 12-month fund adds extra runway for job loss, major medical costs, or large surprises — without leaning on credit cards. Your progress toward that fund will show here once you add account balances in Goal 3.',
-    { unsafe: true }
-  );
-
   setText('phase1-cc', money(PLAN.phase1.ccPayment) + '/mo');
   setText('phase1-hysa', money(PLAN.phase1.hysaDeposit) + '/mo');
   setText('phase1-dur', '~' + PLAN.monthsDebtPayoff + ' months');
@@ -417,17 +408,9 @@ export function render(opts?: { skipDebtsEditor?: boolean }): void {
   setText('phase2-dur', '~' + PLAN.monthsHysaBuild + ' months');
   setText('phase2-result', 'HYSA: $' + PLAN.phase2HysaResultK + 'K+');
 
-  setText('budget-expenses', money(PLAN.monthlyFixedExpenses));
-  setText('budget-pct-expenses', d.pctOfBudget(PLAN.monthlyFixedExpenses) + '%');
-  setText('budget-cc', money(PLAN.phase1.ccPayment));
-  setText('budget-pct-cc', d.pctOfBudget(PLAN.phase1.ccPayment) + '%');
-  setText('budget-hysa', money(PLAN.phase1.hysaDeposit));
-  setText('budget-pct-hysa', d.pctOfBudget(PLAN.phase1.hysaDeposit) + '%');
-  setText('budget-fun', money(PLAN.funBudget));
-  setText('budget-pct-fun', d.pctOfBudget(PLAN.funBudget) + '%');
-  setText('budget-buffer', money(d.buffer));
-  setText('budget-pct-buffer', d.pctOfBudget(d.buffer) + '%');
-  setText('budget-total', money(d.budgetTotal));
+  renderBudgetBreakdown(PLAN, d, money, function (amt: number) {
+    return d.pctOfBudget(amt);
+  });
 
   const intr = PLAN.interestNote;
   setHtml(

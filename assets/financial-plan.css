@@ -1831,18 +1831,20 @@ body.financial-plan-demo-mode #checkin-form {
 
 .plan-inline-hint--cta {
   padding: 8px 10px;
+  display: flex;
+  justify-content: flex-end;
 }
 .plan-dash-nav-btn {
   appearance: none;
-  display: block;
-  width: 100%;
+  display: inline-flex;
+  width: auto;
   box-sizing: border-box;
   margin: 0;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.45;
-  text-align: left;
+  text-align: center;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid rgba(196, 176, 128, 0.4);
@@ -1862,7 +1864,7 @@ body.financial-plan-demo-mode #checkin-form {
 .plan-dash-nav-btn--inline {
   width: auto;
   max-width: 720px;
-  display: inline-block;
+  display: inline-flex;
 }
 :root[data-theme="dark"] .plan-dash-nav-btn {
   border-color: rgba(225, 195, 106, 0.28);
@@ -2343,7 +2345,8 @@ body.financial-plan-demo-mode #checkin-form {
 /* Edge editor drawers (tabs + expanding editor). */
 .dashboard-edge-editors {
   position: fixed;
-  right: 0;
+  /* Keep clear of the browser scrollbar / overlay controls. */
+  right: 14px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 320; /* above toolwins (300) and site header (100) */
@@ -2370,7 +2373,8 @@ body.financial-plan-demo-mode #checkin-form {
   cursor: pointer;
   border-top-left-radius: 14px;
   border-bottom-left-radius: 14px;
-  padding: 14px 10px;
+  /* Wider click target and more breathing room for vertical label. */
+  padding: 16px 16px;
   box-shadow: 0 10px 26px rgba(60, 68, 82, 0.12);
   transition: transform 180ms ease, box-shadow 180ms ease, background 150ms ease, border-color 150ms ease, color 150ms ease;
 }
@@ -2380,6 +2384,8 @@ body.financial-plan-demo-mode #checkin-form {
   transform: rotate(180deg); /* read top-to-bottom */
   font-size: 11px;
   line-height: 1;
+  /* Add end-padding so text doesn't crowd rounded corners. */
+  padding: 8px 0;
   /* Approach 1: “always legible” outline on mixed backgrounds. */
   text-shadow:
     0 1px 0 rgba(255, 255, 255, 0.55),
@@ -2411,9 +2417,9 @@ body.financial-plan-demo-mode #checkin-form {
   position: fixed;
   top: 50%;
   /* Leave room so the vertical tabs remain visible/clickable. */
-  right: 56px;
+  right: 84px;
   z-index: 315;
-  width: min(660px, calc(100vw - 56px - 16px));
+  width: min(660px, calc(100vw - 84px - 16px));
   max-height: calc(100vh - 160px);
   overflow: auto;
   padding: 0 0 0 0;
@@ -4132,12 +4138,125 @@ body.financial-plan-demo-mode #checkin-form {
 
 /* BUDGET */
 .budget-wrap { background: var(--paper); border-radius: 14px; overflow: hidden; border: 1px solid rgba(60,68,82,0.07); margin-bottom: 14px; }
-.budget-header { background: var(--ink); color: var(--cream); display: grid; grid-template-columns: 1fr auto auto; gap: 16px; padding: 12px 20px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500; }
-.budget-row { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; padding: 13px 20px; border-bottom: 1px solid rgba(60,68,82,0.06); align-items: center; font-size: 14px; }
+.budget-controls { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin: -4px 0 10px; }
+.budget-edit-status { font-size: 12px; color: var(--red); min-height: 16px; margin-left: 2px; }
+.budget-header { background: var(--ink); color: var(--cream); display: grid; grid-template-columns: 1fr minmax(120px, 148px) minmax(48px, 62px); gap: 24px; padding: 12px 20px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500; }
+.budget-row { display: grid; grid-template-columns: 1fr minmax(120px, 148px) minmax(48px, 62px); gap: 24px; padding: 13px 20px; border-bottom: 1px solid rgba(60,68,82,0.06); align-items: center; font-size: 14px; }
 .budget-row:last-child { border-bottom: none; }
 .budget-row.total { background: #faf2e8; border-top: 2px solid var(--gold-light); font-weight: 700; }
 .budget-amount { font-family: 'Playfair Display', serif; font-weight: 700; text-align: right; }
 .budget-pct { font-size: 12px; color: #aaa; text-align: right; min-width: 40px; }
+.budget-header > span:nth-child(2),
+.budget-header > span:nth-child(3),
+.budget-row > .budget-amount,
+.budget-row > .budget-pct,
+.budget-row > .budget-cat-amount,
+.budget-row > .budget-cat-pct {
+  text-align: center;
+}
+.budget-wrap--display .budget-header.budget-header--4,
+.budget-wrap--display .budget-row--total-static {
+  grid-template-columns: 1fr minmax(120px, 148px) minmax(48px, 62px);
+}
+.budget-wrap--display .budget-header__action {
+  display: none;
+}
+.budget-wrap--display .budget-add-row {
+  display: none;
+}
+.budget-wrap--editing .budget-header--4,
+.budget-wrap--editing .budget-row--editable,
+.budget-wrap--editing .budget-row--total-static {
+  grid-template-columns: minmax(0, 1fr) minmax(108px, 132px) minmax(58px, 74px) 36px;
+  gap: 20px;
+}
+.budget-header__action {
+  width: 36px;
+}
+.budget-cell--cat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.budget-row__emoji {
+  flex-shrink: 0;
+}
+.budget-cat-label {
+  flex: 1;
+  min-width: 100px;
+  border: 1px solid rgba(60, 68, 82, 0.18);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 14px;
+  background: var(--paper);
+  color: var(--text);
+}
+.budget-cat-amount {
+  width: 100%;
+  border: 1px solid rgba(60, 68, 82, 0.18);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-family: 'Playfair Display', serif;
+  font-weight: 700;
+  font-size: 15px;
+  background: var(--paper);
+  color: var(--text);
+  text-align: right;
+}
+.budget-cat-amount[readonly] {
+  border-color: transparent;
+  background: transparent;
+  padding-left: 0;
+}
+.budget-cat-pct {
+  width: 100%;
+  border: 1px solid rgba(60, 68, 82, 0.18);
+  border-radius: 8px;
+  padding: 6px 6px;
+  font: inherit;
+  font-size: 13px;
+  background: var(--paper);
+  color: var(--text);
+  text-align: right;
+}
+.budget-cat-pct[readonly] {
+  border-color: transparent;
+  background: transparent;
+}
+.budget-wrap--editing .budget-cat-amount,
+.budget-wrap--editing .budget-cat-pct {
+  border: 1px solid rgba(60, 68, 82, 0.18);
+}
+.budget-cat-remove {
+  appearance: none;
+  border: none;
+  background: rgba(60, 68, 82, 0.08);
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--text);
+}
+.budget-cat-remove:hover {
+  background: rgba(180, 60, 60, 0.15);
+  color: var(--red);
+}
+.budget-cat-remove-spacer {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+}
+.budget-add-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 16px;
+  border-bottom: 1px solid rgba(60, 68, 82, 0.06);
+}
 .chip { display: inline-block; font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; margin-left: 6px; }
 .chip.red { background: var(--red-light); color: var(--red); }
 .chip.green { background: var(--sage-light); color: var(--sage); }

@@ -100,6 +100,20 @@ export interface PlanLabels {
   monthsToCloseEfund: string;
 }
 
+/** Monthly budget breakdown row (How We Get There table); synced to legacy plan fields by role. */
+export type BudgetCategoryRole = 'expenses' | 'cc' | 'hysa' | 'fun' | 'custom' | 'buffer';
+
+export interface BudgetCategoryRow {
+  id: string;
+  role: BudgetCategoryRole;
+  label: string;
+  amount: number;
+  emoji?: string;
+  chip?: 'red' | 'green';
+  /** Accent for amount column */
+  amountTone?: 'red' | 'sage' | 'gold' | 'default';
+}
+
 export type DebtsEditorSort =
   | 'saved'
   | 'balance'
@@ -164,6 +178,9 @@ export interface FinancialPlan {
   debtsProgressSort: DebtsProgressSort;
   workingMonthYm: YyyyMm | '';
   dashboardViewMonthYm: YyyyMm | '';
+
+  /** Optional editable budget breakdown rows (persisted via Supabase `labels` JSON). */
+  budgetCategories?: BudgetCategoryRow[];
 
   // Internal runtime helpers (not persisted consistently)
   _hysaStartingDefault?: number;

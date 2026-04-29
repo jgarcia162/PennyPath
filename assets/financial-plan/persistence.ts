@@ -28,6 +28,26 @@ import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { yyyyMmFromDate } from './monthly-activity';
 import { ID_GOAL_HYSA, ensureSavingsGoals, normalizeSavingsGoalRow } from './savings-goals';
 
+/** Avoid sharing mutable row objects with persisted payload snapshots. */
+function cloneBudgetCategoryRowsFromPayload(raw: unknown): unknown[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(function (r: any) {
+    if (!r || typeof r !== 'object') return r;
+    return {
+      id: String(r.id || ''),
+      role: r.role,
+      label: String(r.label || ''),
+      amount: numOr(r.amount, 0),
+      emoji: typeof r.emoji === 'string' ? r.emoji : undefined,
+      chip: r.chip === 'red' || r.chip === 'green' ? r.chip : undefined,
+      amountTone:
+        r.amountTone === 'red' || r.amountTone === 'sage' || r.amountTone === 'gold' || r.amountTone === 'default'
+          ? r.amountTone
+          : undefined,
+    };
+  });
+}
+
 function normalizeDebtsEditorSortForStorage(sort: unknown): string {
   if (sort === 'balance') return 'balance-desc';
   if (sort === 'apr') return 'apr-desc';
@@ -187,6 +207,11 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
     ['hysaGoalByShort', 'goalHysaWhen'].forEach(function (k) {
       if (typeof payload.labels[k] === 'string') (plan as any).labels[k] = payload.labels[k];
     });
+    const lb = payload.labels as { budgetCategories?: unknown };
+    if (Array.isArray(lb.budgetCategories)) (plan as any).budgetCategories = cloneBudgetCategoryRowsFromPayload(lb.budgetCategories);
+  }
+  if (Array.isArray((payload as any).budgetCategories)) {
+    (plan as any).budgetCategories = cloneBudgetCategoryRowsFromPayload((payload as any).budgetCategories);
   }
   ['hysaBalance', 'joseSavings', 'sherlynaSavings'].forEach(function (k) {
     if (typeof payload[k] === 'number' && Number.isFinite(payload[k])) (plan as any)[k] = payload[k];
