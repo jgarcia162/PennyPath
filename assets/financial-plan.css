@@ -1864,7 +1864,7 @@ body.financial-plan-demo-mode #checkin-form {
 .plan-dash-nav-btn--inline {
   width: auto;
   max-width: 720px;
-  display: inline-block;
+  display: inline-flex;
 }
 :root[data-theme="dark"] .plan-dash-nav-btn {
   border-color: rgba(225, 195, 106, 0.28);

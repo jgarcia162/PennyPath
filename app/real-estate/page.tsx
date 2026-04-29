@@ -8,6 +8,10 @@ import { LogoutForm } from '../components/LogoutForm';
 import { TrialCountdown } from '../components/TrialCountdown';
 import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
 
+function reSectionEyebrow(n: number): string {
+  return `Section ${String(n).padStart(2, '0')}`;
+}
+
 export default function RealEstatePage() {
   const [booting, setBooting] = useState(true);
 
@@ -216,7 +220,7 @@ export default function RealEstatePage() {
         </div>
 
         <div className="section">
-          <div className="section-eyebrow">Section 01</div>
+          <div className="section-eyebrow">{reSectionEyebrow(1)}</div>
           <h2 className="section-title re-heading">Live Cash Flow Calculator</h2>
           <p className="section-sub">
             Adjust inputs to match a specific listing or market assumptions. Press <strong>Recalculate</strong> or Enter
@@ -352,7 +356,7 @@ export default function RealEstatePage() {
         </div>
 
         <div className="section">
-          <div className="section-eyebrow">Section 02</div>
+          <div className="section-eyebrow">{reSectionEyebrow(2)}</div>
           <h2 className="section-title re-heading">Market snapshot</h2>
           <p className="section-sub" id="re-market-snapshot-sub">
             Select a city in <strong>Market &amp; location</strong> above; numbers update from your calculator inputs.
@@ -384,7 +388,7 @@ export default function RealEstatePage() {
         </div>
 
         <div className="section">
-          <div className="section-eyebrow">Section 03</div>
+          <div className="section-eyebrow">{reSectionEyebrow(3)}</div>
           <h2 className="section-title re-heading">Down Payment From HYSA</h2>
           <div className="re-stat-row">
             <div className="re-stat-card">
@@ -428,7 +432,7 @@ export default function RealEstatePage() {
         </div>
 
         <div className="section">
-          <div className="section-eyebrow">Section 04</div>
+          <div className="section-eyebrow">{reSectionEyebrow(4)}</div>
           <h2 className="section-title re-heading">FHA House Hack Strategy</h2>
           <div className="callout red" style={{ marginBottom: 14 }}>
             <strong>12-month owner-occupancy</strong>
@@ -445,7 +449,7 @@ export default function RealEstatePage() {
         </div>
 
         <div className="section">
-          <div className="section-eyebrow">Section 05</div>
+          <div className="section-eyebrow">{reSectionEyebrow(5)}</div>
           <div className="goal-card primary" style={{ marginTop: 8 }}>
             <div className="goal-tag">Verdict</div>
             <div
@@ -468,7 +472,7 @@ export default function RealEstatePage() {
         </div>
 
         <div className="section">
-          <div className="section-eyebrow">Section 06</div>
+          <div className="section-eyebrow">{reSectionEyebrow(6)}</div>
           <h2 className="section-title re-heading">Roadmap Timeline</h2>
           <div className="re-timeline">
             <div className="re-milestone">

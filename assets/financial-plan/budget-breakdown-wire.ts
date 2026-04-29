@@ -57,7 +57,9 @@ export function wireBudgetBreakdown(render: RenderFn): void {
     if (!t.classList.contains('budget-cat-amount') && !t.classList.contains('budget-cat-label')) return;
     commitFromDom();
     void savePlanOverrides();
-    render();
+    window.setTimeout(function () {
+      render();
+    }, 0);
   }
 
   if (rowsHost) {

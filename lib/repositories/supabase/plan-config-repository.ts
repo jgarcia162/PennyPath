@@ -108,7 +108,7 @@ function mapPlanToInsert(userId: string, plan: FinancialPlan): FinancialPlansIns
     interest_note: plan.interestNote as any,
     labels: {
       ...(typeof plan.labels === 'object' && plan.labels ? (plan.labels as object) : {}),
-      ...(Array.isArray((plan as any).budgetCategories) && (plan as any).budgetCategories.length
+      ...(typeof (plan as any).budgetCategories !== 'undefined' && Array.isArray((plan as any).budgetCategories)
         ? { budgetCategories: (plan as any).budgetCategories }
         : {}),
     } as any,

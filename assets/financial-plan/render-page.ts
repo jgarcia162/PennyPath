@@ -39,8 +39,7 @@ function setTextDash(id: string, text: string): void {
 function setHtmlDash(id: string, html: string): void {
   // Goal labels intentionally include trusted markup (e.g. <strong>).
   setHtml(id, html, { unsafe: true });
-  const dash = document.getElementById('dash-' + id);
-  if (dash) dash.innerHTML = html;
+  setHtml('dash-' + id, html, { unsafe: true });
 }
 
 function setProgWidthDash(id: string, pct: number): void {
