@@ -289,8 +289,6 @@
     </div>
 
     <div class="callout sage" id="callout-full-picture"></div>
-
-    <div class="callout purple" id="callout-why-12"></div>
   </div>
 
   <!-- SECTION 03: HOW WE GET THERE -->
@@ -606,79 +604,6 @@
       </p>
     </div>
 
-    <!-- Native <details> hides body with display:none when closed, so height/grid transitions do not run; use button + class toggle instead. -->
-    <div
-      class="dashboard-goals-details no-print dashboard-goals-details--open"
-      id="dashboard-goals-at-glance"
-    >
-      <button
-        type="button"
-        class="dashboard-goals-summary"
-        id="dashboard-goals-toggle"
-        aria-expanded="true"
-        aria-controls="dashboard-goals-panel"
-      >
-        <span class="dashboard-goals-summary-chevron" aria-hidden="true"></span>
-        <span class="section-eyebrow dashboard-goals-summary-eyebrow" id="dashboard-goals-heading">Goals at a glance</span>
-      </button>
-      <div
-        class="dashboard-goals-anim"
-        id="dashboard-goals-panel"
-        role="region"
-        aria-labelledby="dashboard-goals-heading"
-        aria-hidden="false"
-      >
-        <div class="dashboard-goals-inner">
-          <div class="goals-grid goals-grid--dashboard">
-        <div class="goal-card secondary-a">
-          <div class="goal-card-head">
-            <div class="goal-tag">Goal 2</div>
-          </div>
-          <div class="goal-value" id="dash-goal-debt-amt"></div>
-          <div class="goal-desc">Credit card debt — completely eliminated. No more interest eating our income.</div>
-          <div class="goal-when" id="dash-goal-debt-when"></div>
-          <div class="progress-wrap">
-            <div class="progress-label-row debt">
-              <span id="dash-debt-progress-left"></span>
-              <span id="dash-debt-progress-right"></span>
-            </div>
-            <div class="progress-track">
-              <div class="progress-fill-debt" id="dash-debt-progress-fill"></div>
-            </div>
-          </div>
-          <div class="monthly-debt-goal-wrap" id="dash-monthly-debt-goal-section">
-            <div class="monthly-debt-goal-head">
-              <span class="monthly-debt-goal-title">This month toward debt</span>
-              <span class="monthly-debt-goal-meta" id="dash-monthly-debt-goal-meta"></span>
-            </div>
-            <div class="progress-wrap monthly-debt-goal-bar">
-              <div class="progress-label-row debt">
-                <span id="dash-monthly-debt-paid-label"></span>
-                <span id="dash-monthly-debt-pct-label"></span>
-              </div>
-              <div class="progress-track">
-                <div class="progress-fill-debt" id="dash-monthly-debt-progress-fill"></div>
-              </div>
-            </div>
-            <p class="monthly-debt-goal-hint" id="dash-monthly-debt-goal-hint"></p>
-          </div>
-        </div>
-
-        <div class="goal-card secondary-b">
-          <div class="goal-card-head">
-            <div class="goal-tag">Goal 3 — Savings goals 🚨</div>
-          </div>
-          <div class="goal-value" id="dash-goal-efund-amt"></div>
-          <div class="goal-desc" id="dash-goal-efund-desc"></div>
-          <div class="goal-when" id="dash-goal-efund-when"></div>
-
-          <div class="savings-goals-stack" id="dash-savings-goals-stack"></div>
-        </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <div class="dashboard-tabs no-print" role="tablist" aria-label="Dashboard tabs">
       <button type="button" class="dashboard-tab-btn" id="tab-dashboard-debts" role="tab" aria-selected="true" aria-controls="panel-dashboard-debts">
         Debts
@@ -824,6 +749,76 @@
         </div>
       </div>
     </section>
+
+    <!-- Native <details> hides body with display:none when closed, so height/grid transitions do not run; use button + class toggle instead. -->
+    <div class="dashboard-goals-details no-print" id="dashboard-goals-at-glance">
+      <button
+        type="button"
+        class="dashboard-goals-summary"
+        id="dashboard-goals-toggle"
+        aria-expanded="false"
+        aria-controls="dashboard-goals-panel"
+      >
+        <span class="dashboard-goals-summary-chevron" aria-hidden="true"></span>
+        <span class="section-eyebrow dashboard-goals-summary-eyebrow" id="dashboard-goals-heading">Goals at a glance</span>
+      </button>
+      <div
+        class="dashboard-goals-anim"
+        id="dashboard-goals-panel"
+        role="region"
+        aria-labelledby="dashboard-goals-heading"
+        aria-hidden="true"
+      >
+        <div class="dashboard-goals-inner">
+          <div class="goals-grid goals-grid--dashboard">
+            <div class="goal-card secondary-a">
+              <div class="goal-card-head">
+                <div class="goal-tag">Goal 2</div>
+              </div>
+              <div class="goal-value" id="dash-goal-debt-amt"></div>
+              <div class="goal-desc">Credit card debt — completely eliminated. No more interest eating our income.</div>
+              <div class="goal-when" id="dash-goal-debt-when"></div>
+              <div class="progress-wrap">
+                <div class="progress-label-row debt">
+                  <span id="dash-debt-progress-left"></span>
+                  <span id="dash-debt-progress-right"></span>
+                </div>
+                <div class="progress-track">
+                  <div class="progress-fill-debt" id="dash-debt-progress-fill"></div>
+                </div>
+              </div>
+              <div class="monthly-debt-goal-wrap" id="dash-monthly-debt-goal-section">
+                <div class="monthly-debt-goal-head">
+                  <span class="monthly-debt-goal-title">This month toward debt</span>
+                  <span class="monthly-debt-goal-meta" id="dash-monthly-debt-goal-meta"></span>
+                </div>
+                <div class="progress-wrap monthly-debt-goal-bar">
+                  <div class="progress-label-row debt">
+                    <span id="dash-monthly-debt-paid-label"></span>
+                    <span id="dash-monthly-debt-pct-label"></span>
+                  </div>
+                  <div class="progress-track">
+                    <div class="progress-fill-debt" id="dash-monthly-debt-progress-fill"></div>
+                  </div>
+                </div>
+                <p class="monthly-debt-goal-hint" id="dash-monthly-debt-goal-hint"></p>
+              </div>
+            </div>
+
+            <div class="goal-card secondary-b">
+              <div class="goal-card-head">
+                <div class="goal-tag">Goal 3 — Savings goals 🚨</div>
+              </div>
+              <div class="goal-value" id="dash-goal-efund-amt"></div>
+              <div class="goal-desc" id="dash-goal-efund-desc"></div>
+              <div class="goal-when" id="dash-goal-efund-when"></div>
+
+              <div class="savings-goals-stack" id="dash-savings-goals-stack"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <section class="dashboard-tab-panel" id="panel-dashboard-savings" role="tabpanel" aria-labelledby="tab-dashboard-savings" hidden>
       <div class="dashboard-split">

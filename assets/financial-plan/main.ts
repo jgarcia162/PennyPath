@@ -91,12 +91,17 @@ function wireDashboardGoalsAtGlance(): void {
   const btn = document.getElementById('dashboard-goals-toggle');
   if (!root || !btn) return;
   const panel = document.getElementById('dashboard-goals-panel');
-  btn.addEventListener('click', function () {
-    const open = root.classList.toggle('dashboard-goals-details--open');
+  function syncOpenStateToAria(): void {
+    if (!root || !btn) return;
+    const open = root.classList.contains('dashboard-goals-details--open');
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
     if (panel) panel.setAttribute('aria-hidden', open ? 'false' : 'true');
+  }
+  syncOpenStateToAria();
+  btn.addEventListener('click', function () {
+    root.classList.toggle('dashboard-goals-details--open');
+    syncOpenStateToAria();
   });
-  if (panel) panel.setAttribute('aria-hidden', 'false');
 }
 
 function wireWipeAllButton(): void {
