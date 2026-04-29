@@ -15,6 +15,7 @@ import { savePlanOverrides } from './persistence';
 import { getBudgetBreakdownEditMode, setBudgetBreakdownEditMode } from './budget-breakdown-state';
 
 type RenderFn = () => void;
+type BudgetRowLike = BudgetCategoryRow;
 
 function findRow(plan: FinancialPlan, id: string): BudgetCategoryRow | undefined {
   const rows = (plan as any).budgetCategories as BudgetCategoryRow[] | undefined;
@@ -47,6 +48,28 @@ export function wireBudgetBreakdown(render: RenderFn): void {
   const rowsHost = document.getElementById('budget-breakdown-rows');
   const addBtn = document.getElementById('budget-add-row-btn');
   const toggleBtn = document.getElementById('budget-edit-toggle');
+  const doneBtn = document.getElementById('budget-done-btn');
+  const cancelBtn = document.getElementById('budget-cancel-btn');
+  const undoBtn = document.getElementById('budget-undo-btn');
+  let editSnapshot: BudgetRowLike[] | null = null;
+
+  function cloneRows(rows: BudgetCategoryRow[]): BudgetRowLike[] {
+    return rows.map(function (r) {
+      return { ...r };
+    });
+  }
+
+  function captureSnapshot(): void {
+    ensureBudgetCategories(PLAN as FinancialPlan);
+    editSnapshot = cloneRows(((PLAN as any).budgetCategories as BudgetCategoryRow[]) || []);
+  }
+
+  function restoreSnapshot(): void {
+    if (!editSnapshot) return;
+    (PLAN as any).budgetCategories = cloneRows(editSnapshot);
+    syncBudgetRowsToLegacyFields(PLAN as FinancialPlan);
+    updateBufferRowAmount(PLAN as FinancialPlan);
+  }
 
   function commitFromDom(): void {
     ensureBudgetCategories(PLAN as FinancialPlan);
@@ -92,7 +115,6 @@ export function wireBudgetBreakdown(render: RenderFn): void {
     if (rowEl && t.classList.contains('budget-cat-pct')) rowEl.setAttribute('data-last-edit', 'pct');
     if (rowEl && t.classList.contains('budget-cat-amount')) rowEl.setAttribute('data-last-edit', 'amount');
     commitFromDom();
-    void savePlanOverrides();
     window.setTimeout(function () {
       render();
     }, 0);
@@ -141,7 +163,6 @@ export function wireBudgetBreakdown(render: RenderFn): void {
       rows.splice(idx, 1);
       syncBudgetRowsToLegacyFields(PLAN as FinancialPlan);
       updateBufferRowAmount(PLAN as FinancialPlan);
-      void savePlanOverrides();
       render();
     });
   }
@@ -149,13 +170,37 @@ export function wireBudgetBreakdown(render: RenderFn): void {
   if (toggleBtn) {
     toggleBtn.addEventListener('click', function (e: Event) {
       e.preventDefault();
-      if (getBudgetBreakdownEditMode()) {
-        commitFromDom();
-        void savePlanOverrides();
-        setBudgetBreakdownEditMode(false);
-      } else {
-        setBudgetBreakdownEditMode(true);
-      }
+      captureSnapshot();
+      setBudgetBreakdownEditMode(true);
+      render();
+    });
+  }
+
+  if (doneBtn) {
+    doneBtn.addEventListener('click', function (e: Event) {
+      e.preventDefault();
+      commitFromDom();
+      void savePlanOverrides();
+      editSnapshot = null;
+      setBudgetBreakdownEditMode(false);
+      render();
+    });
+  }
+
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', function (e: Event) {
+      e.preventDefault();
+      restoreSnapshot();
+      editSnapshot = null;
+      setBudgetBreakdownEditMode(false);
+      render();
+    });
+  }
+
+  if (undoBtn) {
+    undoBtn.addEventListener('click', function (e: Event) {
+      e.preventDefault();
+      restoreSnapshot();
       render();
     });
   }
@@ -179,7 +224,6 @@ export function wireBudgetBreakdown(render: RenderFn): void {
       rows.splice(insertAt, 0, nu);
       syncBudgetRowsToLegacyFields(PLAN as FinancialPlan);
       updateBufferRowAmount(PLAN as FinancialPlan);
-      void savePlanOverrides();
       render();
       window.setTimeout(function () {
         const el = document.querySelector('.budget-row--editable[data-budget-id="' + nu.id + '"] .budget-cat-label') as

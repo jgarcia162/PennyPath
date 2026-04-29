@@ -329,10 +329,14 @@
 
     <div class="section-eyebrow" style="margin-top:32px; margin-bottom:12px;">Monthly Budget Breakdown</div>
 
+    <div class="budget-controls no-print">
+      <button type="button" id="budget-edit-toggle" class="btn-undo" aria-pressed="false">Edit</button>
+      <button type="button" id="budget-done-btn" class="btn-save" hidden>Done</button>
+      <button type="button" id="budget-cancel-btn" class="btn-undo" hidden>Cancel</button>
+      <button type="button" id="budget-undo-btn" class="btn-undo" hidden>Undo</button>
+    </div>
+
     <div id="budget-breakdown-wrap" class="budget-wrap budget-wrap--display">
-      <div class="budget-toolbar no-print">
-        <button type="button" id="budget-edit-toggle" class="btn-undo" aria-pressed="false">Edit</button>
-      </div>
       <div class="budget-header budget-header--4">
         <span>Category</span>
         <span>Amount</span>

@@ -132,10 +132,13 @@ export function renderBudgetBreakdown(
   }
 
   const toggleBtn = document.getElementById('budget-edit-toggle');
-  if (toggleBtn) {
-    toggleBtn.textContent = editing ? 'Done' : 'Edit';
-    toggleBtn.setAttribute('aria-pressed', editing ? 'true' : 'false');
-  }
+  const doneBtn = document.getElementById('budget-done-btn');
+  const cancelBtn = document.getElementById('budget-cancel-btn');
+  const undoBtn = document.getElementById('budget-undo-btn');
+  if (toggleBtn) toggleBtn.toggleAttribute('hidden', editing);
+  if (doneBtn) doneBtn.toggleAttribute('hidden', !editing);
+  if (cancelBtn) cancelBtn.toggleAttribute('hidden', !editing);
+  if (undoBtn) undoBtn.toggleAttribute('hidden', !editing);
 }
 
 function rowAmt(row: BudgetCategoryRow): number {
