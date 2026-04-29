@@ -1831,18 +1831,20 @@ body.financial-plan-demo-mode #checkin-form {
 
 .plan-inline-hint--cta {
   padding: 8px 10px;
+  display: flex;
+  justify-content: flex-end;
 }
 .plan-dash-nav-btn {
   appearance: none;
-  display: block;
-  width: 100%;
+  display: inline-flex;
+  width: auto;
   box-sizing: border-box;
   margin: 0;
   font: inherit;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.45;
-  text-align: left;
+  text-align: center;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid rgba(196, 176, 128, 0.4);

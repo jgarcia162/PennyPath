@@ -36,7 +36,8 @@ function setTextDash(id: string, text: string): void {
 }
 
 function setHtmlDash(id: string, html: string): void {
-  setHtml(id, html);
+  // Goal labels intentionally include trusted markup (e.g. <strong>).
+  setHtml(id, html, { unsafe: true });
   const dash = document.getElementById('dash-' + id);
   if (dash) dash.innerHTML = html;
 }
