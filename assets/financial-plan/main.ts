@@ -24,6 +24,7 @@ import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage';
 import { wipeAllUserData } from './wipe-user-data.js';
 import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap';
 import { wireBudgetBreakdown } from './budget-breakdown-wire';
+import { resetBudgetBreakdownEditMode } from './budget-breakdown-state';
 import { getTrialSeed, isTrialSessionActive } from '../../lib/trial/trial-session';
 
 const aiPayoffUi = wireAiPayoffPlan(PLAN);
@@ -130,6 +131,7 @@ function wireWipeAllButton(): void {
 }
 
 async function init(): Promise<void> {
+  resetBudgetBreakdownEditMode();
   if (isFinancialPlanDemoMode()) {
     document.body.classList.add('financial-plan-demo-mode');
   }

@@ -494,7 +494,23 @@ export default function DashboardPage() {
                 Monthly Budget Breakdown
               </div>
 
-              <div className="budget-wrap budget-wrap--editable">
+              <div className="budget-controls no-print">
+                <button type="button" id="budget-edit-toggle" className="btn-undo" aria-pressed="false">
+                  Edit
+                </button>
+                <button type="button" id="budget-done-btn" className="btn-save" hidden>
+                  Done
+                </button>
+                <button type="button" id="budget-cancel-btn" className="btn-undo" hidden>
+                  Cancel
+                </button>
+                <button type="button" id="budget-undo-btn" className="btn-undo" hidden>
+                  Undo
+                </button>
+                <span id="budget-edit-status" className="budget-edit-status" aria-live="polite"></span>
+              </div>
+
+              <div id="budget-breakdown-wrap" className="budget-wrap budget-wrap--display">
                 <div className="budget-header budget-header--4">
                   <span>Category</span>
                   <span>Amount</span>
