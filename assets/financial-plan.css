@@ -4139,6 +4139,7 @@ body.financial-plan-demo-mode #checkin-form {
 /* BUDGET */
 .budget-wrap { background: var(--paper); border-radius: 14px; overflow: hidden; border: 1px solid rgba(60,68,82,0.07); margin-bottom: 14px; }
 .budget-controls { display: flex; justify-content: flex-end; align-items: center; gap: 8px; margin: -4px 0 10px; }
+.budget-edit-status { font-size: 12px; color: var(--red); min-height: 16px; margin-left: 2px; }
 .budget-header { background: var(--ink); color: var(--cream); display: grid; grid-template-columns: 1fr auto auto; gap: 16px; padding: 12px 20px; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; font-weight: 500; }
 .budget-row { display: grid; grid-template-columns: 1fr auto auto; gap: 16px; padding: 13px 20px; border-bottom: 1px solid rgba(60,68,82,0.06); align-items: center; font-size: 14px; }
 .budget-row:last-child { border-bottom: none; }

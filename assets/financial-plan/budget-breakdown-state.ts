@@ -9,3 +9,7 @@ export function getBudgetBreakdownEditMode(): boolean {
 export function setBudgetBreakdownEditMode(value: boolean): void {
   editing = !!value;
 }
+
+export function resetBudgetBreakdownEditMode(): void {
+  editing = false;
+}

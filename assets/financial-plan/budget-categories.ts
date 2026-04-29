@@ -72,7 +72,7 @@ export function ensureBudgetCategories(plan: FinancialPlan): void {
   }
 
   const out: BudgetCategoryRow[] = [];
-  let hasBuffer = false;
+  const seenRoles = new Set<BudgetCategoryRow['role']>();
   for (let i = 0; i < raw.length; i++) {
     const r = raw[i];
     if (!r || typeof r !== 'object') continue;
@@ -92,15 +92,21 @@ export function ensureBudgetCategories(plan: FinancialPlan): void {
         label: String(r.label || '').trim() || 'Category',
         amount: roundMoney(Math.max(0, numOr(r.amount, 0))),
       } as BudgetCategoryRow;
-      if (normalized.role === 'buffer') {
-        if (hasBuffer) continue;
-        hasBuffer = true;
+      if (
+        normalized.role === 'expenses' ||
+        normalized.role === 'cc' ||
+        normalized.role === 'hysa' ||
+        normalized.role === 'fun' ||
+        normalized.role === 'buffer'
+      ) {
+        if (seenRoles.has(normalized.role)) continue;
+        seenRoles.add(normalized.role);
       }
       out.push(normalized);
       continue;
     }
   }
-  if (!hasBuffer) {
+  if (!seenRoles.has('buffer')) {
     out.push({
       id: 'cat-buffer',
       role: 'buffer',

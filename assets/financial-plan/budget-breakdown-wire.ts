@@ -12,7 +12,7 @@ import {
   updateBufferRowAmount,
 } from './budget-categories';
 import { savePlanOverrides } from './persistence';
-import { getBudgetBreakdownEditMode, setBudgetBreakdownEditMode } from './budget-breakdown-state';
+import { setBudgetBreakdownEditMode } from './budget-breakdown-state';
 
 type RenderFn = () => void;
 type BudgetRowLike = BudgetCategoryRow;
@@ -51,7 +51,13 @@ export function wireBudgetBreakdown(render: RenderFn): void {
   const doneBtn = document.getElementById('budget-done-btn');
   const cancelBtn = document.getElementById('budget-cancel-btn');
   const undoBtn = document.getElementById('budget-undo-btn');
+  const statusEl = document.getElementById('budget-edit-status');
   let editSnapshot: BudgetRowLike[] | null = null;
+
+  function setStatus(msg: string): void {
+    if (!statusEl) return;
+    statusEl.textContent = msg;
+  }
 
   function cloneRows(rows: BudgetCategoryRow[]): BudgetRowLike[] {
     return rows.map(function (r) {
@@ -115,9 +121,6 @@ export function wireBudgetBreakdown(render: RenderFn): void {
     if (rowEl && t.classList.contains('budget-cat-pct')) rowEl.setAttribute('data-last-edit', 'pct');
     if (rowEl && t.classList.contains('budget-cat-amount')) rowEl.setAttribute('data-last-edit', 'amount');
     commitFromDom();
-    window.setTimeout(function () {
-      render();
-    }, 0);
   }
 
   if (rowsHost) {
@@ -171,19 +174,26 @@ export function wireBudgetBreakdown(render: RenderFn): void {
     toggleBtn.addEventListener('click', function (e: Event) {
       e.preventDefault();
       captureSnapshot();
+      setStatus('');
       setBudgetBreakdownEditMode(true);
       render();
     });
   }
 
   if (doneBtn) {
-    doneBtn.addEventListener('click', function (e: Event) {
+    doneBtn.addEventListener('click', async function (e: Event) {
       e.preventDefault();
       commitFromDom();
-      void savePlanOverrides();
-      editSnapshot = null;
-      setBudgetBreakdownEditMode(false);
-      render();
+      setStatus('Saving...');
+      try {
+        await savePlanOverrides();
+        editSnapshot = null;
+        setBudgetBreakdownEditMode(false);
+        setStatus('');
+        render();
+      } catch {
+        setStatus('Could not save changes. Please try again.');
+      }
     });
   }
 
@@ -193,6 +203,7 @@ export function wireBudgetBreakdown(render: RenderFn): void {
       restoreSnapshot();
       editSnapshot = null;
       setBudgetBreakdownEditMode(false);
+      setStatus('');
       render();
     });
   }
@@ -201,6 +212,7 @@ export function wireBudgetBreakdown(render: RenderFn): void {
     undoBtn.addEventListener('click', function (e: Event) {
       e.preventDefault();
       restoreSnapshot();
+      setStatus('Reverted to edit start.');
       render();
     });
   }

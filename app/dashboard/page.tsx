@@ -507,6 +507,7 @@ export default function DashboardPage() {
                 <button type="button" id="budget-undo-btn" className="btn-undo" hidden>
                   Undo
                 </button>
+                <span id="budget-edit-status" className="budget-edit-status" aria-live="polite"></span>
               </div>
 
               <div id="budget-breakdown-wrap" className="budget-wrap budget-wrap--display">
