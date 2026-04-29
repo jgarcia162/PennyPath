@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
@@ -55,6 +56,12 @@ export default function DashboardPage() {
         <AppLoadingOverlay message="Loading your financial plan…" ariaLabel="Loading financial plan application" />
       ) : null}
       <header className="site-header no-print">
+        <Link href="/dashboard" className="site-header__brand logo" aria-label="PennyPath home">
+          <div className="logo__mark" aria-hidden="true">
+            🌿
+          </div>
+          <span className="logo__text">PennyPath</span>
+        </Link>
         <nav className="site-nav" aria-label="Site">
           <a className="site-nav__tab site-nav__tab--active" href="/dashboard" aria-current="page">
             💰 Financial Plan

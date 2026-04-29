@@ -1,0 +1,239 @@
+/*
+ * Bridges existing layout class names (.site-header, etc.) onto the redesigned
+ * app shell visuals (forest header, Outfit/Cormorant typography).
+ */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: stretch;
+  min-height: 54px;
+  height: auto;
+  padding: 0;
+  font-family: var(--font-body);
+  background: var(--forest);
+  color: rgba(250, 247, 240, 0.92);
+  border: none !important;
+  border-bottom: 1px solid rgba(104, 217, 160, 0.12);
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.site-header > .site-header__brand {
+  flex-shrink: 0;
+}
+
+.site-header > .site-nav {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+  padding: 0 6px !important;
+  margin: 0 !important;
+}
+
+.site-nav__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 18px;
+  margin: 0 !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0 !important;
+  border-radius: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-right: none !important;
+  color: rgba(250, 247, 240, 0.5) !important;
+  background: transparent !important;
+}
+
+.site-nav__tab:hover {
+  color: rgba(250, 247, 240, 0.85) !important;
+}
+
+.site-nav__tab--active {
+  color: var(--mint) !important;
+  border-bottom-color: var(--mint) !important;
+}
+
+.site-header__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 22px !important;
+  min-width: 160px;
+  border-right: 1px solid rgba(104, 217, 160, 0.1);
+  border-left: none !important;
+}
+
+.site-header__brand .logo__text {
+  font-family: var(--font-display), Georgia, serif !important;
+  font-size: 1.15rem !important;
+  font-weight: 700 !important;
+  color: rgba(250, 247, 240, 0.92) !important;
+}
+
+.site-header__brand .logo__mark {
+  flex-shrink: 0;
+}
+
+.site-header__settings {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: stretch !important;
+  border-left: 1px solid rgba(104, 217, 160, 0.1);
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+}
+
+.site-settings-btn {
+  min-height: 54px !important;
+  gap: 6px !important;
+  padding: 0 14px !important;
+  font-size: 12.5px !important;
+  font-weight: 600 !important;
+  color: rgba(250, 247, 240, 0.6) !important;
+}
+
+.site-settings-btn:hover,
+.site-settings-btn[aria-expanded='true'] {
+  color: rgba(250, 247, 240, 0.9) !important;
+}
+
+.site-settings-btn__label {
+  display: inline !important;
+}
+
+.trial-countdown {
+  align-self: center;
+  margin: 0 6px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  border-radius: 999px;
+  color: var(--gold-warm) !important;
+  background: rgba(232, 164, 74, 0.14);
+  border: 1px solid rgba(232, 164, 74, 0.28);
+}
+
+.trial-expired-dialog {
+  border: none;
+  border-radius: 16px;
+  padding: 0;
+  max-width: min(92vw, 520px);
+  background: transparent;
+  margin: auto;
+  inset: 0;
+}
+
+.trial-expired-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.trial-expired-dialog__chrome {
+  background: var(--paper);
+  color: var(--charcoal);
+  border: 1px solid rgba(46, 125, 82, 0.18);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+
+.trial-expired-dialog__header {
+  padding: 18px 20px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.trial-expired-dialog__title {
+  margin: 0;
+  font-family: var(--font-display), Georgia, serif !important;
+  font-size: 20px !important;
+  font-weight: 700 !important;
+}
+
+.trial-expired-dialog__body {
+  padding: 14px 20px 18px;
+  font-size: 14px !important;
+  line-height: 1.55;
+  color: var(--muted) !important;
+}
+
+.trial-expired-dialog__actions {
+  padding: 0 20px 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.trial-expired-dialog__btn {
+  appearance: none;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(46, 125, 82, 0.28);
+  background: var(--forest-mid);
+  color: #fff !important;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+
+.trial-expired-dialog__btn:hover {
+  background: var(--forest-soft);
+}
+
+/* Auth — real checkbox inside redesigned toggle chrome */
+.auth-form__toggle-wrap {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.auth-form__toggle-wrap input[type='checkbox'] {
+  margin-top: 3px;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.auth-form__error {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  padding: 10px 12px !important;
+  margin: 12px 0;
+  border-radius: var(--radius-sm);
+  color: #8b2f2f !important;
+  background: rgba(217, 99, 99, 0.12);
+  border: 1px solid rgba(217, 99, 99, 0.22);
+}
+
+.auth-form-password {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.auth-form-password .auth-form__input {
+  flex: 1;
+}
+
+.auth-form-password__reveal {
+  flex-shrink: 0;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  padding: 8px 10px !important;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(46, 125, 82, 0.16) !important;
+  background: rgba(212, 245, 229, 0.5) !important;
+  color: var(--forest-mid) !important;
+}
+
+.auth-form-password__reveal:hover {
+  border-color: var(--emerald) !important;
+}
