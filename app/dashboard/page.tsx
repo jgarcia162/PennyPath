@@ -717,21 +717,10 @@ export default function DashboardPage() {
           </div>
 
           {/* SECTION 04 */}
-          <div className="section" id="section-payoff-timeline">
-            <div className="section-eyebrow">Section 04</div>
-            <div className="section-title">Month-by-Month Payoff Timeline</div>
-            <p className="section-sub">
-              A simple projection of total credit card balance + interest, plus HYSA growth and deposits. Updates
-              automatically when you save new balances.
-            </p>
-            <div className="timeline-wrap" id="payoff-timeline"></div>
-          </div>
-
-          {/* SECTION 05 */}
           <div className="section section-checkins" id="section-checkins">
             <details className="checkin-collapsible" id="checkin-collapsible" open>
               <summary className="checkin-collapsible__summary">
-                <span className="section-eyebrow">Section 05</span>
+                <span className="section-eyebrow">Section 04</span>
                 <span className="section-title checkin-collapsible__title">Monthly Check-In Log</span>
               </summary>
               <div className="checkin-collapsible__body">
@@ -782,9 +771,9 @@ export default function DashboardPage() {
             </details>
           </div>
 
-          {/* SECTION 06 */}
+          {/* SECTION 05 */}
           <div className="section" id="section-milestones">
-            <div className="section-eyebrow">Section 06</div>
+            <div className="section-eyebrow">Section 05</div>
             <div className="section-title">Milestones</div>
             <div className="badges-grid" id="badges-grid"></div>
           </div>
