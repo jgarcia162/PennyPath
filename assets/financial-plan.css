@@ -4146,6 +4146,14 @@ body.financial-plan-demo-mode #checkin-form {
 .budget-row.total { background: #faf2e8; border-top: 2px solid var(--gold-light); font-weight: 700; }
 .budget-amount { font-family: 'Playfair Display', serif; font-weight: 700; text-align: right; }
 .budget-pct { font-size: 12px; color: #aaa; text-align: right; min-width: 40px; }
+.budget-header > span:nth-child(2),
+.budget-header > span:nth-child(3),
+.budget-row > .budget-amount,
+.budget-row > .budget-pct,
+.budget-row > .budget-cat-amount,
+.budget-row > .budget-cat-pct {
+  text-align: center;
+}
 .budget-wrap--display .budget-header.budget-header--4,
 .budget-wrap--display .budget-row--total-static {
   grid-template-columns: 1fr minmax(120px, 148px) minmax(48px, 62px);
