@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
@@ -54,6 +55,12 @@ export default function RealEstatePage() {
         <AppLoadingOverlay message="Loading real estate planner…" ariaLabel="Loading real estate planner" />
       ) : null}
       <header className="site-header no-print">
+        <Link href="/dashboard" className="site-header__brand logo" aria-label="PennyPath home">
+          <div className="logo__mark" aria-hidden="true">
+            🌿
+          </div>
+          <span className="logo__text">PennyPath</span>
+        </Link>
         <nav className="site-nav" aria-label="Site">
           <a className="site-nav__tab" href="/dashboard">
             💰 Financial Plan

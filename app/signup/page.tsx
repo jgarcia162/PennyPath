@@ -1,9 +1,9 @@
 'use client';
 
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-import { fontPlayfair } from '../fonts';
 import {
   createSupabaseBrowserClient,
   getSaveLoginPreference,
@@ -46,96 +46,120 @@ export default function SignupPage() {
   return (
     <div className="auth-page">
       {loading ? <AppLoadingOverlay message="Creating account…" ariaLabel="Creating account" /> : null}
-      <header className="auth-page__header">
-        <a className={`auth-page__brand ${fontPlayfair.className}`} href="/">
-          PennyPath
-        </a>
-        <nav className="auth-page__header-nav" aria-label="Site">
-          <a className="auth-page__header-link" href="/">
-            Home
-          </a>
-        </nav>
-      </header>
-
-      <main className="auth-page__main">
-        <div className="auth-page__inner">
-          <p className="auth-page__eyebrow">Account</p>
-          <h1 className={`auth-page__title ${fontPlayfair.className}`}>Sign up</h1>
-          <p className="auth-page__lede">Create an account to use your planner across devices.</p>
-
-          <div className="auth-page__card">
-            <form onSubmit={onSubmit}>
-              <div className="auth-page__field">
-                <label className="auth-page__label" htmlFor="email">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  className="auth-page__input"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-
-              <div className="auth-page__field">
-                <label className="auth-page__label" htmlFor="password">
-                  Password
-                </label>
-                <div className="auth-page__input-wrap">
-                  <input
-                    id="password"
-                    className="auth-page__input auth-page__input--has-reveal"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="new-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="auth-page__password-reveal"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-pressed={showPassword}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? 'Hide' : 'Show'}
-                  </button>
-                </div>
-                <p className="auth-page__hint">Minimum length is enforced by your Supabase Auth settings.</p>
-              </div>
-
-              <div className="auth-page__toggle">
-                <label className="auth-page__toggle-label">
-                  <input
-                    type="checkbox"
-                    checked={saveLogin}
-                    onChange={(e) => setSaveLogin(e.target.checked)}
-                  />
-                  <span>
-                    Save login
-                    <span className="auth-page__toggle-hint">
-                      Keep me signed in on this device (uncheck on shared computers).
-                    </span>
-                  </span>
-                </label>
-              </div>
-
-              {error ? <p className="auth-page__error">{error}</p> : null}
-
-              <button type="submit" disabled={loading} className="auth-page__submit">
-                {loading ? 'Creating account…' : 'Create account'}
-              </button>
-
-              <p className="auth-page__footer">
-                Already have an account? <a href="/login">Log in</a>
-              </p>
-            </form>
+      <div className="auth-page__panel">
+        <div className="auth-panel__inner">
+          <div className="auth-panel__logo logo">
+            <div className="logo__mark" aria-hidden="true">
+              🌿
+            </div>
+            <span className="logo__text">PennyPath</span>
+          </div>
+          <h2 className="auth-panel__headline">
+            Start your
+            <br />
+            path to
+            <br />
+            <em>financial freedom.</em>
+          </h2>
+          <p className="auth-panel__sub">Create an account to sync your planner across devices and keep your progress safe.</p>
+          <div className="auth-panel__features">
+            <div className="auth-panel__feature">
+              <div className="auth-panel__feature-icon">🔄</div>
+              <span>Sync across all devices</span>
+            </div>
+            <div className="auth-panel__feature">
+              <div className="auth-panel__feature-icon">🏅</div>
+              <span>Earn milestone badges</span>
+            </div>
+            <div className="auth-panel__feature">
+              <div className="auth-panel__feature-icon">🌱</div>
+              <span>Free forever, no credit card</span>
+            </div>
           </div>
         </div>
-      </main>
+      </div>
+
+      <div className="auth-form-side">
+        <div className="auth-form-wrap">
+          <Link href="/" className="auth-form-wrap__back">
+            ← Back to home
+          </Link>
+          <h1 className="auth-form__title">Create account</h1>
+          <p className="auth-form__sub">Start tracking your debt payoff and savings goals today.</p>
+
+          <form onSubmit={onSubmit}>
+            <div className="auth-form__field">
+              <label className="auth-form__label" htmlFor="signup-email">
+                Email
+              </label>
+              <input
+                id="signup-email"
+                className="auth-form__input"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="auth-form__field">
+              <label className="auth-form__label" htmlFor="signup-password">
+                Password
+              </label>
+              <div className="auth-form-password">
+                <input
+                  id="signup-password"
+                  className="auth-form__input"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="new-password"
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="auth-form-password__reveal"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-pressed={showPassword}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 6 }}>
+                Use a strong password you don&apos;t use elsewhere.
+              </div>
+            </div>
+
+            <label className="auth-form__toggle auth-form__toggle-wrap" htmlFor="signup-save">
+              <input
+                id="signup-save"
+                type="checkbox"
+                checked={saveLogin}
+                onChange={(e) => setSaveLogin(e.target.checked)}
+              />
+              <div>
+                <div className="auth-form__toggle-text">
+                  Keep me signed in
+                  <span className="auth-form__toggle-hint">Uncheck on shared or public computers.</span>
+                </div>
+              </div>
+            </label>
+
+            {error ? <p className="auth-form__error">{error}</p> : null}
+
+            <button type="submit" className="auth-form__submit">
+              {loading ? 'Creating…' : 'Create account →'}
+            </button>
+          </form>
+
+          <div className="auth-form__footer">
+            Already have an account? <Link href="/login">Log in</Link>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

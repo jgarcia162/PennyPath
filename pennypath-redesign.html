@@ -1,0 +1,2669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PennyPath — Redesign</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ─────────────────────────────────────────────
+   DESIGN TOKENS
+───────────────────────────────────────────── */
+:root {
+  --forest:       #0d1f16;
+  --forest-mid:   #163527;
+  --forest-soft:  #1e4835;
+  --emerald:      #2e7d52;
+  --emerald-bright: #35a066;
+  --mint:         #68d9a0;
+  --mint-pale:    #d4f5e5;
+  --gold:         #e8a44a;
+  --gold-warm:    #f0b860;
+  --gold-light:   #fef3e2;
+  --cream:        #faf7f0;
+  --cream-warm:   #f5f0e6;
+  --paper:        #fffcf7;
+  --ink:          #0d1814;
+  --charcoal:     #2d3d35;
+  --muted:        #6b7c73;
+  --muted-light:  #a0b0a8;
+  --border:       rgba(46,125,82,0.14);
+  --border-gold:  rgba(232,164,74,0.28);
+
+  --shadow-xs:    0 1px 2px rgba(13,31,22,0.06);
+  --shadow-sm:    0 2px 8px rgba(13,31,22,0.08);
+  --shadow-md:    0 6px 24px rgba(13,31,22,0.10);
+  --shadow-lg:    0 16px 56px rgba(13,31,22,0.14);
+  --shadow-gold:  0 4px 24px rgba(232,164,74,0.18);
+
+  --radius-sm:    8px;
+  --radius-md:    14px;
+  --radius-lg:    22px;
+  --radius-xl:    32px;
+
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body:    'Outfit', system-ui, sans-serif;
+  --font-mono:    'JetBrains Mono', monospace;
+
+  --transition:   0.2s cubic-bezier(0.4,0,0.2,1);
+  --transition-slow: 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ─────────────────────────────────────────────
+   RESET & BASE
+───────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--charcoal);
+  background: var(--cream);
+  -webkit-font-smoothing: antialiased;
+}
+a { color: inherit; text-decoration: none; }
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+input, textarea { font-family: inherit; }
+
+/* ─────────────────────────────────────────────
+   DEMO NAV (page switcher)
+───────────────────────────────────────────── */
+.demo-nav {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  gap: 4px;
+  background: var(--forest);
+  border: 1px solid rgba(104,217,160,0.2);
+  border-radius: 999px;
+  padding: 6px 8px;
+  box-shadow: var(--shadow-lg);
+  white-space: nowrap;
+}
+.demo-nav__btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  transition: all var(--transition);
+  letter-spacing: 0.02em;
+}
+.demo-nav__btn:hover { color: rgba(255,255,255,0.85); }
+.demo-nav__btn.active {
+  background: var(--emerald);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(46,125,82,0.4);
+}
+
+/* Pages */
+.page { display: none; min-height: 100vh; }
+.page.visible { display: block; }
+
+/* ─────────────────────────────────────────────
+   SHARED COMPONENTS
+───────────────────────────────────────────── */
+
+/* Logo mark */
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo__mark {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, var(--emerald) 0%, var(--mint) 100%);
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(46,125,82,0.3);
+}
+.logo__text {
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 22px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: var(--radius-md);
+  transition: all var(--transition);
+  letter-spacing: 0.01em;
+}
+.btn--primary {
+  background: var(--forest-mid);
+  color: #fff;
+  border: 1px solid var(--emerald);
+  box-shadow: var(--shadow-sm);
+}
+.btn--primary:hover {
+  background: var(--forest-soft);
+  box-shadow: 0 4px 16px rgba(46,125,82,0.25);
+  transform: translateY(-1px);
+}
+.btn--gold {
+  background: var(--gold);
+  color: var(--forest);
+  border: 1px solid rgba(232,164,74,0.3);
+  box-shadow: var(--shadow-gold);
+  font-weight: 700;
+}
+.btn--gold:hover {
+  background: var(--gold-warm);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(232,164,74,0.3);
+}
+.btn--ghost {
+  background: transparent;
+  color: var(--charcoal);
+  border: 1.5px solid rgba(46,125,82,0.25);
+}
+.btn--ghost:hover {
+  background: var(--mint-pale);
+  border-color: var(--emerald);
+  color: var(--forest-mid);
+}
+.btn--ghost-light {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.85);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.btn--ghost-light:hover {
+  background: rgba(255,255,255,0.18);
+  color: #fff;
+}
+.btn--sm { padding: 7px 14px; font-size: 13px; border-radius: 9px; }
+.btn--lg { padding: 14px 28px; font-size: 15px; }
+
+/* Card */
+.card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.card--elevated { box-shadow: var(--shadow-md); }
+
+/* Badge / Chip */
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.chip--green {
+  background: var(--mint-pale);
+  color: var(--emerald);
+  border: 1px solid rgba(104,217,160,0.3);
+}
+.chip--gold {
+  background: var(--gold-light);
+  color: #a0630a;
+  border: 1px solid rgba(232,164,74,0.25);
+}
+.chip--muted {
+  background: rgba(107,124,115,0.1);
+  color: var(--muted);
+}
+
+/* Progress bar */
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: rgba(46,125,82,0.12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-bar__fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--emerald) 0%, var(--mint) 100%);
+  transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+}
+.progress-bar--gold .progress-bar__fill {
+  background: linear-gradient(90deg, var(--gold) 0%, var(--gold-warm) 100%);
+}
+
+/* Stat */
+.stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.stat-value {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.stat-value--mono {
+  font-family: var(--font-mono);
+  font-size: 1.8rem;
+  font-weight: 500;
+}
+
+/* Section header */
+.section-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--emerald);
+  margin-bottom: 10px;
+}
+.section-eyebrow::before {
+  content: '';
+  width: 18px;
+  height: 2px;
+  background: var(--emerald);
+  border-radius: 2px;
+}
+
+/* Divider */
+.divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+  margin: 28px 0;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: LANDING
+───────────────────────────────────────────── */
+#page-landing {
+  background: var(--cream);
+}
+
+/* Landing header */
+.landing-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(250,247,240,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 40px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: background var(--transition);
+}
+.landing-header .logo__text { color: var(--forest-mid); }
+.landing-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Hero */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: calc(100vh - 60px);
+  max-height: 840px;
+}
+.hero__left {
+  background: var(--forest);
+  padding: 72px 64px 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero__left::before {
+  content: '';
+  position: absolute;
+  top: -80px;
+  right: -80px;
+  width: 320px;
+  height: 320px;
+  background: radial-gradient(circle, rgba(46,125,82,0.35) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero__left::after {
+  content: '';
+  position: absolute;
+  bottom: -60px;
+  left: -40px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(232,164,74,0.15) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mint);
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+.hero__eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--mint);
+  border-radius: 50%;
+  animation: pulse-dot 2s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.7); }
+}
+.hero__title {
+  font-family: var(--font-display);
+  font-size: clamp(2.4rem, 4vw, 3.4rem);
+  font-weight: 600;
+  line-height: 1.15;
+  color: var(--cream);
+  margin-bottom: 20px;
+  position: relative;
+  z-index: 1;
+}
+.hero__title em {
+  font-style: italic;
+  color: var(--mint);
+}
+.hero__sub {
+  font-size: 16px;
+  line-height: 1.65;
+  color: rgba(250,247,240,0.62);
+  max-width: 420px;
+  margin-bottom: 36px;
+  position: relative;
+  z-index: 1;
+}
+.hero__ctas {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
+}
+.hero__peek-note {
+  font-size: 12px;
+  color: rgba(250,247,240,0.38);
+  margin-top: 14px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Hero path visual */
+.hero__right {
+  background: var(--cream-warm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  position: relative;
+  overflow: hidden;
+}
+.hero__right::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse at 20% 80%, rgba(104,217,160,0.08) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(232,164,74,0.06) 0%, transparent 50%);
+}
+.hero__visual {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+}
+.hero__stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.hero-stat-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  overflow: hidden;
+  animation: float-card 0.6s ease both;
+}
+.hero-stat-card:nth-child(1) { animation-delay: 0.1s; }
+.hero-stat-card:nth-child(2) { animation-delay: 0.2s; }
+@keyframes float-card {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.hero-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+}
+.hero-stat-card--green::before { background: linear-gradient(90deg, var(--emerald), var(--mint)); }
+.hero-stat-card--gold::before { background: linear-gradient(90deg, var(--gold), var(--gold-warm)); }
+.hero-stat-card__label { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.hero-stat-card__value { font-family: var(--font-mono); font-size: 1.5rem; font-weight: 500; color: var(--ink); margin-bottom: 10px; }
+.hero-stat-card__progress { }
+
+.hero-milestone-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  animation: float-card 0.6s ease 0.3s both;
+}
+.hero-milestone-card__icon {
+  width: 42px;
+  height: 42px;
+  background: linear-gradient(135deg, var(--emerald) 0%, var(--mint) 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(46,125,82,0.25);
+}
+.hero-milestone-card__label { font-size: 12px; color: var(--muted); }
+.hero-milestone-card__title { font-weight: 600; color: var(--ink); font-size: 14px; margin-bottom: 2px; }
+
+/* Features section */
+.landing-features {
+  padding: 96px 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.features-header {
+  text-align: center;
+  margin-bottom: 56px;
+}
+.features-header h2 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-weight: 600;
+  color: var(--forest-mid);
+  margin-bottom: 14px;
+}
+.features-header p {
+  font-size: 16px;
+  color: var(--muted);
+  max-width: 480px;
+  margin: 0 auto;
+  line-height: 1.65;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+.feature-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 28px 26px;
+  transition: all var(--transition);
+  position: relative;
+  overflow: hidden;
+}
+.feature-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--emerald), var(--mint));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform var(--transition);
+}
+.feature-card:hover { 
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  border-color: rgba(46,125,82,0.25);
+}
+.feature-card:hover::after { transform: scaleX(1); }
+.feature-card__icon {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--forest-mid) 0%, var(--emerald) 100%);
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 12px rgba(22,53,39,0.2);
+}
+.feature-card h3 {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink);
+  margin-bottom: 8px;
+  letter-spacing: 0.01em;
+}
+.feature-card p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+
+/* How it works */
+.landing-how {
+  background: var(--forest);
+  padding: 96px 40px;
+  position: relative;
+  overflow: hidden;
+}
+.landing-how::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 50%;
+  height: 100%;
+  background: radial-gradient(ellipse at 70% 50%, rgba(46,125,82,0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+.landing-how__inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.landing-how h2 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.5vw, 2.75rem);
+  font-weight: 600;
+  color: var(--cream);
+  margin-bottom: 12px;
+}
+.landing-how__sub {
+  font-size: 16px;
+  color: rgba(250,247,240,0.55);
+  margin-bottom: 52px;
+}
+.steps-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+}
+.step-card {
+  position: relative;
+  padding-top: 12px;
+}
+.step-card__number {
+  font-family: var(--font-display);
+  font-size: 4.5rem;
+  font-weight: 700;
+  color: rgba(104,217,160,0.15);
+  line-height: 1;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+.step-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--cream);
+  margin-bottom: 8px;
+}
+.step-card__body {
+  font-size: 14px;
+  line-height: 1.65;
+  color: rgba(250,247,240,0.55);
+}
+.step-card__connector {
+  position: absolute;
+  top: 48px;
+  right: -14px;
+  color: rgba(104,217,160,0.3);
+  font-size: 20px;
+  z-index: 1;
+}
+.steps-grid .step-card:last-child .step-card__connector { display: none; }
+
+/* Privacy strip */
+.landing-privacy {
+  padding: 72px 40px;
+  max-width: 1100px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  align-items: center;
+}
+.landing-privacy h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.8rem, 3vw, 2.4rem);
+  font-weight: 600;
+  color: var(--forest-mid);
+  margin-bottom: 14px;
+}
+.landing-privacy p {
+  font-size: 15px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.landing-privacy__shield {
+  background: var(--forest);
+  border-radius: var(--radius-xl);
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.privacy-item {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+.privacy-item__icon {
+  width: 36px;
+  height: 36px;
+  background: rgba(104,217,160,0.15);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  border: 1px solid rgba(104,217,160,0.2);
+}
+.privacy-item__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--cream);
+  margin-bottom: 3px;
+}
+.privacy-item__body {
+  font-size: 13px;
+  color: rgba(250,247,240,0.5);
+  line-height: 1.5;
+}
+
+/* Landing footer */
+.landing-footer {
+  background: var(--forest);
+  border-top: 1px solid rgba(104,217,160,0.1);
+  padding: 28px 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.landing-footer__logo { }
+.landing-footer__logo .logo__text { color: rgba(250,247,240,0.7); font-size: 1.1rem; }
+.landing-footer__copy {
+  font-size: 13px;
+  color: rgba(250,247,240,0.3);
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: AUTH (Login / Signup)
+───────────────────────────────────────────── */
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+.auth-page__panel {
+  background: var(--forest);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 60px 48px;
+  position: relative;
+  overflow: hidden;
+}
+.auth-page__panel::before {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(46,125,82,0.3) 0%, transparent 70%);
+}
+.auth-page__panel::after {
+  content: '';
+  position: absolute;
+  bottom: -60px;
+  left: -60px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(232,164,74,0.12) 0%, transparent 70%);
+}
+.auth-panel__inner {
+  position: relative;
+  z-index: 1;
+  max-width: 340px;
+}
+.auth-panel__logo { margin-bottom: 40px; }
+.auth-panel__logo .logo__text { color: var(--cream); font-size: 1.5rem; }
+.auth-panel__logo .logo__mark { width: 38px; height: 38px; font-size: 18px; }
+.auth-panel__headline {
+  font-family: var(--font-display);
+  font-size: 2.2rem;
+  font-weight: 600;
+  color: var(--cream);
+  line-height: 1.25;
+  margin-bottom: 14px;
+}
+.auth-panel__headline em {
+  font-style: italic;
+  color: var(--mint);
+}
+.auth-panel__sub {
+  font-size: 15px;
+  color: rgba(250,247,240,0.5);
+  line-height: 1.65;
+  margin-bottom: 36px;
+}
+.auth-panel__features {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.auth-panel__feature {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 14px;
+  color: rgba(250,247,240,0.65);
+}
+.auth-panel__feature-icon {
+  width: 32px;
+  height: 32px;
+  background: rgba(104,217,160,0.12);
+  border-radius: 9px;
+  border: 1px solid rgba(104,217,160,0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  flex-shrink: 0;
+}
+
+/* Auth form side */
+.auth-form-side {
+  background: var(--cream);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 48px;
+}
+.auth-form-wrap {
+  width: 100%;
+  max-width: 380px;
+}
+.auth-form-wrap__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 36px;
+  transition: color var(--transition);
+}
+.auth-form-wrap__back:hover { color: var(--emerald); }
+.auth-form__title {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+.auth-form__sub {
+  font-size: 14px;
+  color: var(--muted);
+  margin-bottom: 32px;
+  line-height: 1.55;
+}
+.auth-form__field {
+  margin-bottom: 18px;
+}
+.auth-form__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--charcoal);
+  margin-bottom: 7px;
+}
+.auth-form__input {
+  display: block;
+  width: 100%;
+  padding: 12px 15px;
+  font-size: 15px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid rgba(46,125,82,0.2);
+  border-radius: var(--radius-md);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.auth-form__input:focus {
+  border-color: var(--emerald);
+  box-shadow: 0 0 0 3px rgba(46,125,82,0.12);
+}
+.auth-form__input::placeholder { color: rgba(107,124,115,0.5); }
+.auth-form__submit {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--forest-mid);
+  border: 1px solid var(--emerald);
+  border-radius: var(--radius-md);
+  margin-top: 8px;
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-sm);
+}
+.auth-form__submit:hover {
+  background: var(--forest-soft);
+  box-shadow: 0 4px 16px rgba(22,53,39,0.3);
+  transform: translateY(-1px);
+}
+.auth-form__divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 22px 0;
+  font-size: 12px;
+  color: var(--muted-light);
+}
+.auth-form__divider::before,
+.auth-form__divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.auth-form__peek {
+  width: 100%;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--charcoal);
+  background: rgba(46,125,82,0.06);
+  border: 1.5px dashed rgba(46,125,82,0.25);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-align: center;
+}
+.auth-form__peek:hover {
+  background: rgba(46,125,82,0.1);
+  border-color: var(--emerald);
+  color: var(--forest-mid);
+}
+.auth-form__peek-note {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+.auth-form__footer {
+  font-size: 14px;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 24px;
+}
+.auth-form__footer a {
+  font-weight: 700;
+  color: var(--emerald);
+  transition: color var(--transition);
+}
+.auth-form__footer a:hover { color: var(--forest-mid); }
+.auth-form__toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 15px;
+  background: rgba(46,125,82,0.04);
+  border: 1px solid rgba(46,125,82,0.12);
+  border-radius: var(--radius-md);
+  font-size: 13.5px;
+  color: var(--charcoal);
+  margin-top: 16px;
+  cursor: pointer;
+}
+.auth-form__toggle-check {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(46,125,82,0.35);
+  border-radius: 5px;
+  flex-shrink: 0;
+  margin-top: 1px;
+  background: var(--paper);
+  position: relative;
+  transition: all var(--transition);
+}
+.auth-form__toggle-check.checked {
+  background: var(--emerald);
+  border-color: var(--emerald);
+}
+.auth-form__toggle-check.checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 11px;
+  color: #fff;
+  font-weight: 700;
+}
+.auth-form__toggle-text { line-height: 1.4; }
+.auth-form__toggle-hint { display: block; font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+/* ─────────────────────────────────────────────
+   SHARED DASHBOARD SHELL
+───────────────────────────────────────────── */
+.app-shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--cream);
+}
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--forest);
+  border-bottom: 1px solid rgba(104,217,160,0.12);
+  padding: 0;
+  display: flex;
+  align-items: stretch;
+  height: 54px;
+}
+.app-header__brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 22px;
+  border-right: 1px solid rgba(104,217,160,0.1);
+  text-decoration: none;
+  min-width: 160px;
+}
+.app-header__brand .logo__text {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: rgba(250,247,240,0.92);
+}
+.app-header__brand .logo__mark { width: 28px; height: 28px; font-size: 14px; }
+.app-nav {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  padding: 0 6px;
+}
+.app-nav__tab {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 18px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(250,247,240,0.5);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all var(--transition);
+  text-decoration: none;
+}
+.app-nav__tab:hover { color: rgba(250,247,240,0.85); }
+.app-nav__tab.active {
+  color: var(--mint);
+  border-bottom-color: var(--mint);
+}
+.app-nav__tab-icon { font-size: 15px; }
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-left: 1px solid rgba(104,217,160,0.1);
+}
+.app-header__settings-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: rgba(250,247,240,0.6);
+  transition: all var(--transition);
+}
+.app-header__settings-btn:hover {
+  background: rgba(255,255,255,0.07);
+  color: rgba(250,247,240,0.9);
+}
+.app-header__trial-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: rgba(232,164,74,0.14);
+  border: 1px solid rgba(232,164,74,0.28);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--gold-warm);
+}
+
+.app-main {
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 32px 32px 64px;
+}
+
+/* ─────────────────────────────────────────────
+   PAGE: DASHBOARD
+───────────────────────────────────────────── */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.goal-card {
+  border-radius: var(--radius-lg);
+  padding: 28px;
+  position: relative;
+  overflow: hidden;
+}
+.goal-card--debt {
+  background: var(--forest);
+  border: 1px solid rgba(104,217,160,0.14);
+}
+.goal-card--savings {
+  background: var(--paper);
+  border: 1px solid var(--border);
+}
+.goal-card__eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.goal-card--debt .goal-card__eyebrow { color: rgba(104,217,160,0.6); }
+.goal-card--savings .goal-card__eyebrow { color: var(--muted); }
+.goal-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.goal-card__title {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.goal-card--debt .goal-card__title { color: var(--cream); }
+.goal-card--savings .goal-card__title { color: var(--ink); }
+.goal-card__sub {
+  font-size: 13px;
+  margin-top: 4px;
+}
+.goal-card--debt .goal-card__sub { color: rgba(250,247,240,0.45); }
+.goal-card--savings .goal-card__sub { color: var(--muted); }
+.goal-card__badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.goal-card--debt .goal-card__badge {
+  background: rgba(104,217,160,0.14);
+  color: var(--mint);
+  border: 1px solid rgba(104,217,160,0.22);
+}
+.goal-card--savings .goal-card__badge {
+  background: var(--gold-light);
+  color: #a0630a;
+  border: 1px solid rgba(232,164,74,0.25);
+}
+
+.debt-items { margin: 18px 0; display: flex; flex-direction: column; gap: 10px; }
+.debt-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.debt-item__name {
+  font-size: 13px;
+  color: rgba(250,247,240,0.65);
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.debt-item__amount {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: rgba(250,247,240,0.85);
+  flex-shrink: 0;
+}
+.debt-item__bar {
+  flex: 2;
+  height: 5px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.debt-item__fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--emerald), var(--mint));
+  border-radius: 999px;
+}
+
+.goal-card__total {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(104,217,160,0.1);
+}
+.goal-card--savings .goal-card__total { border-top-color: var(--border); }
+.goal-card__total-label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.goal-card--debt .goal-card__total-label { color: rgba(250,247,240,0.4); }
+.goal-card--savings .goal-card__total-label { color: var(--muted); }
+.goal-card__total-value {
+  font-family: var(--font-mono);
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+.goal-card--debt .goal-card__total-value { color: var(--cream); }
+.goal-card--savings .goal-card__total-value { color: var(--ink); }
+
+.savings-items { margin: 18px 0; display: flex; flex-direction: column; gap: 12px; }
+.savings-item__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+.savings-item__name { font-size: 13px; font-weight: 600; color: var(--charcoal); }
+.savings-item__amounts {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.savings-item__amounts strong { color: var(--ink); }
+
+/* Bottom row */
+.dashboard-bottom {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 20px;
+}
+.checkin-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+.checkin-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.checkin-card__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+.checkin-list { display: flex; flex-direction: column; gap: 10px; }
+.checkin-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  background: var(--cream);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(46,125,82,0.1);
+}
+.checkin-item__dot {
+  width: 8px;
+  height: 8px;
+  background: var(--emerald);
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.checkin-item__date { font-size: 12px; color: var(--muted); flex: 1; }
+.checkin-item__note { font-size: 13px; color: var(--charcoal); font-weight: 500; flex: 2; }
+
+.badges-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+.badges-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+.badge-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 14px 10px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid;
+  text-align: center;
+}
+.badge-item--earned {
+  background: linear-gradient(135deg, rgba(22,53,39,0.06), rgba(46,125,82,0.06));
+  border-color: rgba(46,125,82,0.25);
+}
+.badge-item--locked {
+  background: rgba(107,124,115,0.04);
+  border-color: rgba(107,124,115,0.12);
+  opacity: 0.6;
+}
+.badge-item__icon { font-size: 22px; }
+.badge-item__label { font-size: 11px; font-weight: 700; color: var(--charcoal); line-height: 1.3; }
+.badge-item__sub { font-size: 10px; color: var(--muted); }
+
+.snapshot-card {
+  background: var(--forest);
+  border: 1px solid rgba(104,217,160,0.12);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+}
+.snapshot-card__title { font-size: 13px; font-weight: 700; color: rgba(250,247,240,0.7); margin-bottom: 16px; }
+.snapshot-rows { display: flex; flex-direction: column; gap: 11px; }
+.snapshot-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+.snapshot-row__label { color: rgba(250,247,240,0.5); }
+.snapshot-row__value { font-family: var(--font-mono); font-size: 14px; color: var(--cream); font-weight: 500; }
+.snapshot-row__value--green { color: var(--mint); }
+.snapshot-row__divider { height: 1px; background: rgba(104,217,160,0.08); margin: 4px 0; }
+
+/* ─────────────────────────────────────────────
+   PAGE: HISTORY
+───────────────────────────────────────────── */
+.history-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+.history-header-row h1 {
+  font-family: var(--font-display);
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+.history-timeline { display: flex; flex-direction: column; gap: 20px; }
+.history-month {
+  display: grid;
+  grid-template-columns: 100px 1fr;
+  gap: 0;
+}
+.history-month__date-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 8px;
+}
+.history-month__month {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.history-month__year {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--forest-mid);
+  line-height: 1;
+}
+.history-month__line {
+  flex: 1;
+  width: 2px;
+  background: linear-gradient(180deg, var(--border) 0%, transparent 100%);
+  margin: 10px auto 0;
+}
+.history-month__card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 22px 24px;
+  margin-left: 12px;
+}
+.history-month__card.current {
+  border-color: rgba(46,125,82,0.3);
+  box-shadow: 0 0 0 3px rgba(46,125,82,0.07);
+}
+.history-month__row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.history-metric { }
+.history-metric__label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+.history-metric__value {
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+.history-metric__delta {
+  font-size: 12px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+.history-metric__delta--pos { color: var(--emerald-bright); }
+.history-metric__delta--neg { color: #c0392b; }
+.history-month__notes {
+  font-size: 13px;
+  color: var(--muted);
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  line-height: 1.5;
+}
+.history-month__notes strong { color: var(--charcoal); }
+
+/* ─────────────────────────────────────────────
+   PAGE: REAL ESTATE
+───────────────────────────────────────────── */
+.re-hero {
+  background: var(--forest);
+  padding: 48px 32px;
+  border-radius: var(--radius-xl);
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.re-hero::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(46,125,82,0.3) 0%, transparent 70%);
+}
+.re-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -40px;
+  left: 30%;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(232,164,74,0.12) 0%, transparent 70%);
+}
+.re-hero__inner { position: relative; z-index: 1; }
+.re-hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 3.5vw, 2.8rem);
+  font-weight: 600;
+  color: var(--cream);
+  line-height: 1.2;
+  margin-bottom: 12px;
+}
+.re-hero__sub { font-size: 15px; color: rgba(250,247,240,0.5); margin-bottom: 28px; }
+.re-hero__pills { display: flex; flex-wrap: wrap; gap: 10px; }
+.re-pill {
+  padding: 8px 15px;
+  background: rgba(104,217,160,0.1);
+  border: 1px solid rgba(104,217,160,0.2);
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(250,247,240,0.75);
+}
+.re-pill strong { color: var(--mint); }
+
+.re-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+.re-calculator-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 26px;
+}
+.re-calculator-card h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.re-calculator-card h2 span { font-size: 18px; }
+.re-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px; }
+.re-field label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.re-field input {
+  width: 100%;
+  padding: 10px 13px;
+  font-size: 14px;
+  font-family: var(--font-mono);
+  color: var(--ink);
+  background: var(--cream);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  outline: none;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.re-field input:focus {
+  border-color: var(--emerald);
+  box-shadow: 0 0 0 3px rgba(46,125,82,0.1);
+}
+.re-results { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.re-result-item {
+  padding: 14px;
+  background: var(--cream);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  text-align: center;
+}
+.re-result-item__label { font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+.re-result-item__value { font-family: var(--font-mono); font-size: 1.1rem; font-weight: 500; color: var(--ink); }
+.re-result-item__value--green { color: var(--emerald-bright); }
+.re-result-item__value--gold { color: var(--gold); }
+
+.re-compare-card {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 26px;
+}
+.re-compare-card h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.re-compare-paths { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.re-path {
+  padding: 18px;
+  background: var(--cream);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.re-path--fha { border-top: 3px solid var(--emerald); }
+.re-path--llc { border-top: 3px solid var(--gold); }
+.re-path__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.re-path__title span { font-size: 16px; }
+.re-path__rows { display: flex; flex-direction: column; gap: 9px; }
+.re-path__row { display: flex; justify-content: space-between; font-size: 13px; }
+.re-path__row-label { color: var(--muted); }
+.re-path__row-value { font-family: var(--font-mono); font-weight: 500; color: var(--ink); }
+
+.re-markets {
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 26px;
+  margin-bottom: 24px;
+}
+.re-markets h2 {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.re-markets-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.re-markets-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 2px solid var(--border);
+}
+.re-markets-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  color: var(--charcoal);
+  vertical-align: middle;
+}
+.re-markets-table tr:last-child td { border-bottom: none; }
+.re-markets-table tr:hover td { background: rgba(46,125,82,0.03); }
+.re-markets-table td:nth-child(n+2) { font-family: var(--font-mono); font-size: 13px; }
+.re-star { color: var(--gold); font-size: 16px; }
+.re-city { font-weight: 600; color: var(--ink); }
+.re-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--mint-pale);
+  color: var(--emerald);
+}
+
+/* ─────────────────────────────────────────────
+   RESPONSIVE
+───────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; max-height: none; }
+  .hero__right { display: none; }
+  .hero__left { padding: 60px 32px 52px; }
+  .features-grid { grid-template-columns: 1fr; }
+  .steps-grid { grid-template-columns: 1fr; }
+  .landing-privacy { grid-template-columns: 1fr; }
+  .auth-page { grid-template-columns: 1fr; }
+  .auth-page__panel { display: none; }
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .dashboard-bottom { grid-template-columns: 1fr; }
+  .re-grid { grid-template-columns: 1fr; }
+  .history-month__row { grid-template-columns: 1fr 1fr; }
+  .app-main { padding: 20px 16px 60px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════
+     DEMO NAV
+══════════════════════════════════════ -->
+<nav class="demo-nav">
+  <button class="demo-nav__btn active" onclick="showPage('landing')">🏠 Landing</button>
+  <button class="demo-nav__btn" onclick="showPage('login')">🔐 Login</button>
+  <button class="demo-nav__btn" onclick="showPage('signup')">✨ Sign Up</button>
+  <button class="demo-nav__btn" onclick="showPage('dashboard')">💰 Dashboard</button>
+  <button class="demo-nav__btn" onclick="showPage('history')">📅 History</button>
+  <button class="demo-nav__btn" onclick="showPage('realestate')">🏠 Real Estate</button>
+</nav>
+
+
+<!-- ══════════════════════════════════════
+     PAGE: LANDING
+══════════════════════════════════════ -->
+<div id="page-landing" class="page visible">
+
+  <!-- Header -->
+  <header class="landing-header">
+    <a href="#" class="logo">
+      <div class="logo__mark">🌿</div>
+      <span class="logo__text">PennyPath</span>
+    </a>
+    <nav class="landing-header__nav">
+      <a href="#" class="btn btn--ghost btn--sm">Log in</a>
+      <a href="#" class="btn btn--primary btn--sm">Get started</a>
+    </nav>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero__left">
+      <div class="hero__eyebrow">
+        <span class="hero__eyebrow-dot"></span>
+        Family finance, made tangible
+      </div>
+      <h1 class="hero__title">
+        Track progress,<br>build momentum,<br><em>stick to the plan.</em>
+      </h1>
+      <p class="hero__sub">
+        PennyPath helps you map debt payoff, build savings targets, and keep a lightweight monthly history — so you can see what's working, what changed, and what to do next.
+      </p>
+      <div class="hero__ctas">
+        <a href="#" class="btn btn--gold btn--lg">Create an account</a>
+        <a href="#" class="btn btn--ghost-light btn--lg">Log in</a>
+        <a href="#" class="btn btn--ghost-light btn--lg">Take a peek →</a>
+      </div>
+      <p class="hero__peek-note">"Take a peek" opens a time-boxed trial with sample data. Changes don't persist.</p>
+    </div>
+
+    <div class="hero__right">
+      <div class="hero__visual">
+        <div class="hero__stats-grid">
+          <div class="hero-stat-card hero-stat-card--green">
+            <div class="hero-stat-card__label">Debt Remaining</div>
+            <div class="hero-stat-card__value">$18,420</div>
+            <div class="progress-bar">
+              <div class="progress-bar__fill" style="width:62%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#6b7c73;margin-top:6px;">
+              <span>62% paid</span><span>~14 mo left</span>
+            </div>
+          </div>
+          <div class="hero-stat-card hero-stat-card--gold">
+            <div class="hero-stat-card__label">HYSA Balance</div>
+            <div class="hero-stat-card__value">$6,800</div>
+            <div class="progress-bar progress-bar--gold">
+              <div class="progress-bar__fill" style="width:34%"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:#6b7c73;margin-top:6px;">
+              <span>34% funded</span><span>$20k goal</span>
+            </div>
+          </div>
+        </div>
+        <div class="hero-milestone-card">
+          <div class="hero-milestone-card__icon">🏆</div>
+          <div>
+            <div class="hero-milestone-card__title">Milestone reached!</div>
+            <div class="hero-milestone-card__label">First credit card fully paid off • March 2025</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="landing-features">
+    <div class="features-header">
+      <div class="section-eyebrow" style="justify-content:center;">What you get</div>
+      <h2>Everything you need to move forward</h2>
+      <p>Purpose-built for families with real goals and real debt. No bloat, no jargon.</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-card__icon">📊</div>
+        <h3>Payoff Planning</h3>
+        <p>Keep debts and payments in one place and watch your runway shrink as you log progress month by month.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card__icon">🎯</div>
+        <h3>Savings Targets</h3>
+        <p>Set goal milestones and track how accounts roll up into "fully funded" moments worth celebrating.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card__icon">📅</div>
+        <h3>Monthly History</h3>
+        <p>Compare months side-by-side using recorded deposits, payments, and check-ins. Real momentum, visible.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card__icon">🏠</div>
+        <h3>Real Estate Scenarios</h3>
+        <p>Model rental property investments with FHA vs LLC comparisons, cap rate, and cash-on-cash projections.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card__icon">🏅</div>
+        <h3>Milestone Badges</h3>
+        <p>Earn badges as you hit payoff and savings milestones. Progress deserves to be recognized.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-card__icon">🔒</div>
+        <h3>Private by Default</h3>
+        <p>Your data is yours. No ads, no sharing. The "Take a peek" demo resets automatically when you leave.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="landing-how">
+    <div class="landing-how__inner">
+      <div class="section-eyebrow" style="color:var(--mint);">How it works</div>
+      <h2>Three steps to momentum</h2>
+      <p class="landing-how__sub">Set up in minutes. Build the habit over months.</p>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-card__number">01</div>
+          <div class="step-card__title">Capture today.</div>
+          <p class="step-card__body">Add debts, savings accounts, and a couple of key totals to set your baseline. Your starting point becomes the foundation for everything.</p>
+          <div class="step-card__connector">→</div>
+        </div>
+        <div class="step-card">
+          <div class="step-card__number">02</div>
+          <div class="step-card__title">Pick targets.</div>
+          <p class="step-card__body">Decide what "done" looks like for each goal. Define payoff dates, savings milestones, and let the plan reflect it instantly.</p>
+          <div class="step-card__connector">→</div>
+        </div>
+        <div class="step-card">
+          <div class="step-card__number">03</div>
+          <div class="step-card__title">Log the month.</div>
+          <p class="step-card__body">Record payments and deposits each month so your history shows real momentum. See the progress over time and stay on track.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Privacy -->
+  <section class="landing-privacy">
+    <div>
+      <div class="section-eyebrow">Private by default</div>
+      <h2>Your plan, your data, your pace.</h2>
+      <p>PennyPath is designed to feel personal and fast. There are no ads, no data sharing, and no upsells. When you use "Take a peek," the session runs with sample data and resets automatically.</p>
+      <div style="margin-top:28px;">
+        <a href="#" class="btn btn--primary">Create free account</a>
+      </div>
+    </div>
+    <div class="landing-privacy__shield">
+      <div class="privacy-item">
+        <div class="privacy-item__icon">🔐</div>
+        <div>
+          <div class="privacy-item__title">No ads, ever</div>
+          <div class="privacy-item__body">PennyPath doesn't monetize your financial data or show advertising.</div>
+        </div>
+      </div>
+      <div class="privacy-item">
+        <div class="privacy-item__icon">⚡</div>
+        <div>
+          <div class="privacy-item__title">Fast & lightweight</div>
+          <div class="privacy-item__body">Static-first architecture keeps things snappy even on slow connections.</div>
+        </div>
+      </div>
+      <div class="privacy-item">
+        <div class="privacy-item__icon">🌱</div>
+        <div>
+          <div class="privacy-item__title">Sample data trial</div>
+          <div class="privacy-item__body">"Take a peek" resets automatically — explore freely, no commitment required.</div>
+        </div>
+      </div>
+      <div class="privacy-item">
+        <div class="privacy-item__icon">🏠</div>
+        <div>
+          <div class="privacy-item__title">Built for families</div>
+          <div class="privacy-item__body">Shared goals, shared progress. One planner, two people on the same page.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="landing-footer">
+    <div class="logo">
+      <div class="logo__mark">🌿</div>
+      <span class="logo__text" style="color:rgba(250,247,240,0.7);font-size:1.1rem;">PennyPath</span>
+    </div>
+    <span class="landing-footer__copy">© 2025 PennyPath. Family finance, made tangible.</span>
+  </footer>
+</div><!-- /page-landing -->
+
+
+<!-- ══════════════════════════════════════
+     PAGE: LOGIN
+══════════════════════════════════════ -->
+<div id="page-login" class="page">
+  <div class="auth-page">
+    <!-- Left panel -->
+    <div class="auth-page__panel">
+      <div class="auth-panel__inner">
+        <div class="auth-panel__logo logo">
+          <div class="logo__mark">🌿</div>
+          <span class="logo__text">PennyPath</span>
+        </div>
+        <h2 class="auth-panel__headline">
+          Welcome<br>back to your<br><em>financial path.</em>
+        </h2>
+        <p class="auth-panel__sub">
+          Your plan is waiting. Log in to check progress, log a payment, or see how far you've come.
+        </p>
+        <div class="auth-panel__features">
+          <div class="auth-panel__feature">
+            <div class="auth-panel__feature-icon">📊</div>
+            <span>Track debt payoff progress</span>
+          </div>
+          <div class="auth-panel__feature">
+            <div class="auth-panel__feature-icon">🎯</div>
+            <span>Monitor savings milestones</span>
+          </div>
+          <div class="auth-panel__feature">
+            <div class="auth-panel__feature-icon">📅</div>
+            <span>Review monthly history</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form side -->
+    <div class="auth-form-side">
+      <div class="auth-form-wrap">
+        <a href="#" class="auth-form-wrap__back" onclick="showPage('landing');return false;">← Back to home</a>
+        <h1 class="auth-form__title">Log in</h1>
+        <p class="auth-form__sub">Use your email and password to access your planner.</p>
+
+        <div class="auth-form__field">
+          <label class="auth-form__label">Email</label>
+          <input type="email" class="auth-form__input" placeholder="you@example.com">
+        </div>
+        <div class="auth-form__field">
+          <label class="auth-form__label">Password</label>
+          <input type="password" class="auth-form__input" placeholder="••••••••">
+        </div>
+
+        <div class="auth-form__toggle" onclick="this.querySelector('.auth-form__toggle-check').classList.toggle('checked')">
+          <div class="auth-form__toggle-check"></div>
+          <div class="auth-form__toggle-text">
+            Keep me signed in
+            <span class="auth-form__toggle-hint">Uncheck on shared or public computers.</span>
+          </div>
+        </div>
+
+        <button class="auth-form__submit">
+          Log in →
+        </button>
+
+        <div class="auth-form__divider">or</div>
+
+        <button class="auth-form__peek">👀 Take a peek (sample account)</button>
+        <p class="auth-form__peek-note">Temporary session with demo data. Resets when you leave.</p>
+
+        <div class="auth-form__footer">
+          Don't have an account? <a href="#" onclick="showPage('signup');return false;">Sign up</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /page-login -->
+
+
+<!-- ══════════════════════════════════════
+     PAGE: SIGN UP
+══════════════════════════════════════ -->
+<div id="page-signup" class="page">
+  <div class="auth-page">
+    <!-- Left panel -->
+    <div class="auth-page__panel">
+      <div class="auth-panel__inner">
+        <div class="auth-panel__logo logo">
+          <div class="logo__mark">🌿</div>
+          <span class="logo__text">PennyPath</span>
+        </div>
+        <h2 class="auth-panel__headline">
+          Start your<br>path to<br><em>financial freedom.</em>
+        </h2>
+        <p class="auth-panel__sub">
+          Create an account to sync your planner across devices and keep your progress safe.
+        </p>
+        <div class="auth-panel__features">
+          <div class="auth-panel__feature">
+            <div class="auth-panel__feature-icon">🔄</div>
+            <span>Sync across all devices</span>
+          </div>
+          <div class="auth-panel__feature">
+            <div class="auth-panel__feature-icon">🏅</div>
+            <span>Earn milestone badges</span>
+          </div>
+          <div class="auth-panel__feature">
+            <div class="auth-panel__feature-icon">🌱</div>
+            <span>Free forever, no credit card</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Form side -->
+    <div class="auth-form-side">
+      <div class="auth-form-wrap">
+        <a href="#" class="auth-form-wrap__back" onclick="showPage('landing');return false;">← Back to home</a>
+        <h1 class="auth-form__title">Create account</h1>
+        <p class="auth-form__sub">Start tracking your debt payoff and savings goals today.</p>
+
+        <div class="auth-form__field">
+          <label class="auth-form__label">Email</label>
+          <input type="email" class="auth-form__input" placeholder="you@example.com">
+        </div>
+        <div class="auth-form__field">
+          <label class="auth-form__label">Password</label>
+          <input type="password" class="auth-form__input" placeholder="••••••••">
+          <div style="font-size:12px;color:var(--muted);margin-top:6px;">Use a strong password you don't use elsewhere.</div>
+        </div>
+
+        <div class="auth-form__toggle" onclick="this.querySelector('.auth-form__toggle-check').classList.toggle('checked')">
+          <div class="auth-form__toggle-check checked"></div>
+          <div class="auth-form__toggle-text">
+            Keep me signed in
+            <span class="auth-form__toggle-hint">Uncheck on shared or public computers.</span>
+          </div>
+        </div>
+
+        <button class="auth-form__submit">
+          Create account →
+        </button>
+
+        <div class="auth-form__footer" style="margin-top:20px;">
+          Already have an account? <a href="#" onclick="showPage('login');return false;">Log in</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /page-signup -->
+
+
+<!-- ══════════════════════════════════════
+     PAGE: DASHBOARD
+══════════════════════════════════════ -->
+<div id="page-dashboard" class="page">
+  <div class="app-shell">
+
+    <header class="app-header">
+      <a href="#" class="app-header__brand">
+        <div class="logo__mark" style="width:28px;height:28px;font-size:14px;">🌿</div>
+        <span class="logo__text" style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:rgba(250,247,240,0.9);">PennyPath</span>
+      </a>
+      <nav class="app-nav">
+        <a href="#" class="app-nav__tab active"><span class="app-nav__tab-icon">💰</span> Financial Plan</a>
+        <a href="#" class="app-nav__tab" onclick="showPage('realestate');return false;"><span class="app-nav__tab-icon">🏠</span> Real Estate</a>
+        <a href="#" class="app-nav__tab" onclick="showPage('history');return false;"><span class="app-nav__tab-icon">📅</span> History</a>
+      </nav>
+      <div class="app-header__actions">
+        <div class="app-header__trial-badge">⏱ 23 min left</div>
+        <button class="app-header__settings-btn">⚙ Settings</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <!-- Page title row -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <div>
+          <div class="section-eyebrow">Financial Plan</div>
+          <h1 style="font-family:var(--font-display);font-size:1.6rem;font-weight:600;color:var(--ink);">Your Plan — May 2025</h1>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn--ghost btn--sm">+ Log Check-in</button>
+          <button class="btn btn--primary btn--sm">Save snapshot</button>
+        </div>
+      </div>
+
+      <!-- Main goals grid -->
+      <div class="dashboard-grid">
+        <!-- Debt payoff card -->
+        <div class="goal-card goal-card--debt">
+          <div class="goal-card__eyebrow">Goal 1 · Debt Payoff</div>
+          <div class="goal-card__header">
+            <div>
+              <div class="goal-card__title">Eliminate<br>all debt</div>
+              <div class="goal-card__sub">Target: December 2026</div>
+            </div>
+            <div class="goal-card__badge">Phase 1 Active</div>
+          </div>
+
+          <div class="debt-items">
+            <div class="debt-item">
+              <div class="debt-item__name">Chase Sapphire</div>
+              <div class="debt-item__bar"><div class="debt-item__fill" style="width:75%"></div></div>
+              <div class="debt-item__amount">$4,200</div>
+            </div>
+            <div class="debt-item">
+              <div class="debt-item__name">Citi Double Cash</div>
+              <div class="debt-item__bar"><div class="debt-item__fill" style="width:50%"></div></div>
+              <div class="debt-item__amount">$7,800</div>
+            </div>
+            <div class="debt-item">
+              <div class="debt-item__name">Capital One</div>
+              <div class="debt-item__bar"><div class="debt-item__fill" style="width:30%"></div></div>
+              <div class="debt-item__amount">$6,420</div>
+            </div>
+          </div>
+
+          <div class="progress-bar" style="margin-top:4px;">
+            <div class="progress-bar__fill" style="width:62%"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:rgba(250,247,240,0.45);margin-top:7px;">
+            <span>62% paid off</span><span>~14 months remaining</span>
+          </div>
+
+          <div class="goal-card__total">
+            <div class="goal-card__total-label">Total remaining</div>
+            <div class="goal-card__total-value">$18,420</div>
+          </div>
+        </div>
+
+        <!-- Savings card -->
+        <div class="goal-card goal-card--savings">
+          <div class="goal-card__eyebrow">Goal 2 · Savings Sprint</div>
+          <div class="goal-card__header">
+            <div>
+              <div class="goal-card__title">Build HYSA<br>& Emergency Fund</div>
+              <div class="goal-card__sub">Target: $30,000 total</div>
+            </div>
+            <div class="goal-card__badge">Phase 2 — Upcoming</div>
+          </div>
+
+          <div class="savings-items">
+            <div>
+              <div class="savings-item__header">
+                <div class="savings-item__name">High Yield Savings (Marcus)</div>
+                <div class="savings-item__amounts"><strong>$6,800</strong> / $20,000</div>
+              </div>
+              <div class="progress-bar progress-bar--gold">
+                <div class="progress-bar__fill" style="width:34%"></div>
+              </div>
+            </div>
+            <div>
+              <div class="savings-item__header">
+                <div class="savings-item__name">Emergency Fund (Ally)</div>
+                <div class="savings-item__amounts"><strong>$3,200</strong> / $10,000</div>
+              </div>
+              <div class="progress-bar progress-bar--gold">
+                <div class="progress-bar__fill" style="width:32%"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="goal-card__total">
+            <div class="goal-card__total-label">Total saved</div>
+            <div class="goal-card__total-value">$10,000</div>
+            <div class="chip chip--gold" style="margin-left:auto;">33% funded</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom row: check-ins, badges, snapshot -->
+      <div class="dashboard-bottom">
+        <div class="checkin-card">
+          <div class="checkin-card__header">
+            <div class="checkin-card__title">Recent Check-ins</div>
+            <span class="chip chip--green">3 this month</span>
+          </div>
+          <div class="checkin-list">
+            <div class="checkin-item">
+              <div class="checkin-item__dot"></div>
+              <div class="checkin-item__date">May 15</div>
+              <div class="checkin-item__note">Made extra payment on Chase</div>
+            </div>
+            <div class="checkin-item">
+              <div class="checkin-item__dot"></div>
+              <div class="checkin-item__date">May 8</div>
+              <div class="checkin-item__note">Deposited $400 to HYSA</div>
+            </div>
+            <div class="checkin-item">
+              <div class="checkin-item__dot"></div>
+              <div class="checkin-item__date">May 1</div>
+              <div class="checkin-item__note">Monthly review complete</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="badges-card">
+          <div class="checkin-card__header">
+            <div class="checkin-card__title">Milestone Badges</div>
+          </div>
+          <div class="badges-grid">
+            <div class="badge-item badge-item--earned">
+              <div class="badge-item__icon">🎯</div>
+              <div class="badge-item__label">First Card Cleared</div>
+              <div class="badge-item__sub">Earned Mar '25</div>
+            </div>
+            <div class="badge-item badge-item--earned">
+              <div class="badge-item__icon">💵</div>
+              <div class="badge-item__label">$5k Paid Off</div>
+              <div class="badge-item__sub">Earned Jan '25</div>
+            </div>
+            <div class="badge-item badge-item--locked">
+              <div class="badge-item__icon">🏆</div>
+              <div class="badge-item__label">Halfway There</div>
+              <div class="badge-item__sub">50% total debt</div>
+            </div>
+            <div class="badge-item badge-item--locked">
+              <div class="badge-item__icon">💰</div>
+              <div class="badge-item__label">HYSA $10k</div>
+              <div class="badge-item__sub">Save $10,000</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="snapshot-card">
+          <div class="snapshot-card__title">Monthly Snapshot · May 2025</div>
+          <div class="snapshot-rows">
+            <div class="snapshot-row">
+              <div class="snapshot-row__label">Total income</div>
+              <div class="snapshot-row__value">$9,400</div>
+            </div>
+            <div class="snapshot-row">
+              <div class="snapshot-row__label">Debt payments</div>
+              <div class="snapshot-row__value">$2,800</div>
+            </div>
+            <div class="snapshot-row">
+              <div class="snapshot-row__label">Savings deposits</div>
+              <div class="snapshot-row__value snapshot-row__value--green">+ $800</div>
+            </div>
+            <div class="snapshot-row__divider"></div>
+            <div class="snapshot-row">
+              <div class="snapshot-row__label">Net worth change</div>
+              <div class="snapshot-row__value snapshot-row__value--green">+$3,600</div>
+            </div>
+            <div class="snapshot-row">
+              <div class="snapshot-row__label">Days on plan</div>
+              <div class="snapshot-row__value">148</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div><!-- /page-dashboard -->
+
+
+<!-- ══════════════════════════════════════
+     PAGE: HISTORY
+══════════════════════════════════════ -->
+<div id="page-history" class="page">
+  <div class="app-shell">
+    <header class="app-header">
+      <a href="#" class="app-header__brand">
+        <div style="width:28px;height:28px;background:linear-gradient(135deg,var(--emerald),var(--mint));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(46,125,82,0.3);flex-shrink:0;">🌿</div>
+        <span style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:rgba(250,247,240,0.9);">PennyPath</span>
+      </a>
+      <nav class="app-nav">
+        <a href="#" class="app-nav__tab" onclick="showPage('dashboard');return false;"><span class="app-nav__tab-icon">💰</span> Financial Plan</a>
+        <a href="#" class="app-nav__tab" onclick="showPage('realestate');return false;"><span class="app-nav__tab-icon">🏠</span> Real Estate</a>
+        <a href="#" class="app-nav__tab active"><span class="app-nav__tab-icon">📅</span> History</a>
+      </nav>
+      <div class="app-header__actions">
+        <button class="app-header__settings-btn">⚙ Settings</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="history-header-row">
+        <div>
+          <div class="section-eyebrow">Monthly History</div>
+          <h1>Progress over time</h1>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn--ghost btn--sm">Export CSV</button>
+          <button class="btn btn--primary btn--sm">Log this month</button>
+        </div>
+      </div>
+
+      <!-- Summary bar -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:32px;">
+        <div class="card" style="padding:20px 22px;">
+          <div class="stat-label">Months logged</div>
+          <div class="stat-value" style="font-size:2rem;margin-top:5px;">5</div>
+        </div>
+        <div class="card" style="padding:20px 22px;">
+          <div class="stat-label">Total debt paid</div>
+          <div class="stat-value" style="font-size:2rem;margin-top:5px;color:var(--emerald-bright);">$11,580</div>
+        </div>
+        <div class="card" style="padding:20px 22px;">
+          <div class="stat-label">Total saved</div>
+          <div class="stat-value" style="font-size:2rem;margin-top:5px;color:var(--gold);">$4,000</div>
+        </div>
+        <div class="card" style="padding:20px 22px;">
+          <div class="stat-label">Net worth gained</div>
+          <div class="stat-value" style="font-size:2rem;margin-top:5px;color:var(--forest-mid);">$15,580</div>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="history-timeline">
+
+        <div class="history-month">
+          <div class="history-month__date-col">
+            <div class="history-month__month">May</div>
+            <div class="history-month__year">25</div>
+            <div class="history-month__line"></div>
+          </div>
+          <div class="history-month__card current">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <div style="font-size:13px;font-weight:700;color:var(--ink);">May 2025</div>
+              <div class="chip chip--green">Current month</div>
+            </div>
+            <div class="history-month__row">
+              <div class="history-metric">
+                <div class="history-metric__label">Debt Remaining</div>
+                <div class="history-metric__value">$18,420</div>
+                <div class="history-metric__delta history-metric__delta--pos">↓ $2,800</div>
+              </div>
+              <div class="history-metric">
+                <div class="history-metric__label">HYSA Balance</div>
+                <div class="history-metric__value">$6,800</div>
+                <div class="history-metric__delta history-metric__delta--pos">↑ $800</div>
+              </div>
+              <div class="history-metric">
+                <div class="history-metric__label">Payments Made</div>
+                <div class="history-metric__value">$2,800</div>
+                <div class="history-metric__delta" style="color:var(--muted);">3 payments</div>
+              </div>
+              <div class="history-metric">
+                <div class="history-metric__label">Check-ins</div>
+                <div class="history-metric__value">3</div>
+                <div class="history-metric__delta" style="color:var(--muted);">this month</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="history-month">
+          <div class="history-month__date-col">
+            <div class="history-month__month">Apr</div>
+            <div class="history-month__year">25</div>
+            <div class="history-month__line"></div>
+          </div>
+          <div class="history-month__card">
+            <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:14px;">April 2025</div>
+            <div class="history-month__row">
+              <div class="history-metric">
+                <div class="history-metric__label">Debt Remaining</div>
+                <div class="history-metric__value">$21,220</div>
+                <div class="history-metric__delta history-metric__delta--pos">↓ $2,400</div>
+              </div>
+              <div class="history-metric">
+                <div class="history-metric__label">HYSA Balance</div>
+                <div class="history-metric__value">$6,000</div>
+                <div class="history-metric__delta history-metric__delta--pos">↑ $1,000</div>
+              </div>
+              <div class="history-metric">
+                <div class="history-metric__label">Payments Made</div>
+                <div class="history-metric__value">$2,400</div>
+                <div class="history-metric__delta" style="color:var(--muted);">2 payments</div>
+              </div>
+              <div class="history-metric">
+                <div class="history-metric__label">Check-ins</div>
+                <div class="history-metric__value">4</div>
+                <div class="history-metric__delta" style="color:var(--muted);">this month</div>
+              </div>
+            </div>
+            <div class="history-month__notes">🏆 <strong>Milestone:</strong> First credit card fully paid off!</div>
+          </div>
+        </div>
+
+        <div class="history-month">
+          <div class="history-month__date-col">
+            <div class="history-month__month">Mar</div>
+            <div class="history-month__year">25</div>
+            <div class="history-month__line"></div>
+          </div>
+          <div class="history-month__card">
+            <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:14px;">March 2025</div>
+            <div class="history-month__row">
+              <div class="history-metric">
+                <div class="history-metric__label">Debt Remaining</div>
+                <div class="history-metric__value">$23,620</div>
+                <div class="history-metric__delta history-metric__delta--pos">↓ $2,200</div>
+              </div>
+              <div class="history-metric">
+                <div class="history-metric__label">HYSA Balance</div>
+                <div class="history-metric__value">$5,000</div>
+                <div class="history-metric__delta history-metric__delta--pos">↑ $600</div>
+              </div>
+              <div class="history-metric">
+                <div class="history-metric__label">Payments Made</div>
+                <div class="history-metric__value">$2,200</div>
+                <div class="history-metric__delta" style="color:var(--muted);">3 payments</div>
+              </div>
+              <div class="history-metric">
+                <div class="history-metric__label">Check-ins</div>
+                <div class="history-metric__value">2</div>
+                <div class="history-metric__delta" style="color:var(--muted);">this month</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="history-month">
+          <div class="history-month__date-col">
+            <div class="history-month__month">Jan</div>
+            <div class="history-month__year">25</div>
+          </div>
+          <div class="history-month__card">
+            <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:14px;">January 2025 — Starting baseline</div>
+            <div class="history-month__row">
+              <div class="history-metric">
+                <div class="history-metric__label">Debt (baseline)</div>
+                <div class="history-metric__value">$30,000</div>
+                <div class="history-metric__delta" style="color:var(--muted);">Starting point</div>
+              </div>
+              <div class="history-metric">
+                <div class="history-metric__label">HYSA (baseline)</div>
+                <div class="history-metric__value">$4,400</div>
+                <div class="history-metric__delta" style="color:var(--muted);">Starting point</div>
+              </div>
+              <div class="history-metric">
+                <div class="history-metric__label">Payments Made</div>
+                <div class="history-metric__value">—</div>
+                <div class="history-metric__delta" style="color:var(--muted);">Initial setup</div>
+              </div>
+              <div class="history-metric">
+                <div class="history-metric__label">Check-ins</div>
+                <div class="history-metric__value">1</div>
+                <div class="history-metric__delta" style="color:var(--muted);">setup</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /history-timeline -->
+    </main>
+  </div>
+</div><!-- /page-history -->
+
+
+<!-- ══════════════════════════════════════
+     PAGE: REAL ESTATE
+══════════════════════════════════════ -->
+<div id="page-realestate" class="page">
+  <div class="app-shell">
+    <header class="app-header">
+      <a href="#" class="app-header__brand">
+        <div style="width:28px;height:28px;background:linear-gradient(135deg,var(--emerald),var(--mint));border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(46,125,82,0.3);flex-shrink:0;">🌿</div>
+        <span style="font-family:var(--font-display);font-size:1.1rem;font-weight:700;color:rgba(250,247,240,0.9);">PennyPath</span>
+      </a>
+      <nav class="app-nav">
+        <a href="#" class="app-nav__tab" onclick="showPage('dashboard');return false;"><span class="app-nav__tab-icon">💰</span> Financial Plan</a>
+        <a href="#" class="app-nav__tab active"><span class="app-nav__tab-icon">🏠</span> Real Estate</a>
+        <a href="#" class="app-nav__tab" onclick="showPage('history');return false;"><span class="app-nav__tab-icon">📅</span> History</a>
+      </nav>
+      <div class="app-header__actions">
+        <button class="app-header__settings-btn">⚙ Settings</button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <!-- RE Hero -->
+      <div class="re-hero">
+        <div class="re-hero__inner">
+          <div style="display:inline-flex;align-items:center;gap:8px;font-size:11px;font-weight:700;letter-spacing:0.12em;text-transform:uppercase;color:var(--mint);margin-bottom:12px;">
+            <span style="width:18px;height:2px;background:var(--mint);border-radius:2px;display:inline-block;"></span>
+            Real Estate Planner
+          </div>
+          <h1>Florida Investment<br>Property Scenarios</h1>
+          <p class="re-hero__sub">Model rental cash flow, compare FHA vs LLC structures, and find the right market for your next investment property.</p>
+          <div class="re-hero__pills">
+            <div class="re-pill">Target market: <strong>Tampa, FL</strong></div>
+            <div class="re-pill">Strategy: <strong>Single-family rental</strong></div>
+            <div class="re-pill">Goal: <strong>5% cap rate</strong></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calculator + Compare -->
+      <div class="re-grid">
+        <!-- Calculator -->
+        <div class="re-calculator-card">
+          <h2><span>🧮</span> Rental Calculator</h2>
+          <div class="re-inputs">
+            <div class="re-field">
+              <label>Purchase Price</label>
+              <input type="text" value="$320,000">
+            </div>
+            <div class="re-field">
+              <label>Monthly Rent</label>
+              <input type="text" value="$2,200">
+            </div>
+            <div class="re-field">
+              <label>Down Payment %</label>
+              <input type="text" value="20%">
+            </div>
+            <div class="re-field">
+              <label>Interest Rate</label>
+              <input type="text" value="7.25%">
+            </div>
+            <div class="re-field">
+              <label>Annual Taxes</label>
+              <input type="text" value="$4,800">
+            </div>
+            <div class="re-field">
+              <label>Annual Insurance</label>
+              <input type="text" value="$3,200">
+            </div>
+          </div>
+          <div class="re-results">
+            <div class="re-result-item">
+              <div class="re-result-item__label">Cap Rate</div>
+              <div class="re-result-item__value re-result-item__value--green">5.1%</div>
+            </div>
+            <div class="re-result-item">
+              <div class="re-result-item__label">Cash-on-Cash</div>
+              <div class="re-result-item__value re-result-item__value--gold">6.8%</div>
+            </div>
+            <div class="re-result-item">
+              <div class="re-result-item__label">Monthly NOI</div>
+              <div class="re-result-item__value">$1,360</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FHA vs LLC -->
+        <div class="re-compare-card">
+          <h2><span>⚖️</span> FHA vs LLC Path</h2>
+          <div class="re-compare-paths">
+            <div class="re-path re-path--fha">
+              <div class="re-path__title"><span>🏡</span> FHA (House Hack)</div>
+              <div class="re-path__rows">
+                <div class="re-path__row">
+                  <div class="re-path__row-label">Down payment</div>
+                  <div class="re-path__row-value">3.5%</div>
+                </div>
+                <div class="re-path__row">
+                  <div class="re-path__row-label">Cash needed</div>
+                  <div class="re-path__row-value">$11,200</div>
+                </div>
+                <div class="re-path__row">
+                  <div class="re-path__row-label">MIP / year</div>
+                  <div class="re-path__row-value">$2,400</div>
+                </div>
+                <div class="re-path__row">
+                  <div class="re-path__row-label">Monthly PITI</div>
+                  <div class="re-path__row-value">$2,080</div>
+                </div>
+                <div class="re-path__row">
+                  <div class="re-path__row-label">Must occupy</div>
+                  <div class="re-path__row-value">12 months</div>
+                </div>
+              </div>
+            </div>
+            <div class="re-path re-path--llc">
+              <div class="re-path__title"><span>🏢</span> LLC (Conventional)</div>
+              <div class="re-path__rows">
+                <div class="re-path__row">
+                  <div class="re-path__row-label">Down payment</div>
+                  <div class="re-path__row-value">20%</div>
+                </div>
+                <div class="re-path__row">
+                  <div class="re-path__row-label">Cash needed</div>
+                  <div class="re-path__row-value">$64,000</div>
+                </div>
+                <div class="re-path__row">
+                  <div class="re-path__row-label">Liability shield</div>
+                  <div class="re-path__row-value">✓ Full</div>
+                </div>
+                <div class="re-path__row">
+                  <div class="re-path__row-label">Monthly PITI</div>
+                  <div class="re-path__row-value">$1,760</div>
+                </div>
+                <div class="re-path__row">
+                  <div class="re-path__row-label">Must occupy</div>
+                  <div class="re-path__row-value">No</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Market comparison -->
+      <div class="re-markets">
+        <h2><span>📍</span> Florida Market Comparison</h2>
+        <div style="overflow-x:auto;">
+          <table class="re-markets-table">
+            <thead>
+              <tr>
+                <th>Market</th>
+                <th>Avg Price</th>
+                <th>Avg Rent</th>
+                <th>Cap Rate</th>
+                <th>1% Rule</th>
+                <th>HOA Risk</th>
+                <th>Rating</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="re-city">Tampa, FL</span></td>
+                <td>$320,000</td>
+                <td>$2,200</td>
+                <td style="color:var(--emerald-bright);font-weight:700;">5.1%</td>
+                <td><span class="re-tag">0.69%</span></td>
+                <td style="color:var(--emerald);">Low</td>
+                <td><span class="re-star">★★★★★</span></td>
+              </tr>
+              <tr>
+                <td><span class="re-city">Jacksonville, FL</span></td>
+                <td>$280,000</td>
+                <td>$1,950</td>
+                <td style="color:var(--emerald-bright);font-weight:700;">4.8%</td>
+                <td><span class="re-tag">0.70%</span></td>
+                <td style="color:var(--emerald);">Low</td>
+                <td><span class="re-star">★★★★☆</span></td>
+              </tr>
+              <tr>
+                <td><span class="re-city">Orlando, FL</span></td>
+                <td>$355,000</td>
+                <td>$2,100</td>
+                <td style="color:var(--gold);font-weight:700;">4.2%</td>
+                <td><span class="re-tag" style="background:rgba(232,164,74,0.12);color:#a0630a;">0.59%</span></td>
+                <td style="color:var(--gold);">Medium</td>
+                <td><span class="re-star">★★★☆☆</span></td>
+              </tr>
+              <tr>
+                <td><span class="re-city">Fort Myers, FL</span> <span style="font-size:11px;color:var(--muted);">(condos)</span></td>
+                <td>$295,000</td>
+                <td>$1,800</td>
+                <td style="color:#c0392b;font-weight:700;">3.1%</td>
+                <td><span class="re-tag" style="background:rgba(192,57,43,0.08);color:#c0392b;">0.61%</span></td>
+                <td style="color:#c0392b;font-weight:700;">HIGH ⚠️</td>
+                <td>★☆☆☆☆</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:14px;font-size:12px;color:var(--muted);padding-left:2px;">
+          ⚠️ Fort Myers condos: high HOA fees + elevated insurance risk post-Ian. Not recommended for investment.
+        </div>
+      </div>
+    </main>
+  </div>
+</div><!-- /page-realestate -->
+
+
+<!-- ══════════════════════════════════════
+     JS: PAGE SWITCHER
+══════════════════════════════════════ -->
+<script>
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('visible'));
+  document.querySelectorAll('.demo-nav__btn').forEach(b => b.classList.remove('active'));
+
+  const pageMap = {
+    landing: 'page-landing',
+    login: 'page-login',
+    signup: 'page-signup',
+    dashboard: 'page-dashboard',
+    history: 'page-history',
+    realestate: 'page-realestate'
+  };
+
+  const navLabels = {
+    landing: '🏠 Landing',
+    login: '🔐 Login',
+    signup: '✨ Sign Up',
+    dashboard: '💰 Dashboard',
+    history: '📅 History',
+    realestate: '🏠 Real Estate'
+  };
+
+  document.getElementById(pageMap[id]).classList.add('visible');
+
+  // Find and activate the matching nav button
+  document.querySelectorAll('.demo-nav__btn').forEach(btn => {
+    if (btn.textContent.trim() === navLabels[id]) {
+      btn.classList.add('active');
+    }
+  });
+
+  window.scrollTo(0, 0);
+}
+</script>
+</body>
+</html>

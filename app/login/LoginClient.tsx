@@ -1,8 +1,9 @@
 'use client';
 
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
-import { fontPlayfair } from '../fonts';
 import {
   createSupabaseBrowserClient,
   getSaveLoginPreference,
@@ -12,8 +13,8 @@ import { clearTrialSession, enableTrialSession } from '../../lib/trial/trial-ses
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
 
 export default function LoginClient() {
-  const searchParams = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-  const takeAPeek = searchParams.get('takeAPeek') === '1';
+  const sp = useSearchParams();
+  const takeAPeek = sp.get('takeAPeek') === '1';
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,7 +29,6 @@ export default function LoginClient() {
     setBusyLabel('Starting trial…');
     setLoading(true);
     try {
-      // Trial should never persist across browser restarts.
       setSaveLoginPreference(false);
       enableTrialSession();
 
@@ -52,7 +52,6 @@ export default function LoginClient() {
     setBusyLabel('Signing in…');
     setLoading(true);
     try {
-      // If the user previously took a peek in this tab, clear any leftover trial markers.
       clearTrialSession();
       setSaveLoginPreference(saveLogin);
       const supabase = createSupabaseBrowserClient({ saveLogin });
@@ -74,106 +73,130 @@ export default function LoginClient() {
   return (
     <div className="auth-page">
       {loading ? <AppLoadingOverlay message={busyLabel} ariaLabel={busyLabel} /> : null}
-      <header className="auth-page__header">
-        <a className={`auth-page__brand ${fontPlayfair.className}`} href="/">
-          PennyPath
-        </a>
-        <nav className="auth-page__header-nav" aria-label="Site">
-          <a className="auth-page__header-link" href="/">
-            Home
-          </a>
-        </nav>
-      </header>
+      <div className="auth-page__panel">
+        <div className="auth-panel__inner">
+          <div className="auth-panel__logo logo">
+            <div className="logo__mark" aria-hidden="true">
+              🌿
+            </div>
+            <span className="logo__text">PennyPath</span>
+          </div>
+          <h2 className="auth-panel__headline">
+            Welcome
+            <br />
+            back to your
+            <br />
+            <em>financial path.</em>
+          </h2>
+          <p className="auth-panel__sub">
+            Your plan is waiting. Log in to check progress, log a payment, or see how far you&apos;ve come.
+          </p>
+          <div className="auth-panel__features">
+            <div className="auth-panel__feature">
+              <div className="auth-panel__feature-icon">📊</div>
+              <span>Track debt payoff progress</span>
+            </div>
+            <div className="auth-panel__feature">
+              <div className="auth-panel__feature-icon">🎯</div>
+              <span>Monitor savings milestones</span>
+            </div>
+            <div className="auth-panel__feature">
+              <div className="auth-panel__feature-icon">📅</div>
+              <span>Review monthly history</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      <main className="auth-page__main">
-        <div className="auth-page__inner">
-          <p className="auth-page__eyebrow">Account</p>
-          <h1 className={`auth-page__title ${fontPlayfair.className}`}>Log in</h1>
-          <p className="auth-page__lede">
+      <div className="auth-form-side">
+        <div className="auth-form-wrap">
+          <Link href="/" className="auth-form-wrap__back">
+            ← Back to home
+          </Link>
+          <h1 className="auth-form__title">Log in</h1>
+          <p className="auth-form__sub">
             {takeAPeek
               ? 'Start a time-boxed trial with sample data, or use your email and password to access your planner.'
               : 'Use your email and password to access your planner.'}
           </p>
 
-          <div className="auth-page__card">
-            <div style={{ marginBottom: 16 }}>
-              <button type="button" className="auth-page__submit" onClick={onStartTrial} disabled={loading}>
-                {loading ? 'Starting trial…' : 'Take a peek (sample account)'}
-              </button>
-              <p className="auth-page__hint" style={{ marginTop: 10 }}>
-                This is a temporary session with demo data. Your changes reset when you leave.
-              </p>
-              <hr style={{ margin: '18px 0', border: 'none', borderTop: '1px solid rgba(60, 68, 82, 0.12)' }} />
+          <form onSubmit={onSubmit}>
+            <div className="auth-form__field">
+              <label className="auth-form__label" htmlFor="login-email">
+                Email
+              </label>
+              <input
+                id="login-email"
+                className="auth-form__input"
+                type="email"
+                autoComplete="email"
+                required
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="auth-form__field">
+              <label className="auth-form__label" htmlFor="login-password">
+                Password
+              </label>
+              <div className="auth-form-password">
+                <input
+                  id="login-password"
+                  className="auth-form__input"
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  required
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="auth-form-password__reveal"
+                  onClick={() => setShowPassword((v) => !v)}
+                  aria-pressed={showPassword}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? 'Hide' : 'Show'}
+                </button>
+              </div>
             </div>
 
-            <form onSubmit={onSubmit}>
-              <div className="auth-page__field">
-                <label className="auth-page__label" htmlFor="email">
-                  Email
-                </label>
-                <input
-                  id="email"
-                  className="auth-page__input"
-                  type="email"
-                  autoComplete="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-
-              <div className="auth-page__field">
-                <label className="auth-page__label" htmlFor="password">
-                  Password
-                </label>
-                <div className="auth-page__input-wrap">
-                  <input
-                    id="password"
-                    className="auth-page__input auth-page__input--has-reveal"
-                    type={showPassword ? 'text' : 'password'}
-                    autoComplete="current-password"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="auth-page__password-reveal"
-                    onClick={() => setShowPassword((v) => !v)}
-                    aria-pressed={showPassword}
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showPassword ? 'Hide' : 'Show'}
-                  </button>
+            <label className="auth-form__toggle auth-form__toggle-wrap" htmlFor="login-save">
+              <input
+                id="login-save"
+                type="checkbox"
+                checked={saveLogin}
+                onChange={(e) => setSaveLogin(e.target.checked)}
+              />
+              <div>
+                <div className="auth-form__toggle-text">
+                  Keep me signed in
+                  <span className="auth-form__toggle-hint">Uncheck on shared or public computers.</span>
                 </div>
               </div>
+            </label>
 
-              <div className="auth-page__toggle">
-                <label className="auth-page__toggle-label">
-                  <input type="checkbox" checked={saveLogin} onChange={(e) => setSaveLogin(e.target.checked)} />
-                  <span>
-                    Save login
-                    <span className="auth-page__toggle-hint">
-                      Keep me signed in on this device (uncheck on shared computers).
-                    </span>
-                  </span>
-                </label>
-              </div>
+            {error ? <p className="auth-form__error">{error}</p> : null}
 
-              {error ? <p className="auth-page__error">{error}</p> : null}
+            <button type="submit" className="auth-form__submit" disabled={loading}>
+              {loading ? 'Signing in…' : 'Log in →'}
+            </button>
+          </form>
 
-              <button type="submit" disabled={loading} className="auth-page__submit">
-                {loading ? 'Logging in…' : 'Log in'}
-              </button>
+          <div className="auth-form__divider">or</div>
 
-              <p className="auth-page__footer">
-                Don’t have an account? <a href="/signup">Sign up</a>
-              </p>
-            </form>
+          <button type="button" className="auth-form__peek" onClick={onStartTrial} disabled={loading}>
+            👀 Take a peek (sample account)
+          </button>
+          <p className="auth-form__peek-note">Temporary session with demo data. Resets when you leave.</p>
+
+          <div className="auth-form__footer">
+            Don&apos;t have an account? <Link href="/signup">Sign up</Link>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 }
-

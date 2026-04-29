@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { fontDmSans } from './fonts';
+import { fontCormorant, fontJetBrains, fontOutfit } from './fonts';
 import './globals.css';
 
 export const metadata = {
@@ -11,7 +11,11 @@ export const metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={`${fontDmSans.className} min-h-screen antialiased`}>{children}</body>
+      <body
+        className={`${fontOutfit.className} ${fontOutfit.variable} ${fontCormorant.variable} ${fontJetBrains.variable} min-h-screen antialiased`}
+      >
+        {children}
+      </body>
     </html>
   );
 }
