@@ -329,41 +329,22 @@
 
     <div class="section-eyebrow" style="margin-top:32px; margin-bottom:12px;">Monthly Budget Breakdown</div>
 
-    <div class="budget-wrap">
-      <div class="budget-header">
+    <div class="budget-wrap budget-wrap--editable">
+      <div class="budget-header budget-header--4">
         <span>Category</span>
         <span>Amount</span>
         <span>%</span>
+        <span class="budget-header__action" aria-hidden="true"></span>
       </div>
-      <div class="budget-row">
-        <span>🏠 Monthly Expenses</span>
-        <span class="budget-amount" id="budget-expenses"></span>
-        <span class="budget-pct" id="budget-pct-expenses"></span>
+      <div id="budget-breakdown-rows"></div>
+      <div class="budget-add-row no-print">
+        <button type="button" class="btn-undo" id="budget-add-row-btn">+ Add category</button>
       </div>
-      <div class="budget-row">
-        <span>💳 Credit Card Payoff <span class="chip red">Phase 1</span></span>
-        <span class="budget-amount" style="color:var(--red)" id="budget-cc"></span>
-        <span class="budget-pct" id="budget-pct-cc"></span>
-      </div>
-      <div class="budget-row">
-        <span>💰 HYSA Savings <span class="chip green">Phase 1</span></span>
-        <span class="budget-amount" style="color:var(--sage)" id="budget-hysa"></span>
-        <span class="budget-pct" id="budget-pct-hysa"></span>
-      </div>
-      <div class="budget-row">
-        <span>🎉 Fun Budget</span>
-        <span class="budget-amount" style="color:var(--gold)" id="budget-fun"></span>
-        <span class="budget-pct" id="budget-pct-fun"></span>
-      </div>
-      <div class="budget-row">
-        <span>🛡️ Buffer <span style="font-size:12px;color:#aaa;">(rolls to savings if unused)</span></span>
-        <span class="budget-amount" id="budget-buffer"></span>
-        <span class="budget-pct" id="budget-pct-buffer"></span>
-      </div>
-      <div class="budget-row total">
+      <div class="budget-row total budget-row--total-static">
         <span>Total</span>
         <span class="budget-amount" id="budget-total"></span>
         <span class="budget-pct">100%</span>
+        <span class="budget-header__action" aria-hidden="true"></span>
       </div>
     </div>
 
