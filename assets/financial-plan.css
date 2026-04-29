@@ -4158,7 +4158,7 @@ body.financial-plan-demo-mode #checkin-form {
 .budget-wrap--editing .budget-header--4,
 .budget-wrap--editing .budget-row--editable,
 .budget-wrap--editing .budget-row--total-static {
-  grid-template-columns: minmax(0, 1fr) minmax(88px, 110px) 44px 36px;
+  grid-template-columns: minmax(0, 1fr) minmax(88px, 110px) minmax(56px, 72px) 36px;
 }
 .budget-header__action {
   width: 36px;
@@ -4200,6 +4200,21 @@ body.financial-plan-demo-mode #checkin-form {
   border-color: transparent;
   background: transparent;
   padding-left: 0;
+}
+.budget-cat-pct {
+  width: 100%;
+  border: 1px solid rgba(60, 68, 82, 0.18);
+  border-radius: 8px;
+  padding: 6px 6px;
+  font: inherit;
+  font-size: 13px;
+  background: var(--paper);
+  color: var(--text);
+  text-align: right;
+}
+.budget-cat-pct[readonly] {
+  border-color: transparent;
+  background: transparent;
 }
 .budget-cat-remove {
   appearance: none;

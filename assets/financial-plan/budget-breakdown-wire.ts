@@ -24,6 +24,21 @@ function findRow(plan: FinancialPlan, id: string): BudgetCategoryRow | undefined
   });
 }
 
+function parsePercentFromInput(raw: string): number {
+  const n = Number(String(raw || '').replace(/[^\d.-]/g, ''));
+  if (!Number.isFinite(n)) return 0;
+  return Math.max(0, n);
+}
+
+function budgetTotalForEditing(plan: FinancialPlan): number {
+  const take = Number((plan as any).monthlyTakeHome);
+  if (Number.isFinite(take) && take > 0) return take;
+  const rows = (((plan as any).budgetCategories as BudgetCategoryRow[] | undefined) || []).slice();
+  let total = 0;
+  for (let i = 0; i < rows.length; i++) total += Number(rows[i].amount) || 0;
+  return total > 0 ? total : 1;
+}
+
 export function wireBudgetBreakdown(render: RenderFn): void {
   const wrap = document.getElementById('budget-breakdown-wrap');
   if (!wrap || (wrap as HTMLElement & { _budgetWired?: boolean })._budgetWired) return;
@@ -48,8 +63,15 @@ export function wireBudgetBreakdown(render: RenderFn): void {
         const t = String(labelIn.value || '').trim();
         if (t) row.label = t.slice(0, 80);
       }
-      if (amtIn && row.role !== 'buffer') {
-        row.amount = parseAmountFromInput(amtIn.value);
+      if (row.role !== 'buffer') {
+        const pctIn = el.querySelector('.budget-cat-pct') as HTMLInputElement | null;
+        const mode = (el.getAttribute('data-last-edit') || '').toLowerCase();
+        if (mode === 'pct' && pctIn) {
+          const pct = parsePercentFromInput(pctIn.value);
+          row.amount = parseAmountFromInput(String((budgetTotalForEditing(PLAN as FinancialPlan) * pct) / 100));
+        } else if (amtIn) {
+          row.amount = parseAmountFromInput(amtIn.value);
+        }
       }
     });
     syncBudgetRowsToLegacyFields(PLAN as FinancialPlan);
@@ -59,7 +81,16 @@ export function wireBudgetBreakdown(render: RenderFn): void {
   function onBlur(e: Event): void {
     const t = e.target as HTMLElement | null;
     if (!t || !t.classList) return;
-    if (!t.classList.contains('budget-cat-amount') && !t.classList.contains('budget-cat-label')) return;
+    if (
+      !t.classList.contains('budget-cat-amount') &&
+      !t.classList.contains('budget-cat-label') &&
+      !t.classList.contains('budget-cat-pct')
+    ) {
+      return;
+    }
+    const rowEl = t.closest('.budget-row--editable');
+    if (rowEl && t.classList.contains('budget-cat-pct')) rowEl.setAttribute('data-last-edit', 'pct');
+    if (rowEl && t.classList.contains('budget-cat-amount')) rowEl.setAttribute('data-last-edit', 'amount');
     commitFromDom();
     void savePlanOverrides();
     window.setTimeout(function () {
@@ -68,6 +99,28 @@ export function wireBudgetBreakdown(render: RenderFn): void {
   }
 
   if (rowsHost) {
+    rowsHost.addEventListener('input', function (e: Event) {
+      const t = e.target as HTMLElement | null;
+      if (!t || !t.classList) return;
+      const rowEl = t.closest('.budget-row--editable');
+      if (!rowEl) return;
+      const amtIn = rowEl.querySelector('.budget-cat-amount') as HTMLInputElement | null;
+      const pctIn = rowEl.querySelector('.budget-cat-pct') as HTMLInputElement | null;
+      const total = budgetTotalForEditing(PLAN as FinancialPlan);
+      if (t.classList.contains('budget-cat-amount')) {
+        rowEl.setAttribute('data-last-edit', 'amount');
+        if (!amtIn || !pctIn) return;
+        const amt = parseAmountFromInput(amtIn.value);
+        pctIn.value = total > 0 ? (((amt / total) * 100 * 10) / 10).toFixed(1).replace(/\.0$/, '') : '0';
+      } else if (t.classList.contains('budget-cat-pct')) {
+        rowEl.setAttribute('data-last-edit', 'pct');
+        if (!amtIn || !pctIn) return;
+        const pct = parsePercentFromInput(pctIn.value);
+        const amt = parseAmountFromInput(String((total * pct) / 100));
+        amtIn.value = String(amt % 1 === 0 ? Math.round(amt) : amt.toFixed(2));
+      }
+    });
+
     rowsHost.addEventListener('blur', onBlur, true);
     rowsHost.addEventListener('click', function (e: Event) {
       const t = e.target as HTMLElement | null;

@@ -79,9 +79,11 @@ export function renderBudgetBreakdown(
           (readonlyAmt ? ' readonly' : '') +
           amountStyleAttr(row) +
           '/>' +
-          '<span class="budget-pct">' +
-          pct +
-          '%</span>' +
+          '<input type="text" class="budget-cat-pct" inputmode="decimal" autocomplete="off" aria-label="Percent" value="' +
+          escapeAttr(formatPctInput(pct)) +
+          '"' +
+          (readonlyAmt ? ' readonly' : '') +
+          '/>' +
           (showRemove
             ? '<button type="button" class="budget-cat-remove no-print" aria-label="Remove category">×</button>'
             : '<span class="budget-cat-remove-spacer" aria-hidden="true"></span>') +
@@ -145,4 +147,10 @@ function formatAmtInput(n: number): string {
   const x = Number(n);
   if (!Number.isFinite(x)) return '';
   return x === Math.floor(x) ? String(Math.round(x)) : x.toFixed(2);
+}
+
+function formatPctInput(n: number): string {
+  const x = Number(n);
+  if (!Number.isFinite(x)) return '0';
+  return x === Math.floor(x) ? String(Math.round(x)) : x.toFixed(1);
 }
