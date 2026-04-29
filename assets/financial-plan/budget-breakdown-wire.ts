@@ -12,6 +12,7 @@ import {
   updateBufferRowAmount,
 } from './budget-categories';
 import { savePlanOverrides } from './persistence';
+import { getBudgetBreakdownEditMode, setBudgetBreakdownEditMode } from './budget-breakdown-state';
 
 type RenderFn = () => void;
 
@@ -24,9 +25,13 @@ function findRow(plan: FinancialPlan, id: string): BudgetCategoryRow | undefined
 }
 
 export function wireBudgetBreakdown(render: RenderFn): void {
+  const wrap = document.getElementById('budget-breakdown-wrap');
+  if (!wrap || (wrap as HTMLElement & { _budgetWired?: boolean })._budgetWired) return;
+  (wrap as HTMLElement & { _budgetWired?: boolean })._budgetWired = true;
+
   const rowsHost = document.getElementById('budget-breakdown-rows');
   const addBtn = document.getElementById('budget-add-row-btn');
-  if (!rowsHost && !addBtn) return;
+  const toggleBtn = document.getElementById('budget-edit-toggle');
 
   function commitFromDom(): void {
     ensureBudgetCategories(PLAN as FinancialPlan);
@@ -84,6 +89,20 @@ export function wireBudgetBreakdown(render: RenderFn): void {
       syncBudgetRowsToLegacyFields(PLAN as FinancialPlan);
       updateBufferRowAmount(PLAN as FinancialPlan);
       void savePlanOverrides();
+      render();
+    });
+  }
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', function (e: Event) {
+      e.preventDefault();
+      if (getBudgetBreakdownEditMode()) {
+        commitFromDom();
+        void savePlanOverrides();
+        setBudgetBreakdownEditMode(false);
+      } else {
+        setBudgetBreakdownEditMode(true);
+      }
       render();
     });
   }

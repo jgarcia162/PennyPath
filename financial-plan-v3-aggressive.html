@@ -329,7 +329,10 @@
 
     <div class="section-eyebrow" style="margin-top:32px; margin-bottom:12px;">Monthly Budget Breakdown</div>
 
-    <div class="budget-wrap budget-wrap--editable">
+    <div id="budget-breakdown-wrap" class="budget-wrap budget-wrap--display">
+      <div class="budget-toolbar no-print">
+        <button type="button" id="budget-edit-toggle" class="btn-undo" aria-pressed="false">Edit</button>
+      </div>
       <div class="budget-header budget-header--4">
         <span>Category</span>
         <span>Amount</span>
