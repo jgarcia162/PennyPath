@@ -106,16 +106,6 @@ export function ensureBudgetCategories(plan: FinancialPlan): void {
       continue;
     }
   }
-  if (!seenRoles.has('buffer')) {
-    out.push({
-      id: 'cat-buffer',
-      role: 'buffer',
-      label: 'Buffer (rolls to savings if unused)',
-      emoji: '🛡️',
-      amount: 0,
-    });
-  }
-
   (plan as any).budgetCategories = out;
 }
 
