@@ -494,47 +494,24 @@ export default function DashboardPage() {
                 Monthly Budget Breakdown
               </div>
 
-              <div className="budget-wrap">
-                <div className="budget-header">
+              <div className="budget-wrap budget-wrap--editable">
+                <div className="budget-header budget-header--4">
                   <span>Category</span>
                   <span>Amount</span>
                   <span>%</span>
+                  <span className="budget-header__action" aria-hidden="true"></span>
                 </div>
-                <div className="budget-row">
-                  <span>🏠 Monthly Expenses</span>
-                  <span className="budget-amount" id="budget-expenses"></span>
-                  <span className="budget-pct" id="budget-pct-expenses"></span>
+                <div id="budget-breakdown-rows"></div>
+                <div className="budget-add-row no-print">
+                  <button type="button" className="btn-undo" id="budget-add-row-btn">
+                    + Add category
+                  </button>
                 </div>
-                <div className="budget-row">
-                  <span>
-                    💳 Credit Card Payoff <span className="chip red">Phase 1</span>
-                  </span>
-                  <span className="budget-amount" style={{ color: 'var(--red)' }} id="budget-cc"></span>
-                  <span className="budget-pct" id="budget-pct-cc"></span>
-                </div>
-                <div className="budget-row">
-                  <span>
-                    💰 HYSA Savings <span className="chip green">Phase 1</span>
-                  </span>
-                  <span className="budget-amount" style={{ color: 'var(--sage)' }} id="budget-hysa"></span>
-                  <span className="budget-pct" id="budget-pct-hysa"></span>
-                </div>
-                <div className="budget-row">
-                  <span>🎉 Fun Budget</span>
-                  <span className="budget-amount" style={{ color: 'var(--gold)' }} id="budget-fun"></span>
-                  <span className="budget-pct" id="budget-pct-fun"></span>
-                </div>
-                <div className="budget-row">
-                  <span>
-                    🛡️ Buffer <span style={{ fontSize: 12, color: '#aaa' }}>(rolls to savings if unused)</span>
-                  </span>
-                  <span className="budget-amount" id="budget-buffer"></span>
-                  <span className="budget-pct" id="budget-pct-buffer"></span>
-                </div>
-                <div className="budget-row total">
+                <div className="budget-row total budget-row--total-static">
                   <span>Total</span>
                   <span className="budget-amount" id="budget-total"></span>
                   <span className="budget-pct">100%</span>
+                  <span className="budget-header__action" aria-hidden="true"></span>
                 </div>
               </div>
 

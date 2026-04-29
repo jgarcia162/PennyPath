@@ -187,6 +187,11 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
     ['hysaGoalByShort', 'goalHysaWhen'].forEach(function (k) {
       if (typeof payload.labels[k] === 'string') (plan as any).labels[k] = payload.labels[k];
     });
+    const lb = payload.labels as { budgetCategories?: unknown };
+    if (Array.isArray(lb.budgetCategories)) (plan as any).budgetCategories = lb.budgetCategories;
+  }
+  if (Array.isArray((payload as any).budgetCategories)) {
+    (plan as any).budgetCategories = (payload as any).budgetCategories;
   }
   ['hysaBalance', 'joseSavings', 'sherlynaSavings'].forEach(function (k) {
     if (typeof payload[k] === 'number' && Number.isFinite(payload[k])) (plan as any)[k] = payload[k];

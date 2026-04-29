@@ -29,6 +29,7 @@ function asLabels(v: unknown): PlanLabels {
 }
 
 function mapRowToPlanConfig(row: FinancialPlansRow): Partial<FinancialPlan> {
+  const rawLabels = (row.labels || {}) as { budgetCategories?: unknown };
   return {
     monthlyTakeHome: row.monthly_take_home,
     paycheckAmount: row.paycheck_amount,
@@ -66,6 +67,7 @@ function mapRowToPlanConfig(row: FinancialPlansRow): Partial<FinancialPlan> {
     debtsProgressSort: row.debts_progress_sort as any,
     workingMonthYm: row.working_month_ym as any,
     dashboardViewMonthYm: row.dashboard_view_month_ym as any,
+    ...(Array.isArray(rawLabels.budgetCategories) ? { budgetCategories: rawLabels.budgetCategories as any } : {}),
   };
 }
 
@@ -104,7 +106,12 @@ function mapPlanToInsert(userId: string, plan: FinancialPlan): FinancialPlansIns
     net_worth_goal_k: plan.netWorthGoalK,
     phase2_hysa_result_k: plan.phase2HysaResultK,
     interest_note: plan.interestNote as any,
-    labels: plan.labels as any,
+    labels: {
+      ...(typeof plan.labels === 'object' && plan.labels ? (plan.labels as object) : {}),
+      ...(Array.isArray((plan as any).budgetCategories) && (plan as any).budgetCategories.length
+        ? { budgetCategories: (plan as any).budgetCategories }
+        : {}),
+    } as any,
 
     debts_editor_sort: plan.debtsEditorSort,
     debts_progress_sort: plan.debtsProgressSort,

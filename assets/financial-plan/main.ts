@@ -23,6 +23,7 @@ import { wireBadges, renderBadges } from './features.js';
 import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage';
 import { wipeAllUserData } from './wipe-user-data.js';
 import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap';
+import { wireBudgetBreakdown } from './budget-breakdown-wire';
 import { getTrialSeed, isTrialSessionActive } from '../../lib/trial/trial-session';
 
 const aiPayoffUi = wireAiPayoffPlan(PLAN);
@@ -148,6 +149,7 @@ async function init(): Promise<void> {
   wireMonthWrap(render);
   wireDashboardMonthSelector(render);
   wireDashboardGoalsAtGlance();
+  wireBudgetBreakdown(render);
 }
 
 if (document.readyState === 'loading') {
