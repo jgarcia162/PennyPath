@@ -4,7 +4,7 @@
 
 import type { Debt, PaymentHistoryItem } from '../../types/index.js';
 import { PLAN, PLAN_DEFAULTS, DEFAULT_DEBT_APR_PCT } from './plan-data';
-import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils';
+import { parseMoneyInput, numOr, roundMoney, formatCurrencyInput, formatMoneyInput } from './utils';
 import { appendDebtsEditorEmptyState, buildDebtsEditorThead, buildDebtRowTR } from './render-sections';
 import { normalizePaymentHistory, newPaymentId } from './persistence';
 import { defaultLogAtIsoForEdits } from './default-log-at';
@@ -65,7 +65,7 @@ export function readDebtsEditorIntoPlan(): void {
         paidOffVal = roundMoney(Math.max(0, prevPaidOff + applied));
         hist = hist.slice();
         hist.push({ id: newPaymentId(), amount: applied, at: defaultLogAtIsoForEdits() });
-        if (curEl) curEl.value = formatMoneyInput(currentBal);
+        if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
       }
       if (payEl) payEl.value = '';
     }

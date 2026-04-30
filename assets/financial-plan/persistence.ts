@@ -86,7 +86,8 @@ export function normalizePaymentHistory(d: unknown): PaymentHistoryItem[] {
       return p && typeof p === 'object' && Number.isFinite(Number(p.amount)) && typeof p.at === 'string';
     })
     .map(function (p: any) {
-      return { id: String(p.id || ''), amount: Number(p.amount), at: String(p.at) };
+      const amt = Math.max(0, Number(p.amount));
+      return { id: String(p.id || ''), amount: amt, at: String(p.at) };
     });
 }
 
@@ -280,10 +281,10 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
         return {
           id: String(d.id || Math.random().toString(36).slice(2)),
           name: String(d.name || 'Debt'),
-          current: numOr(d.current, 0),
-          paidOff: numOr(d.paidOff, 0),
+          current: Math.max(0, numOr(d.current, 0)),
+          paidOff: Math.max(0, numOr(d.paidOff, 0)),
           aprPct: numOr(d.aprPct, DEFAULT_DEBT_APR_PCT),
-          deferredAmount: numOr(d.deferredAmount, 0),
+          deferredAmount: Math.max(0, numOr(d.deferredAmount, 0)),
           deferredExpiresOn: typeof d.deferredExpiresOn === 'string' ? d.deferredExpiresOn : '',
           deferredMonthsRemaining: Number.isFinite(d.deferredMonthsRemaining)
             ? Math.max(0, Math.floor(d.deferredMonthsRemaining))
@@ -316,6 +317,7 @@ export async function applyPlanOverrides(): Promise<void> {
       repos.savingsAccountRepository.list(),
       repos.savingsGoalRepository.list(),
     ]);
+    const local = safeReadLocalPlanPayload();
     if (
       !cfg &&
       (!debts || !debts.length) &&
@@ -323,17 +325,24 @@ export async function applyPlanOverrides(): Promise<void> {
       (!savingsGoals || !savingsGoals.length)
     ) {
       // Supabase returned nothing (or RLS blocked). Fall back to legacy localStorage payload if present.
-      const local = safeReadLocalPlanPayload();
       if (local) {
         applyPlanPayloadFromObject(PLAN as any, local);
       }
       return;
     }
+    // Supabase can partially succeed (e.g., config row exists but debts table is empty/blocked).
+    // In that case, prefer the cached local lists to avoid wiping the UI on refresh.
+    const localDebts = local && Array.isArray((local as any).debts) ? ((local as any).debts as unknown[]) : [];
+    const localAccs =
+      local && Array.isArray((local as any).savingsAccounts) ? ((local as any).savingsAccounts as unknown[]) : [];
+    const localGoals =
+      local && Array.isArray((local as any).savingsGoals) ? ((local as any).savingsGoals as unknown[]) : [];
+
     applyPlanPayloadFromObject(PLAN as any, {
       ...(cfg || {}),
-      debts: debts || [],
-      savingsAccounts: savingsAccounts || [],
-      savingsGoals: savingsGoals || [],
+      debts: debts && debts.length ? debts : (localDebts as any),
+      savingsAccounts: savingsAccounts && savingsAccounts.length ? savingsAccounts : (localAccs as any),
+      savingsGoals: savingsGoals && savingsGoals.length ? savingsGoals : (localGoals as any),
     });
     // Keep a local cache so a Supabase outage doesn't wipe the UI on refresh.
     safeWriteLocalPlanPayload(PLAN as any);
@@ -345,7 +354,15 @@ export async function applyPlanOverrides(): Promise<void> {
 }
 
 export async function savePlanOverrides(): Promise<void> {
-  if (isFinancialPlanDemoMode()) return;
+  if (isFinancialPlanDemoMode()) {
+    // If the user is editing, treat it as opting out of demo mode.
+    // Persist locally so refreshes don't revert to the mock snapshot.
+    safeWriteLocalPlanPayload(PLAN as any);
+    try {
+      localStorage.setItem(DEMO_MODE_STORAGE_KEY, '0');
+    } catch {}
+    return;
+  }
   try {
     const repos = getRepositories();
 

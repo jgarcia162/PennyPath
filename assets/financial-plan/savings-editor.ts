@@ -4,7 +4,7 @@
 
 import type { DepositHistoryItem, FinancialPlan, SavingsAccount, SavingsGoal } from '../../types/index.js';
 import { PLAN, PLAN_DEFAULTS, DEFAULT_SAVINGS_APY_PCT } from './plan-data';
-import { parseMoneyInput, numOr, roundMoney, formatMoneyInput } from './utils';
+import { parseMoneyInput, numOr, roundMoney, formatCurrencyInput, formatMoneyInput } from './utils';
 import { appendSavingsEditorEmptyState, buildSavingsEditorThead, buildSavingsRowTR } from './render-sections';
 import { normalizeDepositHistory, newDepositId } from './persistence';
 import { ID_GOAL_HYSA, ensureSavingsGoals, getAccountGoalIds } from './savings-goals';
@@ -61,7 +61,7 @@ export function readSavingsEditorIntoPlan(): void {
       currentBal = roundMoney(currentBal + dep);
       hist = hist.slice();
       hist.push({ id: newDepositId(), amount: dep, at: defaultLogAtIsoForEdits() });
-      if (curEl) curEl.value = formatMoneyInput(currentBal);
+      if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
       if (depEl) depEl.value = '';
     }
 
