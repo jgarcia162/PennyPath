@@ -307,6 +307,12 @@ export function render(opts?: { skipDebtsEditor?: boolean }): void {
   setText('goal-hysa-when', PLAN.labels.goalHysaWhen);
   if (hasDebts) {
     setTextDash('goal-debt-amt', moneyExact(d.totalDebt));
+    setTextDash(
+      'goal-debt-desc',
+      d.totalDebt <= 0
+        ? 'Debt — completely eliminated. No more interest eating our income.'
+        : 'Debt — in progress. Every payment moves the plan forward.'
+    );
     setTextDash('goal-debt-when', d.debtGoalWhenLine);
     setTextDash('debt-progress-left', moneyExact(d.totalDebt) + ' remaining');
     setHtmlDash(
@@ -322,6 +328,7 @@ export function render(opts?: { skipDebtsEditor?: boolean }): void {
     setProgWidthDash('debt-progress-fill', d.debtGoalPct);
   } else {
     setTextDash('goal-debt-amt', '—');
+    setTextDash('goal-debt-desc', 'No debts on file — add them in Goal 2.');
     setTextDash('goal-debt-when', '');
     setTextDash('debt-progress-left', 'No debts on file');
     setHtmlDash('debt-progress-right', '<strong>—</strong>');
