@@ -93,6 +93,33 @@ function isValidBillAmountCell(s: unknown): boolean {
   return /^\$?\s*(?:(?:\d{1,3}(?:,\d{3})+)(?:\.\d+)?|\d+(?:\.\d+)?|\.\d+)$/.test(t);
 }
 
+function parseDueDayCell(raw: unknown): number | null {
+  const s = String(raw || '').trim();
+  if (!s) return null;
+  // Direct day-of-month number.
+  if (/^\d+$/.test(s)) {
+    const n = parseInt(s, 10);
+    return n >= 1 && n <= 31 ? n : null;
+  }
+
+  // Common date forms: M/D/YYYY, MM/DD/YYYY, M-D-YYYY, etc.
+  // We intentionally avoid `Date.parse` locale ambiguity and only extract the day-of-month token.
+  const mdY = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2}|\d{4})$/);
+  if (mdY) {
+    const day = parseInt(mdY[2], 10);
+    return day >= 1 && day <= 31 ? day : null;
+  }
+
+  // ISO date: YYYY-MM-DD
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) {
+    const day = parseInt(iso[3], 10);
+    return day >= 1 && day <= 31 ? day : null;
+  }
+
+  return null;
+}
+
 /**
  * @param {string} text - raw CSV
  * @param {{ name?: string, amount?: string, due_day?: string }} [columnNames] - header labels to match (case-insensitive)
@@ -148,15 +175,14 @@ export function parseCsvBills(
     const dueRaw = String(cols[iDue]).trim();
     if (!name || !String(name).trim()) continue;
     if (!isValidBillAmountCell(amountRaw)) continue;
-    if (!/^\d+$/.test(dueRaw)) continue;
     const amount = Number(amountRaw.replace(/[$,]/g, ''));
-    const dueDay = parseInt(dueRaw, 10);
+    const dueDay = parseDueDayCell(dueRaw);
+    if (dueDay == null) continue;
     if (!Number.isFinite(amount) || amount < 0) continue;
-    if (dueDay < 1 || dueDay > 31) continue;
     bills.push({ name: String(name).trim(), amount: amount, due_day: dueDay });
   }
   if (!bills.length) {
-    return { ok: false, error: 'No valid bill rows found. Check amounts and due day (1–31).' };
+    return { ok: false, error: 'No valid bill rows found. Check amounts and due day/date.' };
   }
   return { ok: true, bills: bills };
 }
