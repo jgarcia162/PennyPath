@@ -11,6 +11,7 @@ import {
   MONTH_WRAP_ROLLBACK_KEY,
   MONTH_WRAP_ARCHIVES_KEY,
 } from './plan-data';
+import { getRepositories } from '../../lib/repositories';
 import { applyPlanOverrides, savePlanOverrides, isFinancialPlanDemoMode } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { buildMonthCheckpointPayload } from './monthly-export';
@@ -84,11 +85,31 @@ function appendMonthArchive(checkpointObj: unknown): void {
   } catch (e) {}
 }
 
-export function hasMonthWrapRollback(): boolean {
+async function appendMonthArchiveSynced(checkpointObj: unknown): Promise<void> {
   try {
-    return !!localStorage.getItem(MONTH_WRAP_ROLLBACK_KEY);
+    const repos = getRepositories();
+    const arr = await repos.financialPlanStateRepository.getMonthWrapArchives();
+    const next = Array.isArray(arr) ? arr.slice() : [];
+    next.push(checkpointObj);
+    while (next.length > 48) next.shift();
+    await repos.financialPlanStateRepository.setMonthWrapArchives(next);
+    return;
   } catch (e) {
-    return false;
+    appendMonthArchive(checkpointObj);
+  }
+}
+
+export async function hasMonthWrapRollback(): Promise<boolean> {
+  try {
+    const repos = getRepositories();
+    const rb = await repos.financialPlanStateRepository.getMonthWrapRollback();
+    return !!rb;
+  } catch (e) {
+    try {
+      return !!localStorage.getItem(MONTH_WRAP_ROLLBACK_KEY);
+    } catch (e2) {
+      return false;
+    }
   }
 }
 
@@ -117,12 +138,12 @@ function isMonthWrapRollbackPayload(u: unknown): u is MonthWrapRollbackPayload {
 /**
  * @param render Optional re-render callback
  */
-export function wrapUpWorkingMonth(render?: () => void): void {
+export async function wrapUpWorkingMonth(render?: () => void): Promise<void> {
   if (isFinancialPlanDemoMode()) {
     window.alert('Turn off sample data in Settings before wrapping up a month.');
     return;
   }
-  void applyPlanOverrides();
+  await applyPlanOverrides();
   const plan = asFinancialPlan(PLAN);
   syncLegacySavingsFromAccounts(plan);
   const ym = getWorkingMonthYm(plan) as YyyyMm;
@@ -133,7 +154,7 @@ export function wrapUpWorkingMonth(render?: () => void): void {
       '?\n\n' +
       '• A saved snapshot for ' +
       ym +
-      ' is stored in this browser (month-wrap archives).\n' +
+      ' is stored on your account when signed in (otherwise in this browser).\n' +
       '• “This month” debt progress will move to ' +
       monthLabel(nextYm) +
       ' (payments in that month count toward the bar).\n' +
@@ -166,16 +187,21 @@ export function wrapUpWorkingMonth(render?: () => void): void {
     createdAt: new Date().toISOString(),
   };
   try {
-    localStorage.setItem(MONTH_WRAP_ROLLBACK_KEY, JSON.stringify(rollback));
+    const repos = getRepositories();
+    await repos.financialPlanStateRepository.setMonthWrapRollback(rollback as any);
   } catch (e) {
-    window.alert('Could not save undo data. Month wrap cancelled.');
-    return;
+    try {
+      localStorage.setItem(MONTH_WRAP_ROLLBACK_KEY, JSON.stringify(rollback));
+    } catch (e2) {
+      window.alert('Could not save undo data. Month wrap cancelled.');
+      return;
+    }
   }
 
-  appendMonthArchive(checkpoint);
+  await appendMonthArchiveSynced(checkpoint);
   PLAN.workingMonthYm = nextYm;
   PLAN.dashboardViewMonthYm = '';
-  void savePlanOverrides();
+  await savePlanOverrides();
   syncLegacySavingsFromAccounts(plan);
   if (typeof render === 'function') render();
 }
@@ -183,11 +209,52 @@ export function wrapUpWorkingMonth(render?: () => void): void {
 /**
  * @param render Optional re-render callback
  */
-export function undoLastMonthWrap(render?: () => void): void {
+export async function undoLastMonthWrap(render?: () => void): Promise<void> {
   if (isFinancialPlanDemoMode()) {
     window.alert('Turn off sample data in Settings before undoing.');
     return;
   }
+  try {
+    const repos = getRepositories();
+    const rb = await repos.financialPlanStateRepository.getMonthWrapRollback();
+    if (rb) {
+      const parsed = rb as unknown;
+      if (!isMonthWrapRollbackPayload(parsed)) return;
+      const rollback = parsed as MonthWrapRollbackPayload;
+
+      const ok = window.confirm(
+        'Undo the last month wrap?\n\n' +
+          'Your saved plan and check-ins will be restored to how they were before wrapping up ' +
+          (rollback.wrappedYm || 'that month') +
+          '.'
+      );
+      if (!ok) return;
+
+      try {
+        localStorage.setItem(STORAGE_KEY, rollback.balancesRaw);
+        localStorage.setItem(
+          checkinStorageKey(),
+          typeof rollback.checkinsRaw === 'string' ? rollback.checkinsRaw : '[]'
+        );
+      } catch (e) {
+        window.alert('Could not restore saved data.');
+        return;
+      }
+
+      try {
+        await repos.financialPlanStateRepository.clearMonthWrapRollback();
+      } catch (e) {}
+
+      await applyPlanOverrides();
+      const plan = asFinancialPlan(PLAN);
+      syncLegacySavingsFromAccounts(plan);
+      if (typeof render === 'function') render();
+      return;
+    }
+  } catch (e) {
+    // fall through to legacy localStorage
+  }
+
   let raw: string | null = null;
   try {
     raw = localStorage.getItem(MONTH_WRAP_ROLLBACK_KEY);
@@ -224,7 +291,7 @@ export function undoLastMonthWrap(render?: () => void): void {
     localStorage.removeItem(MONTH_WRAP_ROLLBACK_KEY);
   } catch (e) {}
 
-  void applyPlanOverrides();
+  await applyPlanOverrides();
   const plan = asFinancialPlan(PLAN);
   syncLegacySavingsFromAccounts(plan);
   if (typeof render === 'function') render();
@@ -253,12 +320,15 @@ export function wireMonthWrap(render: () => void): void {
   const undoBtn = document.getElementById('btn-month-wrap-undo') as HTMLButtonElement | null;
 
   function refreshUndo(): void {
-    if (undoBtn) undoBtn.disabled = !hasMonthWrapRollback();
+    if (!undoBtn) return;
+    void hasMonthWrapRollback().then(function (has) {
+      undoBtn.disabled = !has;
+    });
   }
 
   if (wrapBtn) {
     wrapBtn.addEventListener('click', function () {
-      wrapUpWorkingMonth(function () {
+      void wrapUpWorkingMonth(function () {
         render();
         refreshUndo();
       });
@@ -266,7 +336,7 @@ export function wireMonthWrap(render: () => void): void {
   }
   if (undoBtn) {
     undoBtn.addEventListener('click', function () {
-      undoLastMonthWrap(function () {
+      void undoLastMonthWrap(function () {
         render();
         refreshUndo();
       });

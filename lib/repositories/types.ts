@@ -54,6 +54,18 @@ export interface CheckInRepository {
   clearAll(): Promise<void>;
 }
 
+export interface FinancialPlanStateRepository {
+  getBadges(): Promise<Record<string, string>>;
+  setBadges(unlocks: Record<string, string>): Promise<void>;
+
+  getMonthWrapArchives(): Promise<unknown[]>;
+  setMonthWrapArchives(archives: unknown[]): Promise<void>;
+
+  getMonthWrapRollback(): Promise<unknown | null>;
+  setMonthWrapRollback(payload: unknown): Promise<void>;
+  clearMonthWrapRollback(): Promise<void>;
+}
+
 export interface Repositories {
   planConfigRepository: PlanConfigRepository;
   debtRepository: DebtRepository;
@@ -61,5 +73,6 @@ export interface Repositories {
   savingsGoalRepository: SavingsGoalRepository;
   checkInRepository: CheckInRepository;
   aiCacheRepository: AiCacheRepository;
+  financialPlanStateRepository: FinancialPlanStateRepository;
 }
 
