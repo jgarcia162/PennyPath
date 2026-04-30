@@ -346,17 +346,19 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
 
   const goal2Host = document.getElementById('goal2-debts');
   if (goal2Host) {
-    wireHoldToConfirm(goal2Host, '.goal2-remove-payment', {
-      holdMs: 2000,
-      confirmMessage: 'Remove this payment record?\n\nThis will add the amount back to the debt balance.',
-      onConfirm: function (btn) {
-        const debtId = btn.getAttribute('data-debt-id');
-        const paymentId = btn.getAttribute('data-payment-id');
-        if (debtId == null || paymentId == null) return;
-        removeDebtPayment(debtId, paymentId, showGoal2Unsaved, render);
-        void savePlanOverrides();
-        lastSavedDebts = cloneDebtsSnapshot();
-      },
+    goal2Host.addEventListener('click', function (e) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function') return;
+      const btn = t.closest('.goal2-remove-payment') as HTMLElement | null;
+      if (!btn) return;
+      const debtId = btn.getAttribute('data-debt-id');
+      const paymentId = btn.getAttribute('data-payment-id');
+      if (debtId == null || paymentId == null) return;
+      const ok = window.confirm('Remove this payment record?\n\nThis will add the amount back to the debt balance.');
+      if (!ok) return;
+      removeDebtPayment(debtId, paymentId, showGoal2Unsaved, render);
+      void savePlanOverrides();
+      lastSavedDebts = cloneDebtsSnapshot();
     });
   }
 
@@ -481,18 +483,20 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
 
   const goal3Host = document.getElementById('goal3-savings') as HTMLElement | null;
   if (goal3Host) {
-    wireHoldToConfirm(goal3Host, '.goal3-remove-deposit', {
-      holdMs: 2000,
-      confirmMessage: 'Remove this deposit record?\n\nThis will subtract the amount from the account balance.',
-      onConfirm: function (btn) {
-        const sid = btn.getAttribute('data-savings-id');
-        const depId = btn.getAttribute('data-deposit-id');
-        if (sid == null || depId == null) return;
-        removeSavingsDeposit(sid, depId, showGoal3Unsaved, render);
-        syncLegacySavingsFromAccounts(PLAN);
-        void savePlanOverrides();
-        lastSavedSavings = cloneSavingsSnapshot();
-      },
+    goal3Host.addEventListener('click', function (e) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function') return;
+      const btn = t.closest('.goal3-remove-deposit') as HTMLElement | null;
+      if (!btn) return;
+      const sid = btn.getAttribute('data-savings-id');
+      const depId = btn.getAttribute('data-deposit-id');
+      if (sid == null || depId == null) return;
+      const ok = window.confirm('Remove this deposit record?\n\nThis will subtract the amount from the account balance.');
+      if (!ok) return;
+      removeSavingsDeposit(sid, depId, showGoal3Unsaved, render);
+      syncLegacySavingsFromAccounts(PLAN);
+      void savePlanOverrides();
+      lastSavedSavings = cloneSavingsSnapshot();
     });
   }
 
