@@ -1879,7 +1879,25 @@ body.financial-plan-demo-mode #checkin-form {
 /* Plan tab goal targets: same shell as dashboard editors — .goal-editor-inner.balance-editor,
    .debts-editor-header / .debts-editor-title, .balance-editor-grid, .debts-editor-list + .editor-table */
 .plan-goals-editor {
-  margin: 0 0 22px;
+  margin: 12px 0 12px;
+}
+.plan-goals-editor > summary {
+  list-style: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+}
+.plan-goals-editor > summary::-webkit-details-marker {
+  display: none;
+}
+.plan-goals-editor > summary.plan-goals-editor__toggle {
+  display: block;
+  width: fit-content;
+  margin-left: auto;
+  margin-bottom: 0;
+}
+.plan-goals-editor[open] > summary.plan-goals-editor__toggle {
+  margin-bottom: 14px;
 }
 .plan-goals-editor__panel.balance-editor {
   padding: 26px 28px 28px;
@@ -1887,6 +1905,9 @@ body.financial-plan-demo-mode #checkin-form {
 .plan-goals-editor__header.debts-editor-header {
   margin-top: 0;
   margin-bottom: 14px;
+}
+.plan-goals-editor__toggle {
+  user-select: none;
 }
 .plan-goals-editor__hint {
   font-size: 13px;
@@ -2219,13 +2240,19 @@ body.financial-plan-demo-mode #checkin-form {
 }
 
 .dashboard-goals-details {
-  margin: 0 0 22px;
+  margin: 16px 0 22px;
+}
+.dashboard-goals-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 0 12px;
 }
 .dashboard-goals-summary {
   appearance: none;
   border: none;
   background: transparent;
-  width: 100%;
+  width: auto;
   text-align: left;
   font: inherit;
   color: inherit;
@@ -2233,31 +2260,24 @@ body.financial-plan-demo-mode #checkin-form {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 4px 0 12px;
+  padding: 0;
   user-select: none;
-  font-size: 10px; /* match section eyebrow sizing for visual centering */
-  line-height: 1.1;
+  line-height: 1;
 }
 .dashboard-goals-summary:focus-visible {
   outline: 2px solid rgba(58, 95, 138, 0.45);
   outline-offset: 3px;
   border-radius: 4px;
 }
-.dashboard-goals-summary-chevron {
-  display: inline-block;
-  width: 10px;
-  height: 10px;
-  border-right: 2px solid var(--gold);
-  border-bottom: 2px solid var(--gold);
-  transform: rotate(-45deg);
-  transition: transform 0.3s ease;
-  flex-shrink: 0;
-}
-.dashboard-goals-details--open .dashboard-goals-summary-chevron {
+.dashboard-goals-details--open .section-collapsible__chevron {
   transform: rotate(45deg);
 }
-.dashboard-goals-summary-eyebrow {
-  margin-bottom: 0;
+.dashboard-goals-title {
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 600;
 }
 .dashboard-goals-anim {
   display: grid;
@@ -2280,6 +2300,9 @@ body.financial-plan-demo-mode #checkin-form {
   border-bottom-color: rgba(212, 175, 55, 0.85);
 }
 @media (prefers-reduced-motion: reduce) {
+  .section-collapsible__chevron {
+    transition: none;
+  }
   .dashboard-goals-summary-chevron {
     transition: none;
   }
@@ -3558,6 +3581,8 @@ body.financial-plan-demo-mode #checkin-form {
   gap: 10px;
   flex-wrap: wrap;
   align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 12px;
 }
 
 .top-actions-hint {
@@ -3660,6 +3685,12 @@ body.financial-plan-demo-mode #checkin-form {
   border-radius: 14px;
   padding: 16px;
   margin-bottom: 14px;
+}
+.section.section-collapsible .checkin-wrap {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  padding: 0;
 }
 .checkin-form {
   display: grid;
@@ -4451,32 +4482,167 @@ body.financial-plan-demo-mode #checkin-form {
 }
 
 /* Collapsible check-in log */
-.checkin-collapsible {
+.checkin-collapsible,
+.section-collapsible {
   border: none;
   background: transparent;
   padding: 0;
   margin: 0;
 }
-.checkin-collapsible__summary {
+.section.section-collapsible,
+.section.section-static {
+  border: 1px solid rgba(60, 68, 82, 0.12);
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 18px;
+  padding: 14px 16px 16px;
+  box-shadow: 0 10px 28px rgba(82, 90, 108, 0.06);
+  margin-bottom: 56px;
+}
+.section.section-static--plain {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+.section.section-collapsible:not([open]) {
+  /* Center the summary row vertically when collapsed */
+  padding: 0 16px;
+  min-height: 74px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 36px;
+}
+:root[data-theme='dark'] .section.section-collapsible {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+}
+.checkin-collapsible__summary,
+.section-collapsible__summary {
   list-style: none;
   cursor: pointer;
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px 20px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px 16px;
   padding: 0 0 4px 0;
 }
-.checkin-collapsible__summary::-webkit-details-marker {
+.section-collapsible:not([open]) > .section-collapsible__summary {
+  margin-bottom: 0;
+  padding: 0;
+}
+.section-collapsible[open] > .section-collapsible__summary {
+  margin-bottom: 10px;
+}
+.section-collapsible__anim {
+  display: block;
+}
+.section-collapsible__body {
+  padding-top: 12px;
+}
+.collapsible-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.collapsible-controls__toggle {
+  appearance: none;
+  border: 1px solid rgba(196, 168, 110, 0.36);
+  background: rgba(115, 134, 168, 0.10);
+  color: rgba(60, 66, 78, 0.88);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 10px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+.collapsible-controls__toggle:hover {
+  background: rgba(115, 134, 168, 0.14);
+  border-color: rgba(196, 168, 110, 0.48);
+}
+.collapsible-controls__toggle:focus-visible {
+  outline: 2px solid rgba(58, 95, 138, 0.45);
+  outline-offset: 3px;
+}
+:root[data-theme='dark'] .collapsible-controls__toggle {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(196, 168, 110, 0.28);
+  color: rgba(233, 233, 246, 0.9);
+}
+:root[data-theme='dark'] .collapsible-controls__toggle:hover {
+  background: rgba(255, 255, 255, 0.085);
+  border-color: rgba(196, 168, 110, 0.42);
+}
+.checkin-collapsible__summary::-webkit-details-marker,
+.section-collapsible__summary::-webkit-details-marker {
   display: none;
 }
-.checkin-collapsible .section-title {
+.section-collapsible__summary-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 20px;
+  min-width: 0;
+}
+.section-collapsible__summary .section-title {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 600;
+  line-height: 1.1;
+}
+.section-collapsible__summary .section-eyebrow::before,
+.dashboard-goals-summary .section-eyebrow::before {
+  content: none;
+  display: none;
+}
+.checkin-collapsible .section-title,
+.section-collapsible .section-title {
   margin-bottom: 0;
 }
 .checkin-collapsible__title {
   margin: 0;
 }
-.checkin-collapsible__body {
+.checkin-collapsible__body,
+.section-collapsible__body {
   padding-top: 8px;
+}
+.section-collapsible__chevron {
+  flex: 0 0 auto;
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  background: transparent !important;
+  border: none !important;
+  border-right: 2px solid var(--gold) !important;
+  border-bottom: 2px solid var(--gold) !important;
+  transform: rotate(-45deg);
+  transition: transform 200ms ease;
+}
+.section-collapsible[open] .section-collapsible__chevron {
+  transform: rotate(45deg);
+}
+/* Dashboard goals at a glance uses a button + class toggle (not <details>) */
+.dashboard-goals-details--open .section-collapsible__chevron {
+  transform: rotate(45deg);
+}
+:root[data-theme="dark"] .section-collapsible__chevron {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+:root[data-theme="dark"] .section-collapsible__summary:hover .section-collapsible__chevron {
+  background: rgba(255, 255, 255, 0.085);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+:root[data-theme="dark"] .section-collapsible__chevron::before {
+  border-right-color: rgba(233, 233, 246, 0.66);
+  border-bottom-color: rgba(233, 233, 246, 0.66);
 }
 
 /* Payoff timeline empty state */

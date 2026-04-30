@@ -11,6 +11,81 @@ import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../..
 
 export default function DashboardPage() {
   const [booting, setBooting] = useState(true);
+  const [planCollapseLabel, setPlanCollapseLabel] = useState<'Collapse all' | 'Expand all'>('Collapse all');
+
+  function animateSection(details: HTMLDetailsElement, expand: boolean) {
+    const summary = details.querySelector('summary') as HTMLElement | null;
+    const anim = details.querySelector('.section-collapsible__anim') as HTMLElement | null;
+    if (!summary || !anim) {
+      details.open = expand;
+      return;
+    }
+
+    const startHeight = details.offsetHeight;
+
+    if (expand) {
+      details.open = true;
+    }
+
+    const endHeight = expand ? summary.offsetHeight + anim.offsetHeight : summary.offsetHeight;
+
+    details.style.height = `${startHeight}px`;
+    details.style.overflow = 'hidden';
+
+    const heightAnim = details.animate(
+      [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
+      { duration: 700, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+    );
+    anim.animate(
+      expand ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0 }],
+      { duration: expand ? 360 : 260, easing: 'ease' }
+    );
+
+    heightAnim.onfinish = () => {
+      if (!expand) details.open = false;
+      details.style.height = '';
+      details.style.overflow = '';
+    };
+  }
+
+  function wireAnimatedSections(rootId: string) {
+    const root = document.getElementById(rootId);
+    if (!root) return () => {};
+    const sections = Array.from(root.querySelectorAll('details.section-collapsible')) as HTMLDetailsElement[];
+    const cleanups: Array<() => void> = [];
+
+    sections.forEach((details) => {
+      const summary = details.querySelector('summary');
+      if (!summary) return;
+      const onClick = (e: Event) => {
+        e.preventDefault();
+        if (details.dataset.animating === '1') return;
+        details.dataset.animating = '1';
+        const expand = !details.open;
+        animateSection(details, expand);
+        window.setTimeout(() => {
+          delete (details as any).dataset.animating;
+        }, 760);
+      };
+      summary.addEventListener('click', onClick);
+      cleanups.push(() => summary.removeEventListener('click', onClick));
+    });
+
+    return () => cleanups.forEach((fn) => fn());
+  }
+
+  function toggleAllCollapsibles(rootId: string) {
+    const root = document.getElementById(rootId);
+    if (!root) return;
+    const details = root.querySelectorAll('details.section-collapsible');
+    const anyOpen = Array.from(details).some((d) => d instanceof HTMLDetailsElement && d.open);
+    const nextOpen = !anyOpen;
+    details.forEach((d) => {
+      if (!(d instanceof HTMLDetailsElement)) return;
+      animateSection(d, nextOpen);
+    });
+    setPlanCollapseLabel(nextOpen ? 'Collapse all' : 'Expand all');
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -50,8 +125,12 @@ export default function DashboardPage() {
     };
   }, []);
 
+  useEffect(() => {
+    return wireAnimatedSections('panel-plan');
+  }, []);
+
   return (
-    <div>
+    <div suppressHydrationWarning>
       {booting ? (
         <AppLoadingOverlay message="Loading your financial plan…" ariaLabel="Loading financial plan application" />
       ) : null}
@@ -217,21 +296,35 @@ export default function DashboardPage() {
         </div>
 
         <section className="page-tab-panel" id="panel-plan" role="tabpanel" aria-labelledby="tab-plan">
+          <div className="collapsible-controls no-print">
+            <button
+              type="button"
+              className="collapsible-controls__toggle"
+              onClick={() => toggleAllCollapsibles('panel-plan')}
+            >
+              {planCollapseLabel}
+            </button>
+          </div>
+
           {/* SECTION 01 */}
-          <div className="section">
-            <div className="section-eyebrow">Section 01</div>
-            <div className="section-title-row">
-              <div className="section-title">Where We Stand Today</div>
+          <details className="section section-collapsible" open>
+            <summary className="section-collapsible__summary">
+              <span className="section-collapsible__chevron" aria-hidden="true"></span>
+              <span className="section-collapsible__summary-text">
+                <span className="section-title">Where We Stand Today</span>
+              </span>
+            </summary>
+            <div className="section-collapsible__anim">
+              <div className="section-collapsible__body">
               <div className="top-actions no-print">
                 <button
                   type="button"
-                  className="plan-dash-nav-btn plan-dash-nav-btn--inline"
+                  className="btn-undo"
                   data-open-dashboard="debts"
                 >
-                  Click here to open the Dashboard to edit debts and savings.
+                  Edit Debts and Savings
                 </button>
               </div>
-            </div>
 
             <div className="status-grid">
               <div className="status-card positive">
@@ -274,19 +367,26 @@ export default function DashboardPage() {
                 <span id="nw-total-line"></span> <span id="nw-total-sub"></span>
               </div>
             </div>
-          </div>
+              </div>
+            </div>
+          </details>
 
           {/* SECTION 02 */}
-          <div className="section">
-            <div className="section-eyebrow">Section 02</div>
-            <div className="section-title">Where We Want to Be</div>
+          <details className="section section-collapsible" open>
+            <summary className="section-collapsible__summary">
+              <span className="section-collapsible__chevron" aria-hidden="true"></span>
+              <span className="section-collapsible__summary-text">
+                <span className="section-title">Where We Want to Be</span>
+              </span>
+            </summary>
+            <div className="section-collapsible__anim">
+              <div className="section-collapsible__body">
 
-            <div className="plan-goals-editor no-print" id="plan-goals-editor">
+            <details className="plan-goals-editor no-print" id="plan-goals-editor">
+              <summary className="btn-undo plan-goals-editor__toggle">
+                Edit Goals
+              </summary>
               <div className="goal-editor-inner balance-editor plan-goals-editor__panel">
-                <div className="debts-editor-header plan-goals-editor__header">
-                  <div className="debts-editor-title">Edit goal targets</div>
-                  <div className="plan-goals-editor__hint">Updates instantly across the plan + dashboard.</div>
-                </div>
 
                 <div className="plan-goals-editor__section">
                   <div className="debts-editor-header plan-goals-editor__subheader">
@@ -318,7 +418,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </details>
 
             <div className="goals-grid">
               <div className="goal-card primary">
@@ -339,7 +439,7 @@ export default function DashboardPage() {
                     id="btn-toggle-goal2-editor"
                     data-open-dashboard="debts"
                   >
-                    Edit in Dashboard
+                    Edit
                   </button>
                 </div>
                 <div className="goal-value" id="goal-debt-amt"></div>
@@ -372,12 +472,6 @@ export default function DashboardPage() {
                   </div>
                   <p className="monthly-debt-goal-hint" id="monthly-debt-goal-hint"></p>
                 </div>
-
-                <div className="plan-inline-hint plan-inline-hint--cta no-print">
-                  <button type="button" className="plan-dash-nav-btn" data-open-dashboard="debts">
-                    Click here to review individual debts and log payments.
-                  </button>
-                </div>
               </div>
 
               <div className="goal-card secondary-b">
@@ -389,7 +483,7 @@ export default function DashboardPage() {
                     id="btn-toggle-goal3-editor"
                     data-open-dashboard="savings"
                   >
-                    Edit in Dashboard
+                    Edit
                   </button>
                 </div>
                 <div className="goal-value" id="goal-efund-amt"></div>
@@ -397,22 +491,24 @@ export default function DashboardPage() {
                 <div className="goal-when" id="goal-efund-when"></div>
 
                 <div className="savings-goals-stack" id="savings-goals-stack"></div>
-
-                <div className="plan-inline-hint plan-inline-hint--cta no-print">
-                  <button type="button" className="plan-dash-nav-btn" data-open-dashboard="savings">
-                    Click here to edit accounts or log deposits.
-                  </button>
-                </div>
               </div>
             </div>
 
             <div className="callout sage" id="callout-full-picture"></div>
-          </div>
+              </div>
+            </div>
+          </details>
 
           {/* SECTION 03 */}
-          <div className="section" id="section-how-we-get-there">
-            <div className="section-eyebrow">Section 03</div>
-            <div className="section-title">How We Get There</div>
+          <details className="section section-collapsible" id="section-how-we-get-there" open>
+            <summary className="section-collapsible__summary">
+              <span className="section-collapsible__chevron" aria-hidden="true"></span>
+              <span className="section-collapsible__summary-text">
+                <span className="section-title">How We Get There</span>
+              </span>
+            </summary>
+            <div className="section-collapsible__anim">
+              <div className="section-collapsible__body">
 
             <div className="how-we-get-there__tabs-row no-print">
               <div className="page-tabs" role="tablist" aria-label="How we get there">
@@ -531,7 +627,6 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="callout red" id="callout-interest"></div>
               <div className="callout" id="callout-phase2"></div>
               <div className="callout blue" id="callout-fun"></div>
             </div>
@@ -706,69 +801,81 @@ export default function DashboardPage() {
                 </div>
               </dialog>
             </div>
-          </div>
+              </div>
+            </div>
+          </details>
 
           {/* SECTION 04 */}
-          <div className="section section-checkins" id="section-checkins">
-            <details className="checkin-collapsible" id="checkin-collapsible" open>
-              <summary className="checkin-collapsible__summary">
-                <span className="section-eyebrow">Section 04</span>
-                <span className="section-title checkin-collapsible__title">Monthly Check-In Log</span>
-              </summary>
-              <div className="checkin-collapsible__body">
-                <div className="checkin-wrap no-print">
-                  <form className="checkin-form" id="checkin-form">
-                    <div className="balance-field">
-                      <label htmlFor="checkin-date">Date</label>
-                      <input type="date" id="checkin-date" required />
-                    </div>
-                    <div className="balance-field">
-                      <label htmlFor="checkin-note">Note</label>
-                      <input
-                        type="text"
-                        id="checkin-note"
-                        autoComplete="off"
-                        placeholder="What went well? What needs adjusting?"
-                        required
-                      />
-                    </div>
-                    <div className="checkin-actions">
-                      <button type="submit" className="btn-save">
-                        Add check-in
-                      </button>
-                    </div>
-                  </form>
-                  <div className="balance-saved-hint" id="checkin-status" aria-live="polite"></div>
-                </div>
-                <div className="checkin-list checkin-log" id="checkin-list"></div>
-                <dialog className="checkin-log-dialog no-print" id="checkin-log-dialog" aria-labelledby="checkin-log-dialog-title">
-                  <div className="checkin-log-dialog__chrome">
-                    <div className="checkin-log-dialog__header">
-                      <h2 className="checkin-log-dialog__title" id="checkin-log-dialog-title">
-                        All check-ins
-                      </h2>
-                      <button
-                        type="button"
-                        className="checkin-log-dialog__close no-print"
-                        data-checkin-dialog-close
-                        aria-label="Close"
-                      >
-                        ×
-                      </button>
-                    </div>
-                    <div className="checkin-log-dialog__body" id="checkin-log-dialog-body"></div>
+          <details className="section section-checkins section-collapsible" id="section-checkins" open>
+            <summary className="section-collapsible__summary">
+              <span className="section-collapsible__chevron" aria-hidden="true"></span>
+              <span className="section-collapsible__summary-text">
+                <span className="section-title">Monthly Check-In Log</span>
+              </span>
+            </summary>
+            <div className="section-collapsible__anim">
+              <div className="section-collapsible__body">
+              <div className="checkin-wrap no-print">
+                <form className="checkin-form" id="checkin-form">
+                  <div className="balance-field">
+                    <label htmlFor="checkin-date">Date</label>
+                    <input type="date" id="checkin-date" required />
                   </div>
-                </dialog>
+                  <div className="balance-field">
+                    <label htmlFor="checkin-note">Note</label>
+                    <input
+                      type="text"
+                      id="checkin-note"
+                      autoComplete="off"
+                      placeholder="What went well? What needs adjusting?"
+                      required
+                    />
+                  </div>
+                  <div className="checkin-actions">
+                    <button type="submit" className="btn-save">
+                      Add check-in
+                    </button>
+                  </div>
+                </form>
+                <div className="balance-saved-hint" id="checkin-status" aria-live="polite"></div>
               </div>
-            </details>
-          </div>
+              <div className="checkin-list checkin-log" id="checkin-list"></div>
+              <dialog className="checkin-log-dialog no-print" id="checkin-log-dialog" aria-labelledby="checkin-log-dialog-title">
+                <div className="checkin-log-dialog__chrome">
+                  <div className="checkin-log-dialog__header">
+                    <h2 className="checkin-log-dialog__title" id="checkin-log-dialog-title">
+                      All check-ins
+                    </h2>
+                    <button
+                      type="button"
+                      className="checkin-log-dialog__close no-print"
+                      data-checkin-dialog-close
+                      aria-label="Close"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="checkin-log-dialog__body" id="checkin-log-dialog-body"></div>
+                </div>
+              </dialog>
+              </div>
+            </div>
+          </details>
 
           {/* SECTION 05 */}
-          <div className="section" id="section-milestones">
-            <div className="section-eyebrow">Section 05</div>
-            <div className="section-title">Milestones</div>
-            <div className="badges-grid" id="badges-grid"></div>
-          </div>
+          <details className="section section-collapsible" id="section-milestones" open>
+            <summary className="section-collapsible__summary">
+              <span className="section-collapsible__chevron" aria-hidden="true"></span>
+              <span className="section-collapsible__summary-text">
+                <span className="section-title">Milestones</span>
+              </span>
+            </summary>
+            <div className="section-collapsible__anim">
+              <div className="section-collapsible__body">
+                <div className="badges-grid" id="badges-grid"></div>
+              </div>
+            </div>
+          </details>
         </section>
 
         <section
@@ -996,18 +1103,20 @@ export default function DashboardPage() {
           </section>
 
           <div className="dashboard-goals-details no-print" id="dashboard-goals-at-glance">
-            <button
-              type="button"
-              className="dashboard-goals-summary"
-              id="dashboard-goals-toggle"
-              aria-expanded="false"
-              aria-controls="dashboard-goals-panel"
-            >
-              <span className="dashboard-goals-summary-chevron" aria-hidden="true"></span>
-              <span className="section-eyebrow dashboard-goals-summary-eyebrow" id="dashboard-goals-heading">
-                Goals at a glance
-              </span>
-            </button>
+            <div className="dashboard-goals-header">
+              <button
+                type="button"
+                className="dashboard-goals-summary"
+                id="dashboard-goals-toggle"
+                aria-expanded="false"
+                aria-controls="dashboard-goals-panel"
+              >
+                <span className="section-collapsible__chevron" aria-hidden="true"></span>
+                <span className="dashboard-goals-title" id="dashboard-goals-heading">
+                  Goals at a glance
+                </span>
+              </button>
+            </div>
             <div
               className="dashboard-goals-anim"
               id="dashboard-goals-panel"
