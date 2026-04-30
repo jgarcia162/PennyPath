@@ -6,6 +6,7 @@
 
 import { PLAN, BADGES_STORAGE_KEY } from './plan-data';
 import { isFinancialPlanDemoMode } from './persistence';
+import { getRepositories } from '../../lib/repositories';
 import { getCheckinEntriesForBadges } from './checkin-log';
 import {
   escapeHtml,
@@ -82,7 +83,7 @@ export function renderPayoffTimeline(moneyExact, hasBalanceData) {
     '</table>';
 }
 
-function loadBadgeUnlocks() {
+function safeReadUnlocksFromLocalStorage() {
   try {
     const raw = localStorage.getItem(BADGES_STORAGE_KEY);
     if (!raw) return {};
@@ -93,11 +94,31 @@ function loadBadgeUnlocks() {
   }
 }
 
-function saveBadgeUnlocks(unlocks) {
+function safeWriteUnlocksToLocalStorage(unlocks) {
   try {
     localStorage.setItem(BADGES_STORAGE_KEY, JSON.stringify(unlocks || {}));
   } catch (e) {
     /* ignore */
+  }
+}
+
+async function loadBadgeUnlocks() {
+  if (isFinancialPlanDemoMode()) return {};
+  try {
+    const repos = getRepositories();
+    return await repos.financialPlanStateRepository.getBadges();
+  } catch (e) {
+    return safeReadUnlocksFromLocalStorage();
+  }
+}
+
+async function saveBadgeUnlocks(unlocks) {
+  if (isFinancialPlanDemoMode()) return;
+  try {
+    const repos = getRepositories();
+    await repos.financialPlanStateRepository.setBadges(unlocks || {});
+  } catch (e) {
+    safeWriteUnlocksToLocalStorage(unlocks);
   }
 }
 
@@ -118,11 +139,11 @@ function badgeCatalog() {
   ];
 }
 
-export function renderBadges() {
+export async function renderBadges() {
   const host = document.getElementById('badges-grid');
   if (!host) return;
 
-  const unlocks = loadBadgeUnlocks();
+  const unlocks = await loadBadgeUnlocks();
   const checkins = getCheckinEntriesForBadges();
   const evald =
     window.Badges && window.Badges.evaluateBadges ? window.Badges.evaluateBadges(PLAN, checkins) : [];
@@ -139,7 +160,7 @@ export function renderBadges() {
       justUnlocked[b.id] = true;
     }
   });
-  if (Object.keys(justUnlocked).length && !isFinancialPlanDemoMode()) saveBadgeUnlocks(unlocks);
+  if (Object.keys(justUnlocked).length && !isFinancialPlanDemoMode()) await saveBadgeUnlocks(unlocks);
 
   host.innerHTML = badgeCatalog()
     .map(function (b) {

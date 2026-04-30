@@ -126,7 +126,7 @@ function wireWipeAllButton(): void {
     syncLegacySavingsFromAccounts(PLAN);
     render();
     initEditorSnapshots();
-    renderBadges();
+    void renderBadges();
   });
 }
 
@@ -146,7 +146,7 @@ async function init(): Promise<void> {
   wireGoalTargetsEditor(render);
   wireCheckIns();
   wireBadges();
-  renderBadges();
+  void renderBadges();
   wireWipeAllButton();
   wireMonthWrap(render);
   wireDashboardMonthSelector(render);

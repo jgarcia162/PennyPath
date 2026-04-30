@@ -6,6 +6,7 @@
 import { PLAN } from './plan-data';
 import { savePlanOverrides, applyBlankFinancialBalances } from './persistence';
 import { FINANCIAL_PLAN_STORAGE_KEYS, THEME_STORAGE_KEY } from './dev-mock-storage';
+import { getRepositories } from '../../lib/repositories';
 import {
   AI_PAYOFF_PLAN_CACHE_LS_KEY,
   AI_BILL_CALENDAR_CACHE_LS_KEY,
@@ -33,6 +34,12 @@ export function wipeAllUserData() {
   } catch (e) {}
   applyBlankFinancialBalances(PLAN);
   void savePlanOverrides();
+  try {
+    const repos = getRepositories();
+    void repos.financialPlanStateRepository.setBadges({});
+    void repos.financialPlanStateRepository.setMonthWrapArchives([]);
+    void repos.financialPlanStateRepository.clearMonthWrapRollback();
+  } catch (e) {}
   try {
     if (window.CheckInService && typeof window.CheckInService.clearAll === 'function') {
       window.CheckInService.clearAll();
