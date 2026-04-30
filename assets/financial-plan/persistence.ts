@@ -86,7 +86,8 @@ export function normalizePaymentHistory(d: unknown): PaymentHistoryItem[] {
       return p && typeof p === 'object' && Number.isFinite(Number(p.amount)) && typeof p.at === 'string';
     })
     .map(function (p: any) {
-      return { id: String(p.id || ''), amount: Number(p.amount), at: String(p.at) };
+      const amt = Math.max(0, Number(p.amount));
+      return { id: String(p.id || ''), amount: amt, at: String(p.at) };
     });
 }
 
@@ -280,10 +281,10 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
         return {
           id: String(d.id || Math.random().toString(36).slice(2)),
           name: String(d.name || 'Debt'),
-          current: numOr(d.current, 0),
-          paidOff: numOr(d.paidOff, 0),
+          current: Math.max(0, numOr(d.current, 0)),
+          paidOff: Math.max(0, numOr(d.paidOff, 0)),
           aprPct: numOr(d.aprPct, DEFAULT_DEBT_APR_PCT),
-          deferredAmount: numOr(d.deferredAmount, 0),
+          deferredAmount: Math.max(0, numOr(d.deferredAmount, 0)),
           deferredExpiresOn: typeof d.deferredExpiresOn === 'string' ? d.deferredExpiresOn : '',
           deferredMonthsRemaining: Number.isFinite(d.deferredMonthsRemaining)
             ? Math.max(0, Math.floor(d.deferredMonthsRemaining))

@@ -5,7 +5,7 @@
 import type { Debt, DerivedPlanMetrics, FinancialPlan, SavingsAccount, SavingsGoal } from '../../types/index.js';
 import { DEFAULT_DEBT_APR_PCT, DEFAULT_SAVINGS_APY_PCT, PLAN } from './plan-data';
 import { ensureSavingsGoals, accountContributesToGoal } from './savings-goals';
-import { numOr, formatMoneyInput } from './utils';
+import { numOr, formatCurrencyInput, formatMoneyInput } from './utils';
 
 type MoneyFn = (n: number) => string;
 
@@ -257,18 +257,21 @@ export function buildDebtRowTR(debt: Debt): HTMLTableRowElement {
     )
   );
   row.appendChild(
-    tdInput('', '<input type="text" data-field="current" inputmode="decimal" autocomplete="off" value="">')
-  );
-  row.appendChild(
     tdInput(
       '',
-      '<input type="text" data-field="aprPct" inputmode="decimal" autocomplete="off" placeholder="0" value="">'
+      '<input type="text" data-field="current" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="$0.00" value="">'
     )
   );
   row.appendChild(
     tdInput(
       '',
-      '<input type="text" data-field="deferredAmount" inputmode="decimal" autocomplete="off" value="">'
+      '<input type="text" data-field="aprPct" data-money="rate" inputmode="decimal" autocomplete="off" placeholder="0.00" value="">'
+    )
+  );
+  row.appendChild(
+    tdInput(
+      '',
+      '<input type="text" data-field="deferredAmount" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="$0.00" value="">'
     )
   );
   row.appendChild(
@@ -278,7 +281,7 @@ export function buildDebtRowTR(debt: Debt): HTMLTableRowElement {
     tdInput(
       'editor-table__cell--pay',
       '<div class="field-inline-action">' +
-        '<input type="text" data-field="payment" inputmode="decimal" autocomplete="off" placeholder="0.00">' +
+        '<input type="text" data-field="payment" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="$0.00">' +
         '<button type="button" class="btn-icon btn-quick-payment" data-action="quick-payment" title="Log payment now" aria-label="Log payment now">+</button>' +
         '</div>'
     )
@@ -299,9 +302,12 @@ export function buildDebtRowTR(debt: Debt): HTMLTableRowElement {
   const defInput = row.querySelector('input[data-field="deferredAmount"]') as HTMLInputElement | null;
   const defDateInput = row.querySelector('input[data-field="deferredExpiresOn"]') as HTMLInputElement | null;
   if (nameInput) nameInput.value = debt.name || '';
-  if (curInput) curInput.value = formatMoneyInput(numOr(debt.current, 0));
-  if (aprInput) aprInput.value = formatMoneyInput(numOr(debt.aprPct, DEFAULT_DEBT_APR_PCT));
-  if (defInput) defInput.value = formatMoneyInput(numOr(debt.deferredAmount, 0));
+  const cur = numOr(debt.current, 0);
+  const apr = numOr(debt.aprPct, DEFAULT_DEBT_APR_PCT);
+  const def = numOr(debt.deferredAmount, 0);
+  if (curInput) curInput.value = cur > 0 ? formatCurrencyInput(cur) : '';
+  if (aprInput) aprInput.value = apr > 0 ? formatMoneyInput(apr) : '';
+  if (defInput) defInput.value = def > 0 ? formatCurrencyInput(def) : '';
   if (defDateInput) defDateInput.value = typeof debt.deferredExpiresOn === 'string' ? debt.deferredExpiresOn : '';
 
   return row;
@@ -395,17 +401,17 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
 
   const tdCur = document.createElement('td');
   tdCur.innerHTML =
-    '<input type="text" data-field="current" inputmode="decimal" autocomplete="off" value="">';
+    '<input type="text" data-field="current" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="$0.00" value="">';
 
   const tdApy = document.createElement('td');
   tdApy.innerHTML =
-    '<input type="text" data-field="apyPct" inputmode="decimal" autocomplete="off" placeholder="0" value="">';
+    '<input type="text" data-field="apyPct" data-money="rate" inputmode="decimal" autocomplete="off" placeholder="0.00" value="">';
 
   const tdDep = document.createElement('td');
   tdDep.className = 'editor-table__cell--pay';
   tdDep.innerHTML =
     '<div class="field-inline-action">' +
-    '<input type="text" data-field="deposit" inputmode="decimal" autocomplete="off" placeholder="0.00">' +
+    '<input type="text" data-field="deposit" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="$0.00">' +
     '<button type="button" class="btn-icon btn-quick-deposit" data-action="quick-deposit" title="Log deposit now" aria-label="Log deposit now">+</button>' +
     '</div>';
 
@@ -526,8 +532,10 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   const curInput = row.querySelector('input[data-field="current"]') as HTMLInputElement | null;
   const apyInput = row.querySelector('input[data-field="apyPct"]') as HTMLInputElement | null;
   if (nameInput) nameInput.value = acc.name || '';
-  if (curInput) curInput.value = formatMoneyInput(numOr(acc.current, 0));
-  if (apyInput) apyInput.value = formatMoneyInput(numOr(acc.apyPct, DEFAULT_SAVINGS_APY_PCT));
+  const cur = numOr(acc.current, 0);
+  const apy = numOr(acc.apyPct, DEFAULT_SAVINGS_APY_PCT);
+  if (curInput) curInput.value = cur > 0 ? formatCurrencyInput(cur) : '';
+  if (apyInput) apyInput.value = apy > 0 ? formatMoneyInput(apy) : '';
 
   return row;
 }
