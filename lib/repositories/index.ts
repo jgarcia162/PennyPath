@@ -12,6 +12,7 @@ import { SupabaseSavingsAccountRepository } from './supabase/savings-account-rep
 import { SupabaseSavingsGoalRepository } from './supabase/savings-goal-repository';
 import { SupabaseCheckInRepository } from './supabase/check-in-repository';
 import { SupabaseAiCacheRepository } from './supabase/ai-cache-repository';
+import { SupabaseFinancialPlanStateRepository } from './supabase/financial-plan-state-repository';
 
 function getSupabaseClient(): SupabaseClient<Database> {
   // Today the Financial Plan runs in the browser; when/if server repos are needed,
@@ -28,6 +29,7 @@ export function getRepositories(): Repositories {
     savingsGoalRepository: new SupabaseSavingsGoalRepository(supabase),
     checkInRepository: new SupabaseCheckInRepository(supabase),
     aiCacheRepository: new SupabaseAiCacheRepository(supabase),
+    financialPlanStateRepository: new SupabaseFinancialPlanStateRepository(supabase),
   };
 }
 

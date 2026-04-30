@@ -220,7 +220,11 @@ export function render(opts?: { skipDebtsEditor?: boolean }): void {
       : '';
   }
   const undoWrap = document.getElementById('btn-month-wrap-undo') as HTMLButtonElement | null;
-  if (undoWrap) undoWrap.disabled = !hasMonthWrapRollback();
+  if (undoWrap) {
+    void hasMonthWrapRollback().then(function (has) {
+      undoWrap.disabled = !has;
+    });
+  }
   const hasData = hasBalanceDataForProjections(PLAN);
   const hasDebtBal = hasDebtBalanceForInterest(PLAN);
   const hasDebts = hasDebtsOnFile(PLAN);
@@ -458,5 +462,5 @@ export function render(opts?: { skipDebtsEditor?: boolean }): void {
 
   renderPayoffTimeline(moneyExact, hasData);
   renderCheckIns();
-  renderBadges();
+  void renderBadges();
 }

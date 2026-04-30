@@ -339,6 +339,30 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_plan_state: {
+        Row: {
+          badges: Json
+          month_wrap_archives: Json
+          month_wrap_rollback: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          badges?: Json
+          month_wrap_archives?: Json
+          month_wrap_rollback?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          badges?: Json
+          month_wrap_archives?: Json
+          month_wrap_rollback?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
