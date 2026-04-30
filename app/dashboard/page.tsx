@@ -443,9 +443,7 @@ export default function DashboardPage() {
                   </button>
                 </div>
                 <div className="goal-value" id="goal-debt-amt"></div>
-                <div className="goal-desc">
-                  Credit card debt — completely eliminated. No more interest eating our income.
-                </div>
+                <div className="goal-desc" id="goal-debt-desc"></div>
                 <div className="goal-when" id="goal-debt-when"></div>
                 <div className="progress-wrap">
                   <div className="progress-label-row debt">
@@ -1131,9 +1129,7 @@ export default function DashboardPage() {
                       <div className="goal-tag">Goal 2</div>
                     </div>
                     <div className="goal-value" id="dash-goal-debt-amt"></div>
-                    <div className="goal-desc">
-                      Credit card debt — completely eliminated. No more interest eating our income.
-                    </div>
+                    <div className="goal-desc" id="dash-goal-debt-desc"></div>
                     <div className="goal-when" id="dash-goal-debt-when"></div>
                     <div className="progress-wrap">
                       <div className="progress-label-row debt">
