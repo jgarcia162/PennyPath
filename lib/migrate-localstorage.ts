@@ -45,12 +45,14 @@ export async function migrateLocalStorageToSupabase(): Promise<void> {
 
     // If the user already has a plan row, skip plan migration (but still migrate misc state).
     const existing = await repos.planConfigRepository.load();
+    let attemptedPlanMigration = false;
     if (!existing) {
       const planPayload = safeReadJson(STORAGE_KEY);
       if (planPayload && typeof planPayload === 'object') {
         // Normalize into the in-memory plan using existing logic, then persist the full plan via repositories.
         applyPlanPayloadFromObject(PLAN as any, planPayload);
         await savePlanOverrides();
+        attemptedPlanMigration = true;
       }
     }
 
@@ -117,7 +119,24 @@ export async function migrateLocalStorageToSupabase(): Promise<void> {
     }
 
     // If we got this far, clear the legacy keys so it never runs again.
-    if (!existing) safeRemoveKey(STORAGE_KEY);
+    // Only clear the core plan key if we can verify Supabase now has plan data.
+    // Otherwise, keep the browser copy to avoid "save then refresh wiped everything" failures.
+    if (!existing && attemptedPlanMigration) {
+      try {
+        const verifyCfg = await repos.planConfigRepository.load();
+        const verifyDebts = await repos.debtRepository.list();
+        const verifyAccs = await repos.savingsAccountRepository.list();
+        const verifyGoals = await repos.savingsGoalRepository.list();
+        const hasAny =
+          !!verifyCfg ||
+          (Array.isArray(verifyDebts) && verifyDebts.length > 0) ||
+          (Array.isArray(verifyAccs) && verifyAccs.length > 0) ||
+          (Array.isArray(verifyGoals) && verifyGoals.length > 0);
+        if (hasAny) safeRemoveKey(STORAGE_KEY);
+      } catch {
+        // keep local key
+      }
+    }
     safeRemoveKey(AI_PAYOFF_PLAN_CACHE_LS_KEY);
     safeRemoveKey(AI_BILL_CALENDAR_CACHE_LS_KEY);
     safeRemoveKey(AI_BILL_CALENDAR_COLUMNS_LS_KEY);
