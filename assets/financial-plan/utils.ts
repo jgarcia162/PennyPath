@@ -33,6 +33,19 @@ export function formatMoneyInput(n: unknown): string {
   return roundMoney(n).toFixed(2);
 }
 
+const _currencyInputFmt = new Intl.NumberFormat('en-US', {
+  style: 'currency',
+  currency: 'USD',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+/** Currency string for inputs: includes `$` + commas + 2 decimals. */
+export function formatCurrencyInput(n: unknown): string {
+  const v = Number(n);
+  return _currencyInputFmt.format(Number.isFinite(v) ? v : 0);
+}
+
 export interface MoneyFormatters {
   money(n: number): string;
   moneyExact(n: number): string;

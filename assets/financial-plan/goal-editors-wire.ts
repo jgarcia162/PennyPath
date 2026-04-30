@@ -6,6 +6,7 @@ import type { Debt, SavingsAccount } from '../../types/index.js';
 import { PLAN, PLAN_DEFAULTS } from './plan-data';
 import { applyPlanOverrides, savePlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
+import { formatCurrencyInput, formatMoneyInput, parseMoneyInput } from './utils';
 import {
   readDebtsEditorIntoPlan,
   cloneDebtsSnapshot,
@@ -23,6 +24,117 @@ import {
 
 let lastSavedDebts: { debts: Debt[] } | null = null;
 let lastSavedSavings: { savingsAccounts: SavingsAccount[] } | null = null;
+
+function wireMoneyMasks(rootEl: HTMLElement | null): void {
+  if (!rootEl) return;
+  if ((rootEl as any)._moneyMasksWired) return;
+  (rootEl as any)._moneyMasksWired = true;
+
+  function digitsOnly(s: string): string {
+    return String(s || '').replace(/[^\d]/g, '');
+  }
+
+  function setCaretToEnd(el: HTMLInputElement): void {
+    try {
+      const n = el.value.length;
+      el.setSelectionRange(n, n);
+    } catch {}
+  }
+
+  function formatCurrencyFromDigits(d: string): string {
+    const raw = String(d || '').replace(/^0+(?=\d)/, '');
+    if (!raw) return '';
+    return formatCurrencyInput(Number(raw) / 100);
+  }
+
+  function notifyValueChanged(el: HTMLInputElement): void {
+    try {
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    } catch {}
+  }
+
+  rootEl.addEventListener('keydown', function (e) {
+    const t = e.target as HTMLInputElement | null;
+    if (!t || t.tagName !== 'INPUT') return;
+    if (t.getAttribute('data-money') !== 'currency') return;
+
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const key = (e as KeyboardEvent).key;
+    if (
+      key === 'Tab' ||
+      key === 'Enter' ||
+      key === 'Escape' ||
+      key === 'ArrowLeft' ||
+      key === 'ArrowRight' ||
+      key === 'ArrowUp' ||
+      key === 'ArrowDown' ||
+      key === 'Home' ||
+      key === 'End'
+    ) {
+      return;
+    }
+
+    const prevDigits =
+      (t as any).dataset && (t as any).dataset.moneyDigits
+        ? String((t as any).dataset.moneyDigits)
+        : digitsOnly(t.value);
+
+    if (key === 'Backspace' || key === 'Delete') {
+      e.preventDefault();
+      const nextDigits = prevDigits.slice(0, Math.max(0, prevDigits.length - 1));
+      (t as any).dataset.moneyDigits = nextDigits;
+      t.value = formatCurrencyFromDigits(nextDigits);
+      setCaretToEnd(t);
+      notifyValueChanged(t);
+      return;
+    }
+
+    if (/^\d$/.test(key)) {
+      e.preventDefault();
+      const nextDigits = (prevDigits + key).slice(0, 18);
+      (t as any).dataset.moneyDigits = nextDigits;
+      t.value = formatCurrencyFromDigits(nextDigits);
+      setCaretToEnd(t);
+      notifyValueChanged(t);
+      return;
+    }
+
+    e.preventDefault();
+  });
+
+  rootEl.addEventListener('paste', function (e) {
+    const t = e.target as HTMLInputElement | null;
+    if (!t || t.tagName !== 'INPUT') return;
+    if (t.getAttribute('data-money') !== 'currency') return;
+    e.preventDefault();
+    const clip = (e as ClipboardEvent).clipboardData ? (e as ClipboardEvent).clipboardData!.getData('text') : '';
+    const d = digitsOnly(clip);
+    (t as any).dataset.moneyDigits = d;
+    t.value = formatCurrencyFromDigits(d);
+    setCaretToEnd(t);
+    notifyValueChanged(t);
+  });
+
+  rootEl.addEventListener('focusin', function (e) {
+    const t = e.target as HTMLInputElement | null;
+    if (!t || t.tagName !== 'INPUT') return;
+    if (t.getAttribute('data-money') !== 'currency') return;
+    (t as any).dataset.moneyDigits = digitsOnly(t.value);
+    setCaretToEnd(t);
+  });
+
+  rootEl.addEventListener(
+    'blur',
+    function (e) {
+      const t = e.target as HTMLInputElement | null;
+      if (!t || t.tagName !== 'INPUT') return;
+      if (t.getAttribute('data-money') !== 'rate') return;
+      const n = parseMoneyInput(t.value);
+      t.value = n == null ? '' : formatMoneyInput(n);
+    },
+    true
+  );
+}
 
 function wireHoldToConfirm(
   rootEl: HTMLElement | null,
@@ -178,6 +290,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   }
 
   const debtsHost = document.getElementById('debts-editor-list') as HTMLElement | null;
+  wireMoneyMasks(debtsHost);
   if (debtsHost) {
     const debtsHostEl = debtsHost;
     function onDebtRowFieldActivity(e: Event): void {
@@ -311,6 +424,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
 
 export function wireGoal3SavingsEditor(render: RenderFn): void {
   const savingsHost = document.getElementById('savings-editor-list') as HTMLElement | null;
+  wireMoneyMasks(savingsHost);
   if (savingsHost) {
     const savingsHostEl = savingsHost;
     function onSavingsFieldActivity(e: Event): void {
