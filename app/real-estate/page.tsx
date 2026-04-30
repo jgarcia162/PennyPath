@@ -8,12 +8,79 @@ import { LogoutForm } from '../components/LogoutForm';
 import { TrialCountdown } from '../components/TrialCountdown';
 import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
 
-function reSectionEyebrow(n: number): string {
-  return `Section ${String(n).padStart(2, '0')}`;
-}
-
 export default function RealEstatePage() {
   const [booting, setBooting] = useState(true);
+  const [collapseLabel, setCollapseLabel] = useState<'Collapse all' | 'Expand all'>('Collapse all');
+
+  function animateSection(details: HTMLDetailsElement, expand: boolean) {
+    const summary = details.querySelector('summary') as HTMLElement | null;
+    const anim = details.querySelector('.section-collapsible__anim') as HTMLElement | null;
+    if (!summary || !anim) {
+      details.open = expand;
+      return;
+    }
+
+    const startHeight = details.offsetHeight;
+    if (expand) details.open = true;
+    const endHeight = expand ? summary.offsetHeight + anim.offsetHeight : summary.offsetHeight;
+
+    details.style.height = `${startHeight}px`;
+    details.style.overflow = 'hidden';
+
+    const heightAnim = details.animate(
+      [{ height: `${startHeight}px` }, { height: `${endHeight}px` }],
+      { duration: 700, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+    );
+    anim.animate(
+      expand ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0 }],
+      { duration: expand ? 360 : 260, easing: 'ease' }
+    );
+
+    heightAnim.onfinish = () => {
+      if (!expand) details.open = false;
+      details.style.height = '';
+      details.style.overflow = '';
+    };
+  }
+
+  function wireAnimatedSections() {
+    const root = document.querySelector('.content');
+    if (!root) return () => {};
+    const sections = Array.from(root.querySelectorAll('details.section-collapsible')) as HTMLDetailsElement[];
+    const cleanups: Array<() => void> = [];
+
+    sections.forEach((details) => {
+      const summary = details.querySelector('summary');
+      if (!summary) return;
+      const onClick = (e: Event) => {
+        e.preventDefault();
+        if (details.dataset.animating === '1') return;
+        details.dataset.animating = '1';
+        const expand = !details.open;
+        animateSection(details, expand);
+        window.setTimeout(() => {
+          delete (details as any).dataset.animating;
+        }, 760);
+      };
+      summary.addEventListener('click', onClick);
+      cleanups.push(() => summary.removeEventListener('click', onClick));
+    });
+
+    return () => cleanups.forEach((fn) => fn());
+  }
+
+  function toggleAllCollapsibles() {
+    const root = document.querySelector('.content');
+    if (!root) return;
+    const details = root.querySelectorAll('details.section-collapsible');
+    const anyOpen = Array.from(details).some((d) => d instanceof HTMLDetailsElement && d.open);
+    const nextOpen = !anyOpen;
+    details.forEach((d) => {
+      if (!(d instanceof HTMLDetailsElement)) return;
+      animateSection(d, nextOpen);
+    });
+    setCollapseLabel(nextOpen ? 'Collapse all' : 'Expand all');
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -51,6 +118,10 @@ export default function RealEstatePage() {
       cancelled = true;
       document.body.classList.remove('re-page');
     };
+  }, []);
+
+  useEffect(() => {
+    return wireAnimatedSections();
   }, []);
 
   return (
@@ -169,343 +240,396 @@ export default function RealEstatePage() {
       </div>
 
       <div className="content">
-        <div className="section" id="section-market-ai">
-          <div className="section-eyebrow">Market &amp; location</div>
-          <h2 className="section-title re-heading">City search &amp; AI estimates</h2>
-          <p className="section-sub">
-            Search for any city, then use <strong>Research with AI</strong> to fill the calculator with ballpark numbers
-            (verify with real listings and quotes). You can still edit every field manually. Run the local server from
-            this project so search and AI can reach the API — see console or <code>server/market-research.mjs</code>.
-          </p>
-
-          <div className="re-market-search-wrap re-calculator-panel">
-            <div className="re-search-row">
-              <div className="balance-field re-search-field">
-                <label htmlFor="re-search-input">City or region</label>
-                <input type="text" id="re-search-input" autoComplete="off" placeholder="e.g. Austin, TX or Denver, CO" />
-                <div className="balance-field-hint">
-                  Place search is proxied through the dev server (OpenStreetMap Nominatim).
-                </div>
-              </div>
-              <div className="re-search-actions">
-                <button type="button" className="btn-save" id="re-ai-btn" disabled>
-                  Research with AI
-                </button>
-                <button type="button" className="btn-undo" id="re-refresh-btn" disabled>
-                  Refresh AI
-                </button>
-              </div>
-            </div>
-            <div className="re-search-dropdown" id="re-search-dropdown" hidden role="listbox" aria-label="Search results"></div>
-            <p className="re-search-status" id="re-search-status" aria-live="polite"></p>
-            <div id="re-ai-loading" className="re-ai-loading-panel" hidden role="status" aria-live="polite">
-              <div className="ai-payoff-loading">
-                <span className="ai-payoff-loading__spinner" aria-hidden="true" />
-                <p className="ai-payoff-loading__label" id="re-ai-loading-label">
-                  Researching market with AI…
-                </p>
-              </div>
-            </div>
-            <div className="re-current-market">
-              <strong>Current market:</strong> <span id="re-current-label">—</span>
-            </div>
-            <div className="callout sage" id="re-ai-notes" hidden style={{ marginTop: 14 }}></div>
-            <div>
-              <div className="debts-editor-title" style={{ marginTop: 18 }}>
-                Recent searches
-              </div>
-              <ul className="re-recent-list" id="re-recent-list"></ul>
-            </div>
-          </div>
+        <div className="collapsible-controls no-print">
+          <button type="button" className="collapsible-controls__toggle" onClick={() => toggleAllCollapsibles()}>
+            {collapseLabel}
+          </button>
         </div>
 
-        <div className="section">
-          <div className="section-eyebrow">{reSectionEyebrow(1)}</div>
-          <h2 className="section-title re-heading">Live Cash Flow Calculator</h2>
-          <p className="section-sub">
-            Adjust inputs to match a specific listing or market assumptions. Press <strong>Recalculate</strong> or Enter
-            in any field.
-          </p>
-
-          <div className="re-calculator-panel" id="re-calculator-panel">
-            <div className="re-calculator-grid">
-              <div className="balance-field">
-                <label htmlFor="re-price">Purchase price</label>
-                <input
-                  type="text"
-                  id="re-price"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  defaultValue="175000"
-                  aria-describedby="hint-price"
-                />
-                <div className="balance-field-hint" id="hint-price">
-                  Use AI research or listings to anchor price for your market
-                </div>
-              </div>
-              <div className="balance-field">
-                <label htmlFor="re-rent">Monthly rent estimate</label>
-                <input
-                  type="text"
-                  id="re-rent"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  defaultValue="1445"
-                  aria-describedby="hint-rent"
-                />
-                <div className="balance-field-hint" id="hint-rent">
-                  Align rent with local comps for the area you selected
-                </div>
-              </div>
-              <div className="balance-field">
-                <label htmlFor="re-hoa">HOA fee ($/mo)</label>
-                <input
-                  type="text"
-                  id="re-hoa"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  defaultValue="450"
-                  aria-describedby="hint-hoa"
-                />
-                <div className="balance-field-hint" id="hint-hoa">
-                  HOA varies by building and region — verify in the listing
-                </div>
-              </div>
-              <div className="balance-field">
-                <label htmlFor="re-tax">Property tax rate (% / year)</label>
-                <input
-                  type="text"
-                  id="re-tax"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  defaultValue="1.2"
-                  aria-describedby="hint-tax"
-                />
-                <div className="balance-field-hint" id="hint-tax">
-                  Often ~1–2% effective; use assessor estimate
-                </div>
-              </div>
-              <div className="balance-field">
-                <label htmlFor="re-ins">Insurance ($/mo)</label>
-                <input
-                  type="text"
-                  id="re-ins"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  defaultValue="150"
-                  aria-describedby="hint-ins"
-                />
-                <div className="balance-field-hint" id="hint-ins">
-                  Coastal wind zones can be much higher
-                </div>
-              </div>
-              <div className="balance-field">
-                <label htmlFor="re-vac">Vacancy rate (%)</label>
-                <input
-                  type="text"
-                  id="re-vac"
-                  inputMode="decimal"
-                  autoComplete="off"
-                  defaultValue="5"
-                  aria-describedby="hint-vac"
-                />
-                <div className="balance-field-hint" id="hint-vac">
-                  5–8% common for planning
-                </div>
-              </div>
-            </div>
-            <div className="re-pm-toggle">
-              <label htmlFor="re-include-pm">
-                <input type="checkbox" id="re-include-pm" defaultChecked aria-describedby="re-include-pm-hint" />
-                <span>Include property management fee (8% of effective gross income)</span>
-              </label>
-              <span className="re-pm-toggle-hint" id="re-include-pm-hint">
-                Uncheck to model self-management (no third-party PM fee). CapEx and other costs still apply.
-              </span>
-            </div>
-            <button type="button" className="btn-save" id="re-recalc">
-              Recalculate
-            </button>
-          </div>
-
-          <div className="re-compare-grid">
-            <div className="re-path-card fha">
-              <h3>FHA path</h3>
-              <div id="re-fha-kv"></div>
-            </div>
-            <div className="re-path-card llc">
-              <h3>LLC / investment path</h3>
-              <div id="re-llc-kv"></div>
-            </div>
-          </div>
-
-          <div className="timeline-wrap">
-            <table className="re-cf-table" id="re-cf-table" aria-label="Monthly cash flow comparison">
-              <thead>
-                <tr>
-                  <th>Line item</th>
-                  <th>FHA</th>
-                  <th>LLC</th>
-                </tr>
-              </thead>
-              <tbody id="re-cf-tbody"></tbody>
-            </table>
-          </div>
-
-          <div className="callout" id="re-cf-scenario" style={{ marginTop: 18 }}></div>
-        </div>
-
-        <div className="section">
-          <div className="section-eyebrow">{reSectionEyebrow(2)}</div>
-          <h2 className="section-title re-heading">Market snapshot</h2>
-          <p className="section-sub" id="re-market-snapshot-sub">
-            Select a city in <strong>Market &amp; location</strong> above; numbers update from your calculator inputs.
-          </p>
-          <div className="budget-wrap" style={{ overflowX: 'auto' }}>
-            <table className="re-market-table" aria-describedby="re-market-snapshot-sub">
-              <thead>
-                <tr>
-                  <th>Location</th>
-                  <th>Rent (model)</th>
-                  <th>HOA (model)</th>
-                  <th>Price (model)</th>
-                  <th>Cash flow outlook</th>
-                </tr>
-              </thead>
-              <tbody id="re-market-tbody">
-                <tr>
-                  <td id="re-market-name">
-                    <span className="re-recent-meta">Search &amp; select a city</span>
-                  </td>
-                  <td id="re-market-rent">—</td>
-                  <td id="re-market-hoa">—</td>
-                  <td id="re-market-price">—</td>
-                  <td id="re-market-outlook">—</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div className="section">
-          <div className="section-eyebrow">{reSectionEyebrow(3)}</div>
-          <h2 className="section-title re-heading">Down Payment From HYSA</h2>
-          <div className="re-stat-row">
-            <div className="re-stat-card">
-              <div className="status-label" style={{ marginBottom: 0 }}>
-                HYSA target
-              </div>
-              <div className="val" id="re-hysa-target">
-                $50,000
-              </div>
-            </div>
-            <div className="re-stat-card">
-              <div className="status-label" style={{ marginBottom: 0 }}>
-                FHA total cash needed
-              </div>
-              <div className="val" id="re-stat-fha-cash">
-                —
-              </div>
-            </div>
-            <div className="re-stat-card">
-              <div className="status-label" style={{ marginBottom: 0 }}>
-                LLC total cash needed
-              </div>
-              <div className="val" id="re-stat-llc-cash">
-                —
-              </div>
-            </div>
-          </div>
-          <div className="budget-wrap">
-            <table className="re-market-table" id="re-hysa-table">
-              <thead>
-                <tr>
-                  <th>Scenario</th>
-                  <th>Cash required</th>
-                  <th>HYSA left after</th>
-                </tr>
-              </thead>
-              <tbody id="re-hysa-tbody"></tbody>
-            </table>
-          </div>
-          <div className="callout blue" id="re-hysa-callout"></div>
-        </div>
-
-        <div className="section">
-          <div className="section-eyebrow">{reSectionEyebrow(4)}</div>
-          <h2 className="section-title re-heading">FHA House Hack Strategy</h2>
-          <div className="callout red" style={{ marginBottom: 14 }}>
-            <strong>12-month owner-occupancy</strong>
-            FHA loans for 1–4 unit properties generally require you to occupy the property as your primary residence.
-            You typically must move in within 60 days and live there at least 12 months before converting to a rental
-            (unless an exception applies). Plan the timeline before you commit.
-          </div>
-          <div className="callout sage">
-            <strong>House-hack math</strong>
-            On a duplex, FHA may allow a portion of projected rent from the other unit to help qualify (often up to 75%
-            of market rent toward income/DTI per current FHA guidelines — confirm with your loan officer and appraiser
-            rent schedule).
-          </div>
-        </div>
-
-        <div className="section">
-          <div className="section-eyebrow">{reSectionEyebrow(5)}</div>
-          <div className="goal-card primary" style={{ marginTop: 8 }}>
-            <div className="goal-tag">Verdict</div>
-            <div
-              className="re-hero-title"
-              style={{ color: 'var(--cream)', fontSize: 'clamp(26px,4vw,36px)' }}
-              id="re-verdict-title"
-            >
-              Start with FHA in your market — LLC comes later.
-            </div>
-            <p className="goal-desc" style={{ marginTop: 14, maxWidth: 640 }} id="re-verdict-body">
-              FHA keeps the entry ticket small enough to match a realistic HYSA timeline. Choose a city above to tie
-              numbers to a real market. An LLC + investment loan is often the right tool for <strong>property #2</strong>
-              , once you have equity, documented rental history on taxes, and more dry powder for 20% down and reserves.
+        <details className="section section-collapsible" id="section-market-ai" open>
+          <summary className="section-collapsible__summary">
+            <span className="section-collapsible__chevron" aria-hidden="true"></span>
+            <span className="section-collapsible__summary-text">
+              <span className="section-title">City search &amp; AI estimates</span>
+            </span>
+          </summary>
+          <div className="section-collapsible__anim">
+            <div className="section-collapsible__body">
+            <p className="section-sub">
+              Search for any city, then use <strong>Research with AI</strong> to fill the calculator with ballpark numbers
+              (verify with real listings and quotes). You can still edit every field manually. Run the local server from
+              this project so search and AI can reach the API — see console or <code>server/market-research.mjs</code>.
             </p>
-            <p className="goal-desc" style={{ marginTop: 12, fontWeight: 700 }} id="re-verdict-hoa-warning">
-              Warning: HOA fees and special assessments are the single biggest risk to condo cash flow — model them
-              conservatively every time.
-            </p>
+
+            <div className="re-market-search-wrap re-calculator-panel">
+              <div className="re-search-row">
+                <div className="balance-field re-search-field">
+                  <label htmlFor="re-search-input">City or region</label>
+                  <input type="text" id="re-search-input" autoComplete="off" placeholder="e.g. Austin, TX or Denver, CO" />
+                  <div className="balance-field-hint">
+                    Place search is proxied through the dev server (OpenStreetMap Nominatim).
+                  </div>
+                </div>
+                <div className="re-search-actions">
+                  <button type="button" className="btn-save" id="re-ai-btn" disabled>
+                    Research with AI
+                  </button>
+                  <button type="button" className="btn-undo" id="re-refresh-btn" disabled>
+                    Refresh AI
+                  </button>
+                </div>
+              </div>
+              <div className="re-search-dropdown" id="re-search-dropdown" hidden role="listbox" aria-label="Search results"></div>
+              <p className="re-search-status" id="re-search-status" aria-live="polite"></p>
+              <div id="re-ai-loading" className="re-ai-loading-panel" hidden role="status" aria-live="polite">
+                <div className="ai-payoff-loading">
+                  <span className="ai-payoff-loading__spinner" aria-hidden="true" />
+                  <p className="ai-payoff-loading__label" id="re-ai-loading-label">
+                    Researching market with AI…
+                  </p>
+                </div>
+              </div>
+              <div className="re-current-market">
+                <strong>Current market:</strong> <span id="re-current-label">—</span>
+              </div>
+              <div className="callout sage" id="re-ai-notes" hidden style={{ marginTop: 14 }}></div>
+              <div>
+                <div className="debts-editor-title" style={{ marginTop: 18 }}>
+                  Recent searches
+                </div>
+                <ul className="re-recent-list" id="re-recent-list"></ul>
+              </div>
+            </div>
+            </div>
           </div>
+        </details>
+
+        <details className="section section-collapsible" open>
+          <summary className="section-collapsible__summary">
+            <span className="section-collapsible__chevron" aria-hidden="true"></span>
+            <span className="section-collapsible__summary-text">
+              <span className="section-title">Live Cash Flow Calculator</span>
+            </span>
+          </summary>
+          <div className="section-collapsible__anim">
+            <div className="section-collapsible__body">
+            <p className="section-sub">
+              Adjust inputs to match a specific listing or market assumptions. Press <strong>Recalculate</strong> or Enter
+              in any field.
+            </p>
+
+            <div className="re-calculator-panel" id="re-calculator-panel">
+              <div className="re-calculator-grid">
+                <div className="balance-field">
+                  <label htmlFor="re-price">Purchase price</label>
+                  <input
+                    type="text"
+                    id="re-price"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    defaultValue="175000"
+                    aria-describedby="hint-price"
+                  />
+                  <div className="balance-field-hint" id="hint-price">
+                    Use AI research or listings to anchor price for your market
+                  </div>
+                </div>
+                <div className="balance-field">
+                  <label htmlFor="re-rent">Monthly rent estimate</label>
+                  <input
+                    type="text"
+                    id="re-rent"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    defaultValue="1445"
+                    aria-describedby="hint-rent"
+                  />
+                  <div className="balance-field-hint" id="hint-rent">
+                    Align rent with local comps for the area you selected
+                  </div>
+                </div>
+                <div className="balance-field">
+                  <label htmlFor="re-hoa">HOA fee ($/mo)</label>
+                  <input
+                    type="text"
+                    id="re-hoa"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    defaultValue="450"
+                    aria-describedby="hint-hoa"
+                  />
+                  <div className="balance-field-hint" id="hint-hoa">
+                    HOA varies by building and region — verify in the listing
+                  </div>
+                </div>
+                <div className="balance-field">
+                  <label htmlFor="re-tax">Property tax rate (% / year)</label>
+                  <input
+                    type="text"
+                    id="re-tax"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    defaultValue="1.2"
+                    aria-describedby="hint-tax"
+                  />
+                  <div className="balance-field-hint" id="hint-tax">
+                    Often ~1–2% effective; use assessor estimate
+                  </div>
+                </div>
+                <div className="balance-field">
+                  <label htmlFor="re-ins">Insurance ($/mo)</label>
+                  <input
+                    type="text"
+                    id="re-ins"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    defaultValue="150"
+                    aria-describedby="hint-ins"
+                  />
+                  <div className="balance-field-hint" id="hint-ins">
+                    Coastal wind zones can be much higher
+                  </div>
+                </div>
+                <div className="balance-field">
+                  <label htmlFor="re-vac">Vacancy rate (%)</label>
+                  <input
+                    type="text"
+                    id="re-vac"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    defaultValue="5"
+                    aria-describedby="hint-vac"
+                  />
+                  <div className="balance-field-hint" id="hint-vac">
+                    5–8% common for planning
+                  </div>
+                </div>
+              </div>
+              <div className="re-pm-toggle">
+                <label htmlFor="re-include-pm">
+                  <input type="checkbox" id="re-include-pm" defaultChecked aria-describedby="re-include-pm-hint" />
+                  <span>Include property management fee (8% of effective gross income)</span>
+                </label>
+                <span className="re-pm-toggle-hint" id="re-include-pm-hint">
+                  Uncheck to model self-management (no third-party PM fee). CapEx and other costs still apply.
+                </span>
+              </div>
+              <button type="button" className="btn-save" id="re-recalc">
+                Recalculate
+              </button>
+            </div>
+
+            <div className="re-compare-grid">
+              <div className="re-path-card fha">
+                <h3>FHA path</h3>
+                <div id="re-fha-kv"></div>
+              </div>
+              <div className="re-path-card llc">
+                <h3>LLC / investment path</h3>
+                <div id="re-llc-kv"></div>
+              </div>
+            </div>
+
+            <div className="timeline-wrap">
+              <table className="re-cf-table" id="re-cf-table" aria-label="Monthly cash flow comparison">
+                <thead>
+                  <tr>
+                    <th>Line item</th>
+                    <th>FHA</th>
+                    <th>LLC</th>
+                  </tr>
+                </thead>
+                <tbody id="re-cf-tbody"></tbody>
+              </table>
+            </div>
+
+            <div className="callout" id="re-cf-scenario" style={{ marginTop: 18 }}></div>
+          </div>
+          </div>
+        </details>
+
+        <details className="section section-collapsible" open>
+          <summary className="section-collapsible__summary">
+            <span className="section-collapsible__chevron" aria-hidden="true"></span>
+            <span className="section-collapsible__summary-text">
+              <span className="section-title">Market snapshot</span>
+            </span>
+          </summary>
+          <div className="section-collapsible__anim">
+            <div className="section-collapsible__body">
+            <p className="section-sub" id="re-market-snapshot-sub">
+              Select a city in <strong>Market &amp; location</strong> above; numbers update from your calculator inputs.
+            </p>
+            <div className="budget-wrap" style={{ overflowX: 'auto' }}>
+              <table className="re-market-table" aria-describedby="re-market-snapshot-sub">
+                <thead>
+                  <tr>
+                    <th>Location</th>
+                    <th>Rent (model)</th>
+                    <th>HOA (model)</th>
+                    <th>Price (model)</th>
+                    <th>Cash flow outlook</th>
+                  </tr>
+                </thead>
+                <tbody id="re-market-tbody">
+                  <tr>
+                    <td id="re-market-name">
+                      <span className="re-recent-meta">Search &amp; select a city</span>
+                    </td>
+                    <td id="re-market-rent">—</td>
+                    <td id="re-market-hoa">—</td>
+                    <td id="re-market-price">—</td>
+                    <td id="re-market-outlook">—</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          </div>
+        </details>
+
+        <details className="section section-collapsible" open>
+          <summary className="section-collapsible__summary">
+            <span className="section-collapsible__chevron" aria-hidden="true"></span>
+            <span className="section-collapsible__summary-text">
+              <span className="section-title">Down Payment From HYSA</span>
+            </span>
+          </summary>
+          <div className="section-collapsible__anim">
+            <div className="section-collapsible__body">
+            <div className="re-stat-row">
+              <div className="re-stat-card">
+                <div className="status-label" style={{ marginBottom: 0 }}>
+                  HYSA target
+                </div>
+                <div className="val" id="re-hysa-target">
+                  $50,000
+                </div>
+              </div>
+              <div className="re-stat-card">
+                <div className="status-label" style={{ marginBottom: 0 }}>
+                  FHA total cash needed
+                </div>
+                <div className="val" id="re-stat-fha-cash">
+                  —
+                </div>
+              </div>
+              <div className="re-stat-card">
+                <div className="status-label" style={{ marginBottom: 0 }}>
+                  LLC total cash needed
+                </div>
+                <div className="val" id="re-stat-llc-cash">
+                  —
+                </div>
+              </div>
+            </div>
+            <div className="budget-wrap">
+              <table className="re-market-table" id="re-hysa-table">
+                <thead>
+                  <tr>
+                    <th>Scenario</th>
+                    <th>Cash required</th>
+                    <th>HYSA left after</th>
+                  </tr>
+                </thead>
+                <tbody id="re-hysa-tbody"></tbody>
+              </table>
+            </div>
+            <div className="callout blue" id="re-hysa-callout"></div>
+          </div>
+          </div>
+        </details>
+
+        <details className="section section-collapsible" open>
+          <summary className="section-collapsible__summary">
+            <span className="section-collapsible__chevron" aria-hidden="true"></span>
+            <span className="section-collapsible__summary-text">
+              <span className="section-title">FHA House Hack Strategy</span>
+            </span>
+          </summary>
+          <div className="section-collapsible__anim">
+            <div className="section-collapsible__body">
+            <div className="callout red" style={{ marginBottom: 14 }}>
+              <strong>12-month owner-occupancy</strong>
+              FHA loans for 1–4 unit properties generally require you to occupy the property as your primary residence.
+              You typically must move in within 60 days and live there at least 12 months before converting to a rental
+              (unless an exception applies). Plan the timeline before you commit.
+            </div>
+            <div className="callout sage">
+              <strong>House-hack math</strong>
+              On a duplex, FHA may allow a portion of projected rent from the other unit to help qualify (often up to 75%
+              of market rent toward income/DTI per current FHA guidelines — confirm with your loan officer and appraiser
+              rent schedule).
+            </div>
+          </div>
+          </div>
+        </details>
+
+        <div className="section section-static section-static--plain" aria-label="Verdict">
+            <div className="goal-card primary" style={{ marginTop: 8 }}>
+              <div className="goal-tag">Verdict</div>
+              <div
+                className="re-hero-title"
+                style={{ color: 'var(--cream)', fontSize: 'clamp(26px,4vw,36px)' }}
+                id="re-verdict-title"
+              >
+                Start with FHA in your market — LLC comes later.
+              </div>
+              <p className="goal-desc" style={{ marginTop: 14, maxWidth: 640 }} id="re-verdict-body">
+                FHA keeps the entry ticket small enough to match a realistic HYSA timeline. Choose a city above to tie
+                numbers to a real market. An LLC + investment loan is often the right tool for <strong>property #2</strong>
+                , once you have equity, documented rental history on taxes, and more dry powder for 20% down and reserves.
+              </p>
+              <p className="goal-desc" style={{ marginTop: 12, fontWeight: 700 }} id="re-verdict-hoa-warning">
+                Warning: HOA fees and special assessments are the single biggest risk to condo cash flow — model them
+                conservatively every time.
+              </p>
+            </div>
         </div>
 
-        <div className="section">
-          <div className="section-eyebrow">{reSectionEyebrow(6)}</div>
-          <h2 className="section-title re-heading">Roadmap Timeline</h2>
-          <div className="re-timeline">
-            <div className="re-milestone">
-              <div className="re-milestone-title">Now–Mid 2026 · Research Mode</div>
-              <div className="re-milestone-body" id="re-timeline-research-body">
-                Study your target market, follow listings, and line up a local agent who knows condos/HOAs.
+        <details className="section section-collapsible" open>
+          <summary className="section-collapsible__summary">
+            <span className="section-collapsible__chevron" aria-hidden="true"></span>
+            <span className="section-collapsible__summary-text">
+              <span className="section-title">Roadmap Timeline</span>
+            </span>
+          </summary>
+          <div className="section-collapsible__anim">
+            <div className="section-collapsible__body">
+            <div className="re-timeline">
+              <div className="re-milestone">
+                <div className="re-milestone-title">Now–Mid 2026 · Research Mode</div>
+                <div className="re-milestone-body" id="re-timeline-research-body">
+                  Study your target market, follow listings, and line up a local agent who knows condos/HOAs.
+                </div>
               </div>
-            </div>
-            <div className="re-milestone">
-              <div className="re-milestone-title">Dec 2026 · CC Debt Eliminated</div>
-              <div className="re-milestone-body">Lower debt improves DTI; begin FHA pre-approval prep with your lender.</div>
-            </div>
-            <div className="re-milestone">
-              <div className="re-milestone-title">Early 2027 · Get FHA Pre-Approved</div>
-              <div className="re-milestone-body">
-                Typical needs: 2 years W-2s, pay stubs, bank statements, 620+ credit score (higher is better).
+              <div className="re-milestone">
+                <div className="re-milestone-title">Dec 2026 · CC Debt Eliminated</div>
+                <div className="re-milestone-body">Lower debt improves DTI; begin FHA pre-approval prep with your lender.</div>
               </div>
-            </div>
-            <div className="re-milestone">
-              <div className="re-milestone-title">Mid 2027 · Make Your Move</div>
-              <div className="re-milestone-body">
-                At $50K HYSA, deploy roughly $10–14K toward an FHA purchase and keep $36K+ as reserves (targets depend on
-                your calculator outputs).
+              <div className="re-milestone">
+                <div className="re-milestone-title">Early 2027 · Get FHA Pre-Approved</div>
+                <div className="re-milestone-body">
+                  Typical needs: 2 years W-2s, pay stubs, bank statements, 620+ credit score (higher is better).
+                </div>
               </div>
-            </div>
-            <div className="re-milestone">
-              <div className="re-milestone-title">Mid 2028+ · LLC Property #2</div>
-              <div className="re-milestone-body">
-                Rental income history on taxes, equity in property #1, and reserves — ready for a 20% investment loan.
+              <div className="re-milestone">
+                <div className="re-milestone-title">Mid 2027 · Make Your Move</div>
+                <div className="re-milestone-body">
+                  At $50K HYSA, deploy roughly $10–14K toward an FHA purchase and keep $36K+ as reserves (targets depend on
+                  your calculator outputs).
+                </div>
+              </div>
+              <div className="re-milestone">
+                <div className="re-milestone-title">Mid 2028+ · LLC Property #2</div>
+                <div className="re-milestone-body">
+                  Rental income history on taxes, equity in property #1, and reserves — ready for a 20% investment loan.
+                </div>
               </div>
             </div>
           </div>
-        </div>
+          </div>
+        </details>
       </div>
 
       <div className="footer">
