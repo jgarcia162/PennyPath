@@ -292,7 +292,7 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 14px;
-  align-items: flex-end;
+  align-items: flex-start;
   margin-bottom: 8px;
 }
 .re-search-field {
@@ -302,6 +302,14 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+  /* Align buttons with the input (not the hint text). */
+  margin-top: 22px;
+}
+
+#re-recalc {
+  display: block;
+  width: fit-content;
+  margin: 14px 0 0 auto;
 }
 .re-search-dropdown {
   position: absolute;
