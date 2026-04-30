@@ -4498,6 +4498,12 @@ body.financial-plan-demo-mode #checkin-form {
   box-shadow: 0 10px 28px rgba(82, 90, 108, 0.06);
   margin-bottom: 56px;
 }
+.section.section-collapsible .re-market-search-wrap.re-calculator-panel {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 0;
+}
 .section.section-static--plain {
   border: none;
   background: transparent;
