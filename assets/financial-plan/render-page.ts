@@ -224,6 +224,7 @@ export function render(opts?: { skipDebtsEditor?: boolean }): void {
   const hasData = hasBalanceDataForProjections(PLAN);
   const hasDebtBal = hasDebtBalanceForInterest(PLAN);
   const hasDebts = hasDebtsOnFile(PLAN);
+  setSectionHiddenDash('goal-debt-when', !hasDebts);
 
   setText(
     'cover-sub',
@@ -317,7 +318,7 @@ export function render(opts?: { skipDebtsEditor?: boolean }): void {
     setProgWidthDash('debt-progress-fill', d.debtGoalPct);
   } else {
     setTextDash('goal-debt-amt', '—');
-    setTextDash('goal-debt-when', 'Add a debt in Goal 2');
+    setTextDash('goal-debt-when', '');
     setTextDash('debt-progress-left', 'No debts on file');
     setHtmlDash('debt-progress-right', '<strong>—</strong>');
     setProgWidthDash('debt-progress-fill', 0);
@@ -411,31 +412,6 @@ export function render(opts?: { skipDebtsEditor?: boolean }): void {
   renderBudgetBreakdown(PLAN, d, money, function (amt: number) {
     return d.pctOfBudget(amt);
   });
-
-  const intr = PLAN.interestNote;
-  setHtml(
-    'callout-interest',
-    hasDebtBal
-      ? '<strong>⚠️ A note on interest</strong> At a typical ' +
-          intr.aprLow +
-          '–' +
-          intr.aprHigh +
-          '% APR, the ' +
-          moneyExact(d.totalDebt) +
-          ' balance will accrue roughly $' +
-          intr.monthOneLow +
-          '–$' +
-          intr.monthOneHigh +
-          ' in interest in month one, tapering as the balance drops. Total estimated interest over ' +
-          PLAN.monthsDebtPayoff +
-          ' months: ~$' +
-          intr.total8moLow.toLocaleString() +
-          '–$' +
-          intr.total8moHigh.toLocaleString() +
-          '. Every extra dollar toward the CC directly reduces this cost.'
-      : '<strong>⚠️ A note on interest</strong> Add debts with remaining balances in Goal 2 to see estimated interest costs. Until then, there’s nothing to calculate.',
-    { unsafe: true }
-  );
 
   setHtml(
     'callout-phase2',
