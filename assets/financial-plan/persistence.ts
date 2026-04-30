@@ -21,12 +21,30 @@ import {
   DEFAULT_DEBT_APR_PCT,
   DEFAULT_SAVINGS_APY_PCT,
   DEMO_MODE_STORAGE_KEY,
+  STORAGE_KEY,
 } from './plan-data';
 import { getRepositories } from '../../lib/repositories';
 import { numOr } from './utils';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { yyyyMmFromDate } from './monthly-activity';
 import { ID_GOAL_HYSA, ensureSavingsGoals, normalizeSavingsGoalRow } from './savings-goals';
+
+function safeReadLocalPlanPayload(): any | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function safeWriteLocalPlanPayload(plan: unknown): void {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(plan || {}));
+  } catch {}
+}
 
 /** Avoid sharing mutable row objects with persisted payload snapshots. */
 function cloneBudgetCategoryRowsFromPayload(raw: unknown): unknown[] {
@@ -298,7 +316,17 @@ export async function applyPlanOverrides(): Promise<void> {
       repos.savingsAccountRepository.list(),
       repos.savingsGoalRepository.list(),
     ]);
-    if (!cfg && (!debts || !debts.length) && (!savingsAccounts || !savingsAccounts.length) && (!savingsGoals || !savingsGoals.length)) {
+    if (
+      !cfg &&
+      (!debts || !debts.length) &&
+      (!savingsAccounts || !savingsAccounts.length) &&
+      (!savingsGoals || !savingsGoals.length)
+    ) {
+      // Supabase returned nothing (or RLS blocked). Fall back to legacy localStorage payload if present.
+      const local = safeReadLocalPlanPayload();
+      if (local) {
+        applyPlanPayloadFromObject(PLAN as any, local);
+      }
       return;
     }
     applyPlanPayloadFromObject(PLAN as any, {
@@ -307,8 +335,12 @@ export async function applyPlanOverrides(): Promise<void> {
       savingsAccounts: savingsAccounts || [],
       savingsGoals: savingsGoals || [],
     });
+    // Keep a local cache so a Supabase outage doesn't wipe the UI on refresh.
+    safeWriteLocalPlanPayload(PLAN as any);
   } catch (e) {
-    // keep silent (matches prior localStorage persistence behavior)
+    // Fall back to legacy localStorage payload if present.
+    const local = safeReadLocalPlanPayload();
+    if (local) applyPlanPayloadFromObject(PLAN as any, local);
   }
 }
 
@@ -358,8 +390,14 @@ export async function savePlanOverrides(): Promise<void> {
 
     // Goals: replace list.
     await repos.savingsGoalRepository.save(Array.isArray((PLAN as any).savingsGoals) ? (PLAN as any).savingsGoals : []);
+
+    // Also write a local cache for offline/failed-load resilience.
+    safeWriteLocalPlanPayload(PLAN as any);
   } catch (e) {
-    // keep silent (matches prior localStorage persistence behavior)
+    // If Supabase save fails, still persist locally so refresh doesn't lose work.
+    safeWriteLocalPlanPayload(PLAN as any);
+    // eslint-disable-next-line no-console
+    console.warn('[PennyPath] savePlanOverrides failed; saved to localStorage fallback', e);
   }
 }
 
