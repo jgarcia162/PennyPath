@@ -7,7 +7,8 @@ import { getRepositories } from '../../lib/repositories';
 import { numOr } from './utils';
 
 const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
-const CLIENT_CAL_TIMEOUT_MS = 60000;
+/** Matches server GEMINI_SLOW_FETCH_MS (default 57000 ms) so the browser does not abort first. */
+const CLIENT_CAL_TIMEOUT_MS = 57000;
 
 function getApiBase() {
   if (
@@ -700,8 +701,21 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
     }
   })();
 
-  function setStatus(t: any) {
-    if (statusEl) statusEl.textContent = t || '';
+  function setStatusText(t: any) {
+    if (!statusEl) return;
+    statusEl.textContent = t || '';
+  }
+
+  function setStatusLoading(message?: string) {
+    if (!statusEl) return;
+    const msg = message || 'Generating…';
+    statusEl.innerHTML =
+      '<span class="ai-bill-cal__status-loading" aria-live="polite">' +
+      '<span class="ai-bill-cal__spinner" aria-hidden="true"></span>' +
+      '<span class="ai-bill-cal__status-label">' +
+      String(msg).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') +
+      '</span>' +
+      '</span>';
   }
 
   function syncButton() {
@@ -724,12 +738,12 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
     const pr = parseCsvBills(lastCsvText, readColumnMap());
     if (!pr.ok) {
       parsedRows = null;
-      setStatus(pr.error);
+      setStatusText(pr.error);
       syncButton();
       return;
     }
     parsedRows = pr.bills;
-    setStatus(pr.bills.length + ' bill(s) loaded from ' + fileName + '.');
+    setStatusText(pr.bills.length + ' bill(s) loaded from ' + fileName + '.');
     syncButton();
   }
 
@@ -828,7 +842,7 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
     parsedRows = null;
     lastCsvText = '';
     fileName = '';
-    setStatus('');
+    setStatusText('');
     host.textContent = '';
     const f = fileInput.files && fileInput.files[0];
     if (!f) {
@@ -842,7 +856,7 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
       tryParseFromLastFile();
     };
     reader.onerror = function () {
-      setStatus('Could not read the file.');
+      setStatusText('Could not read the file.');
       syncButton();
     };
     reader.readAsText(f);
@@ -851,7 +865,7 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
   btn.addEventListener('click', async function () {
     if (!parsedRows || !parsedRows.length) return;
     btn.disabled = true;
-    setStatus('Generating calendar…');
+    setStatusLoading('Generating calendar…');
     host.textContent = '';
     let calendarPrompt = '';
     try {
@@ -860,10 +874,10 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
       const norm = normalizeEvents(data);
       renderCalendar(host, norm);
       await saveCalendarCache({ at: new Date().toISOString(), data: norm });
-      setStatus('Calendar ready — ' + norm.events.length + ' event(s).');
+      setStatusText('Calendar ready — ' + norm.events.length + ' event(s).');
     } catch (err) {
   const msg = err && (err as any).message ? String((err as any).message) : 'Something went wrong.';
-      setStatus(msg);
+      setStatusText(msg);
       const p = document.createElement('p');
       p.className = 'ai-bill-cal__error';
       p.textContent = msg;
@@ -877,7 +891,7 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
     const cached = await loadCalendarCache();
     if (cached && Array.isArray(cached.events)) {
       renderCalendar(host, cached);
-      setStatus('Showing saved calendar — generate again to refresh.');
+      setStatusText('Showing saved calendar — generate again to refresh.');
     }
   })();
 

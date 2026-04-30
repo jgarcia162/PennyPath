@@ -512,8 +512,8 @@ function showError(
   scrollEl.appendChild(p);
 }
 
-/** Client-side ceiling for POST /api/financial-payoff (server GEMINI_FETCH_TIMEOUT_MS is 30s). */
-const CLIENT_PAYOFF_FETCH_TIMEOUT_MS = 60000;
+/** Matches server GEMINI_SLOW_FETCH_MS for payoff (default 57000 ms). */
+const CLIENT_PAYOFF_FETCH_TIMEOUT_MS = 57000;
 
 /**
  * Calls the app server POST /api/financial-payoff (see server/market-research.mjs).

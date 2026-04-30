@@ -5,7 +5,19 @@
 
 export const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models';
 export const MAX_BODY_BYTES = 1_000_000;
+/** Default deadline for Gemini :generateContent (full response body). */
 export const GEMINI_FETCH_TIMEOUT_MS = 30_000;
+
+const DEFAULT_SLOW_MS = 57_000;
+
+function resolveGeminiSlowFetchTimeoutMs(): number {
+  const raw = process.env.GEMINI_SLOW_FETCH_MS ?? process.env.GEMINI_SLOW_FETCH_TIMEOUT_MS;
+  const n = raw != null ? Number(String(raw).trim()) : NaN;
+  return Number.isFinite(n) && n >= 1000 ? Math.floor(n) : DEFAULT_SLOW_MS;
+}
+
+/** Longer deadline for heavy prompts (financial payoff / bill calendar JSON). Override via GEMINI_SLOW_FETCH_MS. */
+export const GEMINI_SLOW_FETCH_TIMEOUT_MS = resolveGeminiSlowFetchTimeoutMs();
 
 export const RESEARCH_SYSTEM_PROMPT = `You are a conservative underwriting assistant for U.S. residential real estate (condo/townhouse) rental analysis.
 Given a location, return realistic BALLPARK numbers for planning only — not legal or investment advice.
@@ -136,17 +148,22 @@ export type GeminiEnvelopeResult =
 export async function geminiGenerateContentEnvelope(
   model: string,
   apiKey: string,
-  requestBody: unknown
+  requestBody: unknown,
+  fetchTimeoutMs: number = GEMINI_FETCH_TIMEOUT_MS
 ): Promise<GeminiEnvelopeResult> {
   const geminiUrl = `${GEMINI_API_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
   let r: Response;
   let text: string;
   try {
-    const out = await fetchWithAbortMs(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    });
+    const out = await fetchWithAbortMs(
+      geminiUrl,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      },
+      fetchTimeoutMs
+    );
     r = out.r;
     text = out.text;
   } catch (e) {
@@ -250,7 +267,7 @@ export async function runFinancialPayoff(body: Record<string, unknown>, apiKey: 
     },
   };
 
-  const g = await geminiGenerateContentEnvelope(model, apiKey, payoffBody);
+  const g = await geminiGenerateContentEnvelope(model, apiKey, payoffBody, GEMINI_SLOW_FETCH_TIMEOUT_MS);
   if (!g.ok) return { ok: false as const, envelope: g, apiKey };
   return {
     ok: true as const,
@@ -275,7 +292,7 @@ export async function runFinancialCalendar(body: Record<string, unknown>, apiKey
     },
   };
 
-  const g = await geminiGenerateContentEnvelope(model, apiKey, calBody);
+  const g = await geminiGenerateContentEnvelope(model, apiKey, calBody, GEMINI_SLOW_FETCH_TIMEOUT_MS);
   if (!g.ok) return { ok: false as const, envelope: g, apiKey };
 
   const raw = g.extractedText;
