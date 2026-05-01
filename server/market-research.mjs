@@ -8,6 +8,7 @@
  * Create .env in the project root with: GEMINI_API_KEY=... (wins over shell)
  * Or: export GEMINI_API_KEY=... && npm run research-server
  * Optional: GEMINI_MODEL=gemini-2.5-flash (default)
+ * Optional: GEMINI_SLOW_FETCH_MS — longer Gemini deadline for payoff + bill calendar (default 57000 ms)
  *
  * Key: https://aistudio.google.com/apikey
  *
@@ -36,6 +37,13 @@ const GEMINI_API_BASE = 'https://generativelanguage.googleapis.com/v1beta/models
 
 const MAX_BODY_BYTES = 1_000_000;
 const GEMINI_FETCH_TIMEOUT_MS = 30_000;
+
+const GEMINI_SLOW_FETCH_TIMEOUT_MS = (function resolveSlowGeminiFetchMs() {
+  const raw = process.env.GEMINI_SLOW_FETCH_MS ?? process.env.GEMINI_SLOW_FETCH_TIMEOUT_MS;
+  const n = raw != null ? Number(String(raw).trim()) : NaN;
+  if (Number.isFinite(n) && n >= 1000) return Math.floor(n);
+  return 57_000;
+})();
 
 function parseTrustedOriginsFromEnv() {
   const set = new Set();
@@ -142,21 +150,32 @@ async function fetchGeminiWithTimeout(url, fetchInit) {
   return fetchWithAbortMs(url, fetchInit, GEMINI_FETCH_TIMEOUT_MS);
 }
 
+async function fetchGeminiWithSlowTimeout(url, fetchInit) {
+  return fetchWithAbortMs(url, fetchInit, GEMINI_SLOW_FETCH_TIMEOUT_MS);
+}
+
 /**
  * Shared Gemini :generateContent transport, response JSON parse, and extractGeminiText.
  * Callers parse structured JSON inside model text (research) or return plain text (financial payoff).
  */
-async function geminiGenerateContentEnvelope(model, apiKey, requestBody) {
+async function geminiGenerateContentEnvelope(model, apiKey, requestBody, fetchTimeoutMs = GEMINI_FETCH_TIMEOUT_MS) {
   const geminiUrl =
     `${GEMINI_API_BASE}/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
   let r;
   let text;
   try {
-    const out = await fetchGeminiWithTimeout(geminiUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestBody),
-    });
+    const out =
+      fetchTimeoutMs === GEMINI_FETCH_TIMEOUT_MS
+        ? await fetchGeminiWithTimeout(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+          })
+        : await fetchGeminiWithSlowTimeout(geminiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody),
+          });
     r = out.r;
     text = out.text;
   } catch (e) {
@@ -174,7 +193,8 @@ async function geminiGenerateContentEnvelope(model, apiKey, requestBody) {
     return { ok: false, step: 'gemini_json', detail: text.slice(0, 800) };
   }
 
-  if (data.error) {
+  const isObject = typeof data === 'object' && data !== null && !Array.isArray(data);
+  if (!isObject || 'error' in data) {
     return { ok: false, step: 'gemini_obj', httpStatus: r.status, text, data };
   }
 
@@ -693,7 +713,7 @@ async function handleFinancialPayoff(req, res) {
   };
 
   try {
-    const g = await geminiGenerateContentEnvelope(model, apiKey, payoffBody);
+    const g = await geminiGenerateContentEnvelope(model, apiKey, payoffBody, GEMINI_SLOW_FETCH_TIMEOUT_MS);
     if (sendGeminiEnvelopeError(res, cors, apiKey, g)) return;
 
     res.writeHead(200, applyCorsToHeaders(cors, { 'Content-Type': 'application/json; charset=utf-8' }));
@@ -771,7 +791,7 @@ async function handleFinancialCalendar(req, res) {
   };
 
   try {
-    const g = await geminiGenerateContentEnvelope(model, apiKey, calBody);
+    const g = await geminiGenerateContentEnvelope(model, apiKey, calBody, GEMINI_SLOW_FETCH_TIMEOUT_MS);
     if (sendGeminiEnvelopeError(res, cors, apiKey, g)) return;
 
     const raw = g.extractedText;

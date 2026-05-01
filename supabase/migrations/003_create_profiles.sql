@@ -11,6 +11,11 @@ create table if not exists public.profiles (
 -- Enable Row Level Security.
 alter table public.profiles enable row level security;
 
+-- Make migration re-runnable (common when iterating on schema).
+drop policy if exists "profiles: read own" on public.profiles;
+drop policy if exists "profiles: insert own" on public.profiles;
+drop policy if exists "profiles: update own" on public.profiles;
+
 -- Users can read their own profile.
 create policy "profiles: read own"
 on public.profiles
