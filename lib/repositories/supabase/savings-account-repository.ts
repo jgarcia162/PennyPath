@@ -85,7 +85,7 @@ export class SupabaseSavingsAccountRepository implements SavingsAccountRepositor
     const userId = requireUserId(userData?.user?.id);
 
     const row = toAccountInsert(userId, account);
-    const { error } = await this.supabase.from('savings_accounts').upsert(row, { onConflict: 'id' });
+    const { error } = await this.supabase.from('savings_accounts').upsert(row, { onConflict: 'user_id,id' });
     if (error) throw error;
   }
 
@@ -114,7 +114,7 @@ export class SupabaseSavingsAccountRepository implements SavingsAccountRepositor
       amount: deposit.amount,
       at: deposit.at,
     };
-    const { error } = await this.supabase.from('deposit_history').upsert(row, { onConflict: 'id' });
+    const { error } = await this.supabase.from('deposit_history').upsert(row, { onConflict: 'user_id,id' });
     if (error) throw error;
   }
 }

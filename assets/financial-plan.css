@@ -1383,6 +1383,13 @@ body.financial-plan-demo-mode #checkin-form {
   border-top-color: rgba(196, 176, 128, 0.85);
   animation: ai-payoff-spin 0.85s linear infinite;
 }
+
+@media (prefers-reduced-motion: reduce) {
+  .ai-bill-cal__spinner {
+    -webkit-animation: none;
+    animation: none;
+  }
+}
 :root[data-theme="dark"] .ai-bill-cal__spinner {
   border-color: rgba(225, 195, 106, 0.22);
   border-top-color: rgba(225, 195, 106, 0.9);

@@ -82,7 +82,7 @@ export class SupabaseSavingsGoalRepository implements SavingsGoalRepository {
     const userId = requireUserId(userData?.user?.id);
 
     const row = toGoalInsert(userId, goal);
-    const { error } = await this.supabase.from('savings_goals').upsert(row, { onConflict: 'id' });
+    const { error } = await this.supabase.from('savings_goals').upsert(row, { onConflict: 'user_id,id' });
     if (error) throw error;
   }
 

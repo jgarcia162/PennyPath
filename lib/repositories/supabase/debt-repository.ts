@@ -84,7 +84,7 @@ export class SupabaseDebtRepository implements DebtRepository {
     const userId = requireUserId(userData?.user?.id);
 
     const row = toDebtInsert(userId, debt);
-    const { error } = await this.supabase.from('debts').upsert(row, { onConflict: 'id' });
+    const { error } = await this.supabase.from('debts').upsert(row, { onConflict: 'user_id,id' });
     if (error) throw error;
   }
 
@@ -114,7 +114,7 @@ export class SupabaseDebtRepository implements DebtRepository {
       amount: payment.amount,
       at: payment.at,
     };
-    const { error } = await this.supabase.from('payment_history').upsert(row, { onConflict: 'id' });
+    const { error } = await this.supabase.from('payment_history').upsert(row, { onConflict: 'user_id,id' });
     if (error) throw error;
   }
 }

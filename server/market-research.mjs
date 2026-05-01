@@ -193,7 +193,8 @@ async function geminiGenerateContentEnvelope(model, apiKey, requestBody, fetchTi
     return { ok: false, step: 'gemini_json', detail: text.slice(0, 800) };
   }
 
-  if (data.error) {
+  const isObject = typeof data === 'object' && data !== null && !Array.isArray(data);
+  if (!isObject || 'error' in data) {
     return { ok: false, step: 'gemini_obj', httpStatus: r.status, text, data };
   }
 
