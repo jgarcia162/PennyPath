@@ -12,6 +12,11 @@ create table if not exists financial_plan_state (
 
 alter table financial_plan_state enable row level security;
 
+-- Make migration re-runnable (common when iterating on schema).
+drop policy if exists "Users can read own plan state" on financial_plan_state;
+drop policy if exists "Users can insert own plan state" on financial_plan_state;
+drop policy if exists "Users can update own plan state" on financial_plan_state;
+
 create policy "Users can read own plan state"
 on financial_plan_state for select
 using (auth.uid() = user_id);
