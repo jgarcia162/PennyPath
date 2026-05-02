@@ -123,14 +123,25 @@
   border: 1px solid rgba(232, 164, 74, 0.28);
 }
 
+/* Match other app `<dialog>` modals: UA defaults would otherwise pin this to a corner. */
 .trial-expired-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(92vw, 520px);
+  height: fit-content;
+  max-height: min(90vh, 720px);
+  margin: auto;
+  padding: 0;
   border: none;
   border-radius: 16px;
-  padding: 0;
-  max-width: min(92vw, 520px);
   background: transparent;
-  margin: auto;
-  inset: 0;
+  box-shadow: none;
+}
+
+.trial-expired-dialog[open] {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .trial-expired-dialog::backdrop {
@@ -138,6 +149,9 @@
 }
 
 .trial-expired-dialog__chrome {
+  width: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
   background: var(--paper);
   color: var(--charcoal);
   border: 1px solid rgba(46, 125, 82, 0.18);
