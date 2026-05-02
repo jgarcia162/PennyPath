@@ -584,28 +584,41 @@ export function wireGoalEditorDialogs(): void {
     if (d && typeof d.close === 'function') d.close();
   });
 
-  function bindDialog(dialogId: string, btnId: string): void {
+  function bindDialog(dialogId: string, btnIds: string | string[]): void {
     const dlg = document.getElementById(dialogId) as HTMLDialogElement | null;
-    const btn = document.getElementById(btnId) as HTMLElement | null;
-    if (!dlg || !btn) return;
+    const ids = Array.isArray(btnIds) ? btnIds : [btnIds];
+    const btns = ids
+      .map(function (id) {
+        return document.getElementById(id) as HTMLElement | null;
+      })
+      .filter(Boolean) as HTMLElement[];
+    if (!dlg || !btns.length) return;
 
-    btn.addEventListener('click', function () {
-      try {
-        if (typeof dlg.showModal !== 'function') return;
-        dlg.showModal();
-      } catch (err) {
-        if (typeof console !== 'undefined' && console.warn) {
-          console.warn('Goal editor dialog could not open:', err);
+    function setExpanded(open: boolean): void {
+      btns.forEach(function (b) {
+        b.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    }
+
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        try {
+          if (typeof dlg.showModal !== 'function') return;
+          dlg.showModal();
+        } catch (err) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('Goal editor dialog could not open:', err);
+          }
+          return;
         }
-        return;
-      }
-      lockBodyScrollForGoalDialog();
-      btn.setAttribute('aria-expanded', 'true');
+        lockBodyScrollForGoalDialog();
+        setExpanded(true);
+      });
     });
 
     dlg.addEventListener('close', function () {
       unlockBodyScrollForGoalDialog();
-      btn.setAttribute('aria-expanded', 'false');
+      setExpanded(false);
     });
 
     dlg.addEventListener('click', function (e) {
@@ -622,8 +635,8 @@ export function wireGoalEditorDialogs(): void {
     });
   }
 
-  bindDialog('goal2-editor-dialog', 'btn-toggle-goal2-editor');
-  bindDialog('goal3-editor-dialog', 'btn-toggle-goal3-editor');
+  bindDialog('goal2-editor-dialog', ['btn-toggle-goal2-editor', 'btn-open-debts-editor']);
+  bindDialog('goal3-editor-dialog', ['btn-toggle-goal3-editor', 'btn-open-savings-editor']);
 }
 
 export function initEditorSnapshots() {
