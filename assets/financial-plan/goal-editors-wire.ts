@@ -552,6 +552,26 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
 let bodyScrollLockDepth = 0;
 let bodyScrollLockY = 0;
 
+/**
+ * After removing `body { position: fixed; top: -scrollY }`, the viewport is at 0 until we
+ * `scrollTo` the saved Y. Global `html { scroll-behavior: smooth }` would animate that
+ * restore (snap to top, then smooth scroll down). Force an instant jump.
+ */
+function restoreViewportScrollY(y: number): void {
+  const root = document.documentElement;
+  const prevInline = root.style.scrollBehavior;
+  root.style.scrollBehavior = 'auto';
+  try {
+    window.scrollTo({ left: 0, top: y, behavior: 'auto' });
+  } finally {
+    if (prevInline) {
+      root.style.scrollBehavior = prevInline;
+    } else {
+      root.style.removeProperty('scroll-behavior');
+    }
+  }
+}
+
 function lockBodyScrollForGoalDialog() {
   if (bodyScrollLockDepth === 0) {
     bodyScrollLockY = window.scrollY || window.pageYOffset || 0;
@@ -574,7 +594,7 @@ function unlockBodyScrollForGoalDialog() {
   document.body.style.left = '';
   document.body.style.right = '';
   document.body.style.width = '';
-  window.scrollTo(0, bodyScrollLockY);
+  restoreViewportScrollY(bodyScrollLockY);
 }
 
 /** Centered modal editors (native `<dialog>` + `showModal`). */
