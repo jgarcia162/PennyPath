@@ -134,7 +134,7 @@
 }
 
 .trial-expired-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(10, 12, 20, 0.55);
 }
 
 .trial-expired-dialog__chrome {
@@ -147,8 +147,12 @@
 }
 
 .trial-expired-dialog__header {
-  padding: 18px 20px 10px;
-  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--ink, #2c3140);
+  color: var(--cream, #f5f0e6);
 }
 
 .trial-expired-dialog__title {
@@ -156,17 +160,18 @@
   font-family: var(--font-display), Georgia, serif !important;
   font-size: 20px !important;
   font-weight: 700 !important;
+  color: var(--cream, #f5f0e6) !important;
 }
 
 .trial-expired-dialog__body {
-  padding: 14px 20px 18px;
+  padding: 16px 22px 18px;
   font-size: 14px !important;
   line-height: 1.55;
   color: var(--muted) !important;
 }
 
 .trial-expired-dialog__actions {
-  padding: 0 20px 18px;
+  padding: 0 22px 18px;
   display: flex;
   justify-content: flex-end;
 }

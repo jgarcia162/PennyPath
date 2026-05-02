@@ -552,6 +552,26 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
 let bodyScrollLockDepth = 0;
 let bodyScrollLockY = 0;
 
+/**
+ * After removing `body { position: fixed; top: -scrollY }`, the viewport is at 0 until we
+ * `scrollTo` the saved Y. Global `html { scroll-behavior: smooth }` would animate that
+ * restore (snap to top, then smooth scroll down). Force an instant jump.
+ */
+function restoreViewportScrollY(y: number): void {
+  const root = document.documentElement;
+  const prevInline = root.style.scrollBehavior;
+  root.style.scrollBehavior = 'auto';
+  try {
+    window.scrollTo({ left: 0, top: y, behavior: 'auto' });
+  } finally {
+    if (prevInline) {
+      root.style.scrollBehavior = prevInline;
+    } else {
+      root.style.removeProperty('scroll-behavior');
+    }
+  }
+}
+
 function lockBodyScrollForGoalDialog() {
   if (bodyScrollLockDepth === 0) {
     bodyScrollLockY = window.scrollY || window.pageYOffset || 0;
@@ -574,7 +594,7 @@ function unlockBodyScrollForGoalDialog() {
   document.body.style.left = '';
   document.body.style.right = '';
   document.body.style.width = '';
-  window.scrollTo(0, bodyScrollLockY);
+  restoreViewportScrollY(bodyScrollLockY);
 }
 
 /** Centered modal editors (native `<dialog>` + `showModal`). */
@@ -584,28 +604,41 @@ export function wireGoalEditorDialogs(): void {
     if (d && typeof d.close === 'function') d.close();
   });
 
-  function bindDialog(dialogId: string, btnId: string): void {
+  function bindDialog(dialogId: string, btnIds: string | string[]): void {
     const dlg = document.getElementById(dialogId) as HTMLDialogElement | null;
-    const btn = document.getElementById(btnId) as HTMLElement | null;
-    if (!dlg || !btn) return;
+    const ids = Array.isArray(btnIds) ? btnIds : [btnIds];
+    const btns = ids
+      .map(function (id) {
+        return document.getElementById(id) as HTMLElement | null;
+      })
+      .filter(Boolean) as HTMLElement[];
+    if (!dlg || !btns.length) return;
 
-    btn.addEventListener('click', function () {
-      try {
-        if (typeof dlg.showModal !== 'function') return;
-        dlg.showModal();
-      } catch (err) {
-        if (typeof console !== 'undefined' && console.warn) {
-          console.warn('Goal editor dialog could not open:', err);
+    function setExpanded(open: boolean): void {
+      btns.forEach(function (b) {
+        b.setAttribute('aria-expanded', open ? 'true' : 'false');
+      });
+    }
+
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        try {
+          if (typeof dlg.showModal !== 'function') return;
+          dlg.showModal();
+        } catch (err) {
+          if (typeof console !== 'undefined' && console.warn) {
+            console.warn('Goal editor dialog could not open:', err);
+          }
+          return;
         }
-        return;
-      }
-      lockBodyScrollForGoalDialog();
-      btn.setAttribute('aria-expanded', 'true');
+        lockBodyScrollForGoalDialog();
+        setExpanded(true);
+      });
     });
 
     dlg.addEventListener('close', function () {
       unlockBodyScrollForGoalDialog();
-      btn.setAttribute('aria-expanded', 'false');
+      setExpanded(false);
     });
 
     dlg.addEventListener('click', function (e) {
@@ -622,8 +655,8 @@ export function wireGoalEditorDialogs(): void {
     });
   }
 
-  bindDialog('goal2-editor-dialog', 'btn-toggle-goal2-editor');
-  bindDialog('goal3-editor-dialog', 'btn-toggle-goal3-editor');
+  bindDialog('goal2-editor-dialog', ['btn-toggle-goal2-editor', 'btn-open-debts-editor']);
+  bindDialog('goal3-editor-dialog', ['btn-toggle-goal3-editor', 'btn-open-savings-editor']);
 }
 
 export function initEditorSnapshots() {
