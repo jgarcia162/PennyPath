@@ -1502,7 +1502,7 @@ body.financial-plan-demo-mode #checkin-form {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 18px 22px;
   border-bottom: 1px solid rgba(60, 68, 82, 0.08);
   background: var(--ink, #2c3140);
   color: var(--cream, #f5f0e6);
@@ -1516,6 +1516,7 @@ body.financial-plan-demo-mode #checkin-form {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 18px;
   font-weight: 700;
+  color: var(--cream);
 }
 .ai-bill-cal-prompt-dialog__close {
   flex-shrink: 0;
@@ -1538,7 +1539,7 @@ body.financial-plan-demo-mode #checkin-form {
   outline-offset: 2px;
 }
 .ai-bill-cal-prompt-dialog__body {
-  padding: 14px 16px 18px;
+  padding: 16px 22px 20px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   display: flex;
@@ -2485,7 +2486,7 @@ body.financial-plan-demo-mode #checkin-form {
   font-weight: 800;
   letter-spacing: 0.02em;
   color: rgba(60, 68, 82, 0.94);
-  flex: 1 1 auto;
+  flex: 0 1 auto;
 }
 .goal-editor-dialog__meta {
   font-size: 13px;
@@ -3129,7 +3130,6 @@ body.financial-plan-demo-mode #checkin-form {
   border: none;
   background: transparent;
   padding: 4px 2px 8px;
-  gap: 12px;
   flex: 1 1 auto;
   min-height: 0;
   max-height: min(52vh, 520px);
@@ -3138,18 +3138,26 @@ body.financial-plan-demo-mode #checkin-form {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+/* Table rows: vertical rhythm (flex `gap` on the host does not space `<tr>`). */
+.goal-editor-dialog .debts-editor-list .editor-table,
+.goal-editor-dialog .savings-editor-list .editor-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 18px;
+}
 .goal-editor-dialog .debt-row,
 .goal-editor-dialog .savings-row {
   border: none;
-  background: var(--paper);
-  box-shadow: var(--md-elevation-1);
+  background: rgba(60, 68, 82, 0.045);
+  box-shadow: none;
   border-radius: 12px;
   padding: 16px;
-  transition: box-shadow 0.2s ease;
+  transition: background 0.2s ease;
 }
 .goal-editor-dialog .debt-row:hover,
 .goal-editor-dialog .savings-row:hover {
-  box-shadow: var(--md-elevation-2);
+  background: rgba(60, 68, 82, 0.07);
+  box-shadow: none;
 }
 .goal-editor-dialog .debt-row .balance-field input,
 .goal-editor-dialog .savings-row .balance-field input {
@@ -3889,7 +3897,7 @@ body.financial-plan-demo-mode #checkin-form {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px;
+  padding: 18px 22px;
   border-bottom: 1px solid rgba(60, 68, 82, 0.08);
   background: var(--ink);
   color: var(--cream);
@@ -3900,6 +3908,7 @@ body.financial-plan-demo-mode #checkin-form {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 20px;
   font-weight: 700;
+  color: var(--cream);
 }
 .checkin-log-dialog__close {
   flex-shrink: 0;
@@ -3918,11 +3927,11 @@ body.financial-plan-demo-mode #checkin-form {
   background: rgba(255, 255, 255, 0.14);
 }
 .checkin-log-dialog__body {
-  padding: 14px 16px 18px;
+  padding: 16px 22px 20px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   display: grid;
-  gap: 10px;
+  gap: 12px;
   flex: 1;
   min-height: 0;
 }
@@ -3985,8 +3994,8 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .goal-editor-dialog__header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: flex-start;
   gap: 12px;
   padding: 18px 22px;
   border-bottom: none;
@@ -3998,7 +4007,7 @@ body.financial-plan-demo-mode #checkin-form {
 .goal-editor-dialog__header-main {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 8px 14px;
   min-width: 0;
 }
@@ -4007,12 +4016,17 @@ body.financial-plan-demo-mode #checkin-form {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 20px;
   font-weight: 700;
+  flex: 0 1 auto;
   /* Explicit: earlier `.goal-editor-dialog__title` rules set charcoal; header is `--ink`. */
   color: var(--cream);
 }
 .goal-editor-dialog__header .goal-editor-dialog__meta.toolwin__meta {
   /* Beats `.toolwin__meta` (charcoal) which would otherwise win by source order. */
-  color: rgba(245, 240, 232, 0.92);
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  align-self: center;
+  color: rgba(245, 240, 232, 0.95);
   margin-left: 0;
 }
 .goal-editor-dialog__total {
@@ -4058,11 +4072,12 @@ body.financial-plan-demo-mode #checkin-form {
 :root[data-theme="dark"] .goal-editor-dialog .debt-row,
 :root[data-theme="dark"] .goal-editor-dialog .savings-row {
   background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 :root[data-theme="dark"] .goal-editor-dialog .debt-row:hover,
 :root[data-theme="dark"] .goal-editor-dialog .savings-row:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: none;
 }
 :root[data-theme="dark"] .goal-editor-dialog .debt-row .balance-field input:not([readonly]),
 :root[data-theme="dark"] .goal-editor-dialog .savings-row .balance-field input:not([readonly]) {
@@ -5271,9 +5286,10 @@ body.financial-plan-demo-mode #checkin-form {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px;
-  border-bottom: 1px solid rgba(60, 68, 82, 0.1);
-  background: var(--paper);
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--ink);
+  color: var(--cream);
   flex-shrink: 0;
 }
 .appearance-dialog__title {
@@ -5281,7 +5297,7 @@ body.financial-plan-demo-mode #checkin-form {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 20px;
   font-weight: 700;
-  color: var(--text);
+  color: var(--cream);
 }
 .appearance-dialog__close {
   flex-shrink: 0;
@@ -5289,18 +5305,18 @@ body.financial-plan-demo-mode #checkin-form {
   height: 40px;
   border: none;
   border-radius: 10px;
-  background: rgba(60, 68, 82, 0.06);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cream);
   font-size: 24px;
   line-height: 1;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 .appearance-dialog__close:hover {
-  background: rgba(60, 68, 82, 0.1);
+  background: rgba(255, 255, 255, 0.14);
 }
 .appearance-dialog__body {
-  padding: 14px 18px 20px;
+  padding: 16px 22px 20px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -5433,12 +5449,15 @@ body.financial-plan-demo-mode #checkin-form {
 :root[data-theme='dark'] .palette-option__blurb {
   color: rgba(228, 230, 240, 0.58);
 }
+:root[data-theme='dark'] .appearance-dialog__header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
 :root[data-theme='dark'] .appearance-dialog__close {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cream);
 }
 :root[data-theme='dark'] .appearance-dialog__close:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.14);
 }
 :root[data-theme='dark'] .palette-option {
   border-color: rgba(255, 255, 255, 0.1);
