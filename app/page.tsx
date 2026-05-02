@@ -42,7 +42,7 @@ export default function HomePage() {
             <Link href="/login" className="btn btn--ghost-light btn--lg">
               Log in
             </Link>
-            <Link href="/login?takeAPeek=1" className="btn btn--ghost-light btn--lg">
+            <Link href="/login" className="btn btn--ghost-light btn--lg">
               Take a peek →
             </Link>
           </div>

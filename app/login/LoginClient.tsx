@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 import {
@@ -13,9 +12,6 @@ import { clearTrialSession, enableTrialSession } from '../../lib/trial/trial-ses
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
 
 export default function LoginClient() {
-  const sp = useSearchParams();
-  const takeAPeek = sp.get('takeAPeek') === '1';
-
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -116,9 +112,7 @@ export default function LoginClient() {
           </Link>
           <h1 className="auth-form__title">Log in</h1>
           <p className="auth-form__sub">
-            {takeAPeek
-              ? 'Start a time-boxed trial with sample data, or use your email and password to access your planner.'
-              : 'Use your email and password to access your planner.'}
+            Start a time-boxed trial with sample data, or use your email and password to access your planner.
           </p>
 
           <form onSubmit={onSubmit}>
@@ -190,16 +184,12 @@ export default function LoginClient() {
             </button>
           </form>
 
-          {takeAPeek ? (
-            <>
-              <div className="auth-form__divider">or</div>
+          <div className="auth-form__divider">or</div>
 
-              <button type="button" className="auth-form__peek" onClick={onStartTrial} disabled={loading}>
-                👀 Take a peek (sample account)
-              </button>
-              <p className="auth-form__peek-note">Temporary session with demo data. Resets when you leave.</p>
-            </>
-          ) : null}
+          <button type="button" className="auth-form__peek" onClick={onStartTrial} disabled={loading}>
+            👀 Take a peek (sample account)
+          </button>
+          <p className="auth-form__peek-note">Temporary session with demo data. Resets when you leave.</p>
 
           <div className="auth-form__footer">
             Don&apos;t have an account? <Link href="/signup">Sign up</Link>
