@@ -10,7 +10,10 @@ export const metadata = {
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    // suppressHydrationWarning: browser extensions (e.g. GA opt-out) and client-only scripts
+    // (theme/palette on documentElement) can differ from SSR; see https://react.dev/link/hydration-mismatch
+    // data-scroll-behavior: matches `scroll-behavior: smooth` in CSS (Next.js route transition guidance).
+    <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body
         className={`${fontOutfit.className} ${fontOutfit.variable} ${fontCormorant.variable} ${fontJetBrains.variable} ${fontDmSans.variable} min-h-screen antialiased`}
       >

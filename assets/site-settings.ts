@@ -142,7 +142,18 @@
       document.body.style.left = '';
       document.body.style.right = '';
       document.body.style.width = '';
-      window.scrollTo(0, scrollY);
+      var root = document.documentElement;
+      var prevSb = root.style.scrollBehavior;
+      root.style.scrollBehavior = 'auto';
+      try {
+        window.scrollTo({ left: 0, top: scrollY, behavior: 'auto' });
+      } finally {
+        if (prevSb) {
+          root.style.scrollBehavior = prevSb;
+        } else {
+          root.style.removeProperty('scroll-behavior');
+        }
+      }
     }
 
     function syncPaletteOptions() {

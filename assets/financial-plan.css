@@ -1502,7 +1502,7 @@ body.financial-plan-demo-mode #checkin-form {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 18px 22px;
   border-bottom: 1px solid rgba(60, 68, 82, 0.08);
   background: var(--ink, #2c3140);
   color: var(--cream, #f5f0e6);
@@ -1516,6 +1516,7 @@ body.financial-plan-demo-mode #checkin-form {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 18px;
   font-weight: 700;
+  color: var(--cream);
 }
 .ai-bill-cal-prompt-dialog__close {
   flex-shrink: 0;
@@ -1538,7 +1539,7 @@ body.financial-plan-demo-mode #checkin-form {
   outline-offset: 2px;
 }
 .ai-bill-cal-prompt-dialog__body {
-  padding: 14px 16px 18px;
+  padding: 16px 22px 20px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   display: flex;
@@ -2394,163 +2395,160 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(60, 68, 82, 0.92);
 }
 
-/* Edge editor drawers (tabs + expanding editor). */
-.dashboard-edge-editors {
-  position: fixed;
-  /* Keep clear of the browser scrollbar / overlay controls. */
-  right: 14px;
-  top: 50%;
-  transform: translateY(-50%);
-  z-index: 320; /* above toolwins (300) and site header (100) */
+/* Dashboard: open debts/savings editors as centered dialogs */
+.dashboard-editor-actions {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   gap: 10px;
-  padding: 8px 0;
-  pointer-events: none; /* only tabs themselves should be clickable */
+  align-items: center;
+  margin: 12px 0 18px;
 }
-.edge-editor[data-edge-editor='debts'] { --edge-accent: var(--sage); --edge-bg: rgba(143, 176, 160, 0.22); }
-.edge-editor[data-edge-editor='savings'] { --edge-accent: var(--purple); --edge-bg: rgba(173, 160, 194, 0.24); }
-.edge-editor { --edge-accent: rgba(58, 95, 138, 0.9); --edge-bg: rgba(58, 95, 138, 0.14); }
-.edge-editor__tab {
-  pointer-events: auto;
+.dashboard-editor-action-btn {
   appearance: none;
-  border: 1px solid rgba(60, 68, 82, 0.12);
-  border-right: none;
-  background: var(--edge-bg);
-  color: rgba(60, 68, 82, 0.86);
   font-family: 'DM Sans', sans-serif;
-  font-weight: 900;
-  letter-spacing: 0.08em;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: 1px solid rgba(60, 68, 82, 0.18);
   cursor: pointer;
-  border-top-left-radius: 14px;
-  border-bottom-left-radius: 14px;
-  /* Wider click target and more breathing room for vertical label. */
-  padding: 16px 16px;
-  box-shadow: 0 10px 26px rgba(60, 68, 82, 0.12);
-  transition: transform 180ms ease, box-shadow 180ms ease, background 150ms ease, border-color 150ms ease, color 150ms ease;
+  transition: background 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
-.edge-editor__tab-label {
-  display: inline-block;
-  writing-mode: vertical-rl;
-  transform: rotate(180deg); /* read top-to-bottom */
-  font-size: 11px;
-  line-height: 1;
-  /* Add end-padding so text doesn't crowd rounded corners. */
-  padding: 8px 0;
-  /* Approach 1: “always legible” outline on mixed backgrounds. */
-  text-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.55),
-    0 0 2px rgba(0, 0, 0, 0.28);
-  transition: color 180ms ease;
+.dashboard-editor-action-btn--debts {
+  background: rgba(143, 176, 160, 0.18);
+  border-color: rgba(143, 176, 160, 0.45);
+  color: rgba(60, 68, 82, 0.92);
 }
-.edge-editor__tab:hover {
-  background: rgba(255, 255, 255, 0.85);
-  color: rgba(60, 68, 82, 0.94);
-  transform: translateX(-2px);
+.dashboard-editor-action-btn--debts:hover {
+  background: rgba(143, 176, 160, 0.28);
 }
-.edge-editor__tab[aria-selected="true"] {
-  background: rgba(255, 255, 255, 0.92);
-  border-color: rgba(60, 68, 82, 0.16);
-  color: rgba(60, 68, 82, 0.94);
-  box-shadow:
-    0 14px 34px rgba(60, 68, 82, 0.18),
-    0 0 0 1px var(--edge-accent) inset;
-  transform: translateX(-6px);
+.dashboard-editor-action-btn--savings {
+  background: rgba(173, 160, 194, 0.22);
+  border-color: rgba(173, 160, 194, 0.45);
+  color: rgba(60, 68, 82, 0.92);
 }
-/* Drawer panel */
-.edge-editor {
-  pointer-events: none;
+.dashboard-editor-action-btn--savings:hover {
+  background: rgba(173, 160, 194, 0.32);
 }
-.edge-editor.is-open {
-  pointer-events: auto;
+
+:root[data-theme='dark'] .dashboard-editor-action-btn {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: rgba(233, 233, 246, 0.9);
 }
-.edge-editor__panel {
-  position: fixed;
-  top: 50%;
-  /* Leave room so the vertical tabs remain visible/clickable. */
-  right: 84px;
-  z-index: 315;
-  width: min(660px, calc(100vw - 84px - 16px));
-  max-height: calc(100vh - 160px);
-  overflow: auto;
-  padding: 0 0 0 0;
-  transform: translate(100%, -50%);
-  transition: transform 240ms cubic-bezier(0.33, 1, 0.68, 1);
-  pointer-events: auto;
+:root[data-theme='dark'] .dashboard-editor-action-btn--debts {
+  background: rgba(143, 176, 160, 0.16);
+  border-color: rgba(143, 176, 160, 0.38);
 }
-.edge-editor.is-open .edge-editor__panel {
-  transform: translate(0, -50%);
+:root[data-theme='dark'] .dashboard-editor-action-btn--debts:hover {
+  background: rgba(143, 176, 160, 0.26);
 }
-.edge-editor__panel .toolwin {
-  position: static;
-  right: auto;
-  top: auto;
+:root[data-theme='dark'] .dashboard-editor-action-btn--savings {
+  background: rgba(173, 160, 194, 0.18);
+  border-color: rgba(173, 160, 194, 0.38);
+}
+:root[data-theme='dark'] .dashboard-editor-action-btn--savings:hover {
+  background: rgba(173, 160, 194, 0.28);
+}
+
+.goal-editor-dialog {
+  border: none;
+  padding: 0;
+  max-width: min(720px, calc(100vw - 32px));
   width: 100%;
-  max-width: none;
-  min-width: 0;
-  max-height: none;
-  height: auto;
-  resize: none;
+  border-radius: 18px;
+  background: transparent;
+  box-shadow: none;
 }
-.edge-editor__panel .toolwin__body {
-  max-height: none;
+.goal-editor-dialog::backdrop {
+  background: rgba(28, 32, 40, 0.42);
+}
+.goal-editor-dialog__chrome {
+  background: var(--paper);
+  border: 1px solid rgba(60, 68, 82, 0.12);
+  border-radius: 18px;
+  box-shadow: 0 24px 60px rgba(60, 68, 82, 0.18);
+  overflow: hidden;
+}
+.goal-editor-dialog__header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(60, 68, 82, 0.1);
+  background: rgba(255, 255, 255, 0.55);
+}
+.goal-editor-dialog__title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: rgba(60, 68, 82, 0.94);
+  flex: 0 1 auto;
+}
+.goal-editor-dialog__meta {
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(60, 68, 82, 0.62);
+}
+.goal-editor-dialog__close {
+  appearance: none;
+  margin-left: auto;
+  border: 1px solid rgba(60, 68, 82, 0.14);
+  background: rgba(255, 255, 255, 0.75);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: rgba(60, 68, 82, 0.72);
+}
+.goal-editor-dialog__close:hover {
+  background: rgba(143, 176, 160, 0.18);
+  border-color: rgba(143, 176, 160, 0.35);
+  color: rgba(60, 68, 82, 0.92);
+}
+.goal-editor-dialog__body {
+  padding: 14px 18px 18px;
+  max-height: min(72vh, 720px);
+  overflow: auto;
 }
 
-/* Make the active tab feel “pulled out” with the drawer. */
-.edge-editor.is-open .edge-editor__tab {
-  transform: translateX(-18px);
-  box-shadow: 0 16px 36px rgba(60, 68, 82, 0.20);
-}
-:root[data-theme="dark"] .edge-editor.is-open .edge-editor__tab {
-  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.45);
-}
-
-:root[data-theme="dark"] .edge-editor[data-edge-editor='debts'] { --edge-bg: rgba(143, 176, 160, 0.20); }
-:root[data-theme="dark"] .edge-editor[data-edge-editor='savings'] { --edge-bg: rgba(173, 160, 194, 0.22); }
-:root[data-theme="dark"] .edge-editor__tab {
+:root[data-theme='dark'] .goal-editor-dialog__chrome {
   border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.55);
+}
+:root[data-theme='dark'] .goal-editor-dialog__header {
+  background: rgba(255, 255, 255, 0.04);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+:root[data-theme='dark'] .goal-editor-dialog__title {
+  color: rgba(233, 233, 246, 0.94);
+}
+:root[data-theme='dark'] .goal-editor-dialog__meta {
+  color: rgba(233, 233, 246, 0.62);
+}
+:root[data-theme='dark'] .goal-editor-dialog__close {
+  border-color: rgba(255, 255, 255, 0.14);
   background: rgba(255, 255, 255, 0.06);
-  color: rgba(233, 233, 246, 0.86);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  color: rgba(233, 233, 246, 0.78);
 }
-:root[data-theme="dark"] .edge-editor__tab:hover {
-  background: rgba(255, 255, 255, 0.10);
-  color: rgba(233, 233, 246, 0.92);
-}
-:root[data-theme="dark"] .edge-editor__tab[aria-selected="true"] {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.16);
-  color: rgba(233, 233, 246, 0.92);
-  box-shadow:
-    0 16px 38px rgba(0, 0, 0, 0.45),
-    0 0 0 1px var(--edge-accent) inset;
-}
-:root[data-theme="dark"] .edge-editor__tab-label {
-  text-shadow:
-    0 1px 0 rgba(0, 0, 0, 0.45),
-    0 0 2px rgba(0, 0, 0, 0.45);
+:root[data-theme='dark'] .goal-editor-dialog__close:hover {
+  background: rgba(121, 166, 216, 0.14);
+  border-color: rgba(121, 166, 216, 0.28);
+  color: rgba(233, 233, 246, 0.94);
 }
 
-/* Approach 2 demo: if JS marks it dark, flip label color smoothly. */
-/* (Auto-contrast demo removed; using scrim/text-shadow approach only.) */
 @media (prefers-reduced-motion: reduce) {
-  .edge-editor__tab,
-  .edge-editor__tab:hover,
-  .edge-editor__tab[aria-selected="true"] {
+  .dashboard-editor-action-btn {
     transition: none;
-    transform: none;
-  }
-  .edge-editor__panel {
-    transition: none;
-    /* Preserve vertical centering while disabling horizontal animation. */
-    transform: translate(0, -50%);
   }
 }
+
 @media (max-width: 900px) {
-  .dashboard-edge-editors {
-    display: none; /* avoid fighting for space on mobile */
-  }
   .page-tab-panel--dashboard .dashboard-tabs {
     display: inline-flex;
   }
@@ -3132,7 +3130,6 @@ body.financial-plan-demo-mode #checkin-form {
   border: none;
   background: transparent;
   padding: 4px 2px 8px;
-  gap: 12px;
   flex: 1 1 auto;
   min-height: 0;
   max-height: min(52vh, 520px);
@@ -3141,18 +3138,26 @@ body.financial-plan-demo-mode #checkin-form {
   overscroll-behavior: contain;
   -webkit-overflow-scrolling: touch;
 }
+/* Table rows: vertical rhythm (flex `gap` on the host does not space `<tr>`). */
+.goal-editor-dialog .debts-editor-list .editor-table,
+.goal-editor-dialog .savings-editor-list .editor-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 18px;
+}
 .goal-editor-dialog .debt-row,
 .goal-editor-dialog .savings-row {
   border: none;
-  background: var(--paper);
-  box-shadow: var(--md-elevation-1);
+  background: rgba(60, 68, 82, 0.045);
+  box-shadow: none;
   border-radius: 12px;
   padding: 16px;
-  transition: box-shadow 0.2s ease;
+  transition: background 0.2s ease;
 }
 .goal-editor-dialog .debt-row:hover,
 .goal-editor-dialog .savings-row:hover {
-  box-shadow: var(--md-elevation-2);
+  background: rgba(60, 68, 82, 0.07);
+  box-shadow: none;
 }
 .goal-editor-dialog .debt-row .balance-field input,
 .goal-editor-dialog .savings-row .balance-field input {
@@ -3654,12 +3659,14 @@ body.financial-plan-demo-mode #checkin-form {
   padding: 0;
 }
 /* Modal editors: flat shell — elevation lives on cards; flex so lists scroll like debts */
+.goal-editor-dialog .goal-editor-inner.balance-editor,
 .goal-editor-dialog .balance-editor--dialog {
   background: transparent;
   border: none;
   box-shadow: none;
   padding: 0;
   margin: 0;
+  border-radius: 0;
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -3890,7 +3897,7 @@ body.financial-plan-demo-mode #checkin-form {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px;
+  padding: 18px 22px;
   border-bottom: 1px solid rgba(60, 68, 82, 0.08);
   background: var(--ink);
   color: var(--cream);
@@ -3901,6 +3908,7 @@ body.financial-plan-demo-mode #checkin-form {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 20px;
   font-weight: 700;
+  color: var(--cream);
 }
 .checkin-log-dialog__close {
   flex-shrink: 0;
@@ -3919,11 +3927,11 @@ body.financial-plan-demo-mode #checkin-form {
   background: rgba(255, 255, 255, 0.14);
 }
 .checkin-log-dialog__body {
-  padding: 14px 16px 18px;
+  padding: 16px 22px 20px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   display: grid;
-  gap: 10px;
+  gap: 12px;
   flex: 1;
   min-height: 0;
 }
@@ -3986,8 +3994,8 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .goal-editor-dialog__header {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  align-items: center;
+  justify-content: flex-start;
   gap: 12px;
   padding: 18px 22px;
   border-bottom: none;
@@ -3999,7 +4007,7 @@ body.financial-plan-demo-mode #checkin-form {
 .goal-editor-dialog__header-main {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 8px 14px;
   min-width: 0;
 }
@@ -4008,6 +4016,18 @@ body.financial-plan-demo-mode #checkin-form {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 20px;
   font-weight: 700;
+  flex: 0 1 auto;
+  /* Explicit: earlier `.goal-editor-dialog__title` rules set charcoal; header is `--ink`. */
+  color: var(--cream);
+}
+.goal-editor-dialog__header .goal-editor-dialog__meta.toolwin__meta {
+  /* Beats `.toolwin__meta` (charcoal) which would otherwise win by source order. */
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: right;
+  align-self: center;
+  color: rgba(245, 240, 232, 0.95);
+  margin-left: 0;
 }
 .goal-editor-dialog__total {
   font-family: 'DM Sans', sans-serif;
@@ -4052,11 +4072,12 @@ body.financial-plan-demo-mode #checkin-form {
 :root[data-theme="dark"] .goal-editor-dialog .debt-row,
 :root[data-theme="dark"] .goal-editor-dialog .savings-row {
   background: rgba(255, 255, 255, 0.06);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  box-shadow: none;
 }
 :root[data-theme="dark"] .goal-editor-dialog .debt-row:hover,
 :root[data-theme="dark"] .goal-editor-dialog .savings-row:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  background: rgba(255, 255, 255, 0.09);
+  box-shadow: none;
 }
 :root[data-theme="dark"] .goal-editor-dialog .debt-row .balance-field input:not([readonly]),
 :root[data-theme="dark"] .goal-editor-dialog .savings-row .balance-field input:not([readonly]) {
@@ -5265,9 +5286,10 @@ body.financial-plan-demo-mode #checkin-form {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px;
-  border-bottom: 1px solid rgba(60, 68, 82, 0.1);
-  background: var(--paper);
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: var(--ink);
+  color: var(--cream);
   flex-shrink: 0;
 }
 .appearance-dialog__title {
@@ -5275,7 +5297,7 @@ body.financial-plan-demo-mode #checkin-form {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 20px;
   font-weight: 700;
-  color: var(--text);
+  color: var(--cream);
 }
 .appearance-dialog__close {
   flex-shrink: 0;
@@ -5283,18 +5305,18 @@ body.financial-plan-demo-mode #checkin-form {
   height: 40px;
   border: none;
   border-radius: 10px;
-  background: rgba(60, 68, 82, 0.06);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cream);
   font-size: 24px;
   line-height: 1;
   cursor: pointer;
   transition: background 0.15s ease;
 }
 .appearance-dialog__close:hover {
-  background: rgba(60, 68, 82, 0.1);
+  background: rgba(255, 255, 255, 0.14);
 }
 .appearance-dialog__body {
-  padding: 14px 18px 20px;
+  padding: 16px 22px 20px;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -5427,12 +5449,15 @@ body.financial-plan-demo-mode #checkin-form {
 :root[data-theme='dark'] .palette-option__blurb {
   color: rgba(228, 230, 240, 0.58);
 }
+:root[data-theme='dark'] .appearance-dialog__header {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
 :root[data-theme='dark'] .appearance-dialog__close {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text);
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cream);
 }
 :root[data-theme='dark'] .appearance-dialog__close:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.14);
 }
 :root[data-theme='dark'] .palette-option {
   border-color: rgba(255, 255, 255, 0.1);
