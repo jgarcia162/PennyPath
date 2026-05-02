@@ -3651,12 +3651,14 @@ body.financial-plan-demo-mode #checkin-form {
   padding: 0;
 }
 /* Modal editors: flat shell — elevation lives on cards; flex so lists scroll like debts */
+.goal-editor-dialog .goal-editor-inner.balance-editor,
 .goal-editor-dialog .balance-editor--dialog {
   background: transparent;
   border: none;
   box-shadow: none;
   padding: 0;
   margin: 0;
+  border-radius: 0;
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
@@ -4005,6 +4007,13 @@ body.financial-plan-demo-mode #checkin-form {
   font-family: 'Playfair Display', Georgia, serif;
   font-size: 20px;
   font-weight: 700;
+  /* Explicit: earlier `.goal-editor-dialog__title` rules set charcoal; header is `--ink`. */
+  color: var(--cream);
+}
+.goal-editor-dialog__header .goal-editor-dialog__meta.toolwin__meta {
+  /* Beats `.toolwin__meta` (charcoal) which would otherwise win by source order. */
+  color: rgba(245, 240, 232, 0.92);
+  margin-left: 0;
 }
 .goal-editor-dialog__total {
   font-family: 'DM Sans', sans-serif;
