@@ -123,6 +123,69 @@
   border: 1px solid rgba(232, 164, 74, 0.28);
 }
 
+/* ── Mobile / narrow: header stacks; nav scrolls horizontally (Safari + Chromium) ── */
+@media (max-width: 768px) {
+  .site-header {
+    flex-wrap: wrap;
+    align-items: stretch;
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .site-header > .site-header__brand {
+    order: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0 14px !important;
+    min-height: 48px;
+    border-right: none;
+  }
+
+  .site-header > .site-nav {
+    order: 3;
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    border-top: 1px solid rgba(104, 217, 160, 0.14);
+    padding: 0 !important;
+    justify-content: flex-start;
+    gap: 0;
+  }
+
+  .site-nav__tab {
+    flex: 0 0 auto !important;
+    white-space: nowrap;
+    padding: 0 14px !important;
+    min-height: 44px;
+    scroll-snap-align: start;
+  }
+
+  .site-header__settings {
+    order: 2;
+    margin-left: auto;
+    border-left: none !important;
+  }
+
+  .trial-countdown {
+    margin: 0 4px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .site-settings-btn {
+    min-height: 44px !important;
+    padding: 0 12px !important;
+  }
+
+  .site-settings-menu {
+    right: env(safe-area-inset-right, 0px);
+    max-width: min(320px, calc(100vw - 16px - env(safe-area-inset-right, 0px) - env(safe-area-inset-left, 0px)));
+  }
+}
+
 /* Match other app `<dialog>` modals: UA defaults would otherwise pin this to a corner. */
 .trial-expired-dialog {
   position: fixed;

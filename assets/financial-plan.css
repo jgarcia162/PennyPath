@@ -701,6 +701,83 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(233, 233, 246, 0.92);
 }
 
+/* ── Mobile: hero + plan tab chrome (Financial Plan / Dashboard) ── */
+@media (max-width: 768px) {
+  .cover {
+    padding: 40px 20px 36px;
+  }
+  .cover h1 {
+    font-size: clamp(26px, 9vw, 44px);
+  }
+  .cover-stats {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding-top: 24px;
+  }
+  .cover-stat {
+    padding: 14px 0;
+    margin: 0 !important;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .cover-stat:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .content {
+    padding: 32px 16px 56px;
+  }
+  .page-tabs {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    justify-content: stretch;
+    gap: 8px;
+    padding: 6px;
+  }
+  .page-tab-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+  .collapsible-controls__toggle {
+    min-height: 44px;
+    padding: 12px 16px;
+  }
+  /* Wide tables / grids inside sections: scroll horizontally instead of stretching the page */
+  .section-collapsible__anim {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .section-collapsible__summary {
+    min-height: 44px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    box-sizing: border-box;
+  }
+  .dashboard-tabs {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    justify-content: stretch;
+    gap: 8px;
+    padding: 6px;
+  }
+  .dashboard-tab-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+  }
+  .dashboard-editor-action-btn {
+    min-height: 44px;
+    padding: 12px 16px;
+  }
+}
+
 .page-tab-panel[hidden] {
   display: none;
 }
