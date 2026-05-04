@@ -216,8 +216,10 @@ export type PlanPageRenderOptions = {
   /** When true, keeps the Goal 3 savings table DOM and only refreshes derived totals elsewhere. */
   skipSavingsEditor?: boolean;
   /**
-   * When true, always rebuild the debt/savings balance editors from PLAN even if a field inside
-   * an open goal dialog is focused (use after external plan changes: trash restore, month switch, wipe).
+   * When true, always rebuild the debt/savings balance editors from PLAN. Required after external
+   * plan changes (trash restore, month switch, wipe) and for editor actions (segment, sort, save),
+   * because a generic `render()` skips those tables while the matching goal dialog is open to avoid
+   * wiping DOM before focus lands on an input.
    */
   refreshBalanceEditors?: boolean;
 };
