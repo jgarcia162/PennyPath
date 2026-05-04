@@ -108,7 +108,10 @@ export interface PlanLabels {
   goalHysaWhen: string;
   goalDebtWhen: string;
   monthsToCloseEfund: string;
-  /** Persisted inside Supabase `financial_plans.labels` JSON. */
+  /**
+   * Persisted inside Supabase `financial_plans.labels` JSON.
+   * Same segment as {@link FinancialPlan.debtsEditorLedgerSegment} at save time; loaders merge into the plan object.
+   */
   debtsEditorLedgerSegment?: 'active' | 'completed';
 }
 
@@ -194,7 +197,10 @@ export interface FinancialPlan {
   /** Increments when a debt first reaches paid-off; survives moving to deleted. */
   debtsPaidOffLifetimeCount?: number;
 
-  /** Which bucket the debts editor dialog is showing (active vs paid off only). */
+  /**
+   * Which bucket the debts editor dialog is showing (active vs paid off only).
+   * Persisted under {@link PlanLabels.debtsEditorLedgerSegment} in `labels` JSON when using Supabase.
+   */
   debtsEditorLedgerSegment?: 'active' | 'completed';
 
   /** Optional editable budget breakdown rows (persisted via Supabase `labels` JSON). */

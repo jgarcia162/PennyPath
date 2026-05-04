@@ -10,6 +10,7 @@ import { createMoneyFormatters, setText, setHtml, numOr } from './utils';
 import {
   renderGoal2Debts,
   renderDebtsEditor,
+  syncDebtsEditorLedgerTabs,
   syncDebtsEditorSortSelect,
   syncDebtsProgressSortSelect,
   renderGoal3SavingsAccounts,
@@ -208,10 +209,46 @@ function monthlyDebtBarHint(d: DerivedPlanMetrics): string {
   );
 }
 
+/** Options for {@link render} (financial plan dashboard / static HTML). */
+export type PlanPageRenderOptions = {
+  /** When true, keeps the Goal 2 debts table DOM and only refreshes derived totals elsewhere. */
+  skipDebtsEditor?: boolean;
+  /** When true, keeps the Goal 3 savings table DOM and only refreshes derived totals elsewhere. */
+  skipSavingsEditor?: boolean;
+  /**
+   * When true, always rebuild the debt/savings balance editors from PLAN. Required after external
+   * plan changes (trash restore, month switch, wipe) and for editor actions (segment, sort, save),
+   * because a generic `render()` skips those tables while the matching goal dialog is open to avoid
+   * wiping DOM before focus lands on an input.
+   */
+  refreshBalanceEditors?: boolean;
+};
+
+function shouldSkipDebtsEditorRender(opts?: PlanPageRenderOptions): boolean {
+  if (opts && opts.skipDebtsEditor === true) return true;
+  if (opts && opts.refreshBalanceEditors === true) return false;
+  if (opts && opts.skipDebtsEditor === false) return false;
+  const dlg = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
+  if (!dlg || typeof dlg.open !== 'boolean' || !dlg.open) return false;
+  // While the modal is open, never replace the table from a generic `render()` call: focus may not
+  // have moved into an input yet on the same tick as mousedown/click, so activeElement checks race.
+  return true;
+}
+
+function shouldSkipSavingsEditorRender(opts?: PlanPageRenderOptions): boolean {
+  if (opts && opts.skipSavingsEditor === true) return true;
+  if (opts && opts.refreshBalanceEditors === true) return false;
+  if (opts && opts.skipSavingsEditor === false) return false;
+  const dlg = document.getElementById('goal3-editor-dialog') as HTMLDialogElement | null;
+  if (!dlg || typeof dlg.open !== 'boolean' || !dlg.open) return false;
+  return true;
+}
+
 /**
- * @param {{ skipDebtsEditor?: boolean }} [opts] — When true, keeps the Goal 2 debts table DOM (draft row / focus) and only refreshes derived totals elsewhere.
+ * Binds PLAN + derived metrics to the DOM. Pass `skipDebtsEditor` / `skipSavingsEditor` while syncing
+ * drafts on a timer, or `refreshBalanceEditors` after plan changes that must replace editor tables.
  */
-export function render(opts?: { skipDebtsEditor?: boolean }): void {
+export function render(opts?: PlanPageRenderOptions): void {
   const d = derived(PLAN) as DerivedPlanMetrics;
   syncDashboardMonthSelect();
   const noteWorking = document.getElementById('dashboard-view-working-note');
@@ -375,13 +412,24 @@ export function render(opts?: { skipDebtsEditor?: boolean }): void {
   renderDashboardDebtArchives(PLAN, moneyExact);
   renderDashboardDeletedBin(PLAN, moneyExact);
   setTextDash('debts-paid-off-lifetime', String(d.debtsPaidOffLifetimeCount ?? 0));
-  if (!(opts && opts.skipDebtsEditor)) {
+  if (!shouldSkipDebtsEditorRender(opts)) {
     renderDebtsEditor(PLAN);
+  } else {
+    const g2 = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
+    if (g2 && g2.open) {
+      const list = document.getElementById('debts-editor-list');
+      const ae = document.activeElement;
+      if (!list || !ae || !list.contains(ae)) {
+        syncDebtsEditorLedgerTabs(PLAN);
+      }
+    }
   }
   syncDebtsEditorSortSelect(PLAN);
   syncDebtsProgressSortSelect(PLAN);
   renderGoal3SavingsAccounts(d, moneyExact);
-  renderSavingsEditor(d);
+  if (!shouldSkipSavingsEditorRender(opts)) {
+    renderSavingsEditor(d);
+  }
 
   renderSavingsGoalsTargetEditor();
 
