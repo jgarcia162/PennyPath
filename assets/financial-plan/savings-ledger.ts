@@ -2,9 +2,7 @@
  * Savings accounts: active vs soft-deleted (archived off active lists).
  */
 
-import type { SavingsAccount } from '../../types/index.js';
-
-export type SavingsLedgerStatus = 'active' | 'deleted';
+import type { SavingsAccount, SavingsLedgerStatus } from '../../types/index.js';
 
 export function normalizeSavingsLedgerStatus(raw: unknown): SavingsLedgerStatus {
   return raw === 'deleted' ? 'deleted' : 'active';

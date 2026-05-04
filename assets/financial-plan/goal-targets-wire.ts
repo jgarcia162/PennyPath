@@ -58,7 +58,7 @@ function readSavingsGoalsFromDom(): void {
   if (next.length) PLAN.savingsGoals = next;
 }
 
-export function wireGoalTargetsEditor(render: () => void): void {
+export function wireGoalTargetsEditor(render: (opts?: { refreshBalanceEditors?: boolean }) => void): void {
   const saveBtn = document.getElementById('btn-save-goal-targets') as HTMLButtonElement | null;
   const host = document.getElementById('savings-goals-target-editor') as HTMLElement | null;
   if (!saveBtn || !host) return;
@@ -79,7 +79,7 @@ export function wireGoalTargetsEditor(render: () => void): void {
           goalByYm: '',
         });
         void savePlanOverrides();
-        if (typeof render === 'function') render();
+        if (typeof render === 'function') render({ refreshBalanceEditors: true });
         return;
       }
       const rm =
@@ -100,7 +100,7 @@ export function wireGoalTargetsEditor(render: () => void): void {
         ensureSavingsGoals(PLAN);
         syncJointHysaPlanFieldsFromGoals(PLAN);
         void savePlanOverrides();
-        if (typeof render === 'function') render();
+        if (typeof render === 'function') render({ refreshBalanceEditors: true });
       }
     });
   }
@@ -120,7 +120,7 @@ export function wireGoalTargetsEditor(render: () => void): void {
     syncJointHysaPlanFieldsFromGoals(PLAN);
 
     void savePlanOverrides();
-    if (typeof render === 'function') render();
+    if (typeof render === 'function') render({ refreshBalanceEditors: true });
     flashStatus('Saved in this browser');
   });
 }

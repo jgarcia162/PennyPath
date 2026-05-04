@@ -13,9 +13,9 @@ function formatRemaining(ms: number): string {
 }
 
 export function TrialCountdown() {
-  const [remainingMs, setRemainingMs] = useState<number | null>(null);
   const [expired, setExpired] = useState(false);
   const dlgRef = useRef<HTMLDialogElement | null>(null);
+  const labelRef = useRef<HTMLElement>(null);
 
   const [active, setActive] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -37,15 +37,18 @@ export function TrialCountdown() {
     const endsAt = getTrialEndsAtMs();
     if (!endsAt) return;
 
-    let raf = 0;
     let interval: number | null = null;
 
     const tick = () => {
       const next = endsAt - Date.now();
-      setRemainingMs(next);
+      const el = labelRef.current;
+      if (el) el.textContent = next > 0 ? formatRemaining(next) : '0:00';
       if (next <= 0) {
+        if (interval != null) {
+          window.clearInterval(interval);
+          interval = null;
+        }
         setExpired(true);
-        if (interval) window.clearInterval(interval);
       }
     };
 
@@ -53,7 +56,7 @@ export function TrialCountdown() {
     interval = window.setInterval(tick, 250);
 
     return () => {
-      if (interval) window.clearInterval(interval);
+      if (interval != null) window.clearInterval(interval);
     };
   }, [active]);
 
@@ -80,9 +83,11 @@ export function TrialCountdown() {
   }
 
   if (!active) return null;
-  if (remainingMs == null) return null;
 
-  const remainingLabel = remainingMs > 0 ? formatRemaining(remainingMs) : '0:00';
+  const endsAt = getTrialEndsAtMs();
+  if (!endsAt) return null;
+
+  const initialLabel = formatRemaining(endsAt - Date.now());
 
   return (
     <>
@@ -93,7 +98,10 @@ export function TrialCountdown() {
         aria-label="Trial time remaining"
         title="Trial time remaining"
       >
-        Trial: <strong>{remainingLabel}</strong>
+        Trial:{' '}
+        <strong ref={labelRef} suppressHydrationWarning>
+          {initialLabel}
+        </strong>
       </div>
 
       <dialog
@@ -122,4 +130,3 @@ export function TrialCountdown() {
     </>
   );
 }
-

@@ -112,13 +112,24 @@ export const PLAN: FinancialPlan = {
 /** Snapshot for “Reset to original defaults” — keep in sync with PLAN above. */
 export const PLAN_DEFAULTS: Pick<
   FinancialPlan,
-  'hysaBalance' | 'joseSavings' | 'sherlynaSavings' | 'debtsEditorSort' | 'debtsProgressSort' | 'savingsAccounts' | 'debts' | 'savingsGoals'
+  | 'hysaBalance'
+  | 'joseSavings'
+  | 'sherlynaSavings'
+  | 'debtsEditorSort'
+  | 'debtsProgressSort'
+  | 'debtsPaidOffLifetimeCount'
+  | 'debtsEditorLedgerSegment'
+  | 'savingsAccounts'
+  | 'debts'
+  | 'savingsGoals'
 > = {
   hysaBalance: 0,
   joseSavings: 0,
   sherlynaSavings: 0,
   debtsEditorSort: 'saved' as DebtsEditorSort,
   debtsProgressSort: 'saved' as DebtsProgressSort,
+  debtsPaidOffLifetimeCount: 0,
+  debtsEditorLedgerSegment: 'active',
   savingsAccounts: [
     {
       id: 'hysa',
