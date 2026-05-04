@@ -203,7 +203,7 @@ export async function wrapUpWorkingMonth(render?: () => void): Promise<void> {
   PLAN.dashboardViewMonthYm = '';
   await savePlanOverrides();
   syncLegacySavingsFromAccounts(plan);
-  if (typeof render === 'function') render();
+  if (typeof render === 'function') (render as (o?: { refreshBalanceEditors?: boolean }) => void)({ refreshBalanceEditors: true });
 }
 
 /**
@@ -248,7 +248,7 @@ export async function undoLastMonthWrap(render?: () => void): Promise<void> {
       await applyPlanOverrides();
       const plan = asFinancialPlan(PLAN);
       syncLegacySavingsFromAccounts(plan);
-      if (typeof render === 'function') render();
+      if (typeof render === 'function') (render as (o?: { refreshBalanceEditors?: boolean }) => void)({ refreshBalanceEditors: true });
       return;
     }
   } catch (e) {
@@ -294,7 +294,7 @@ export async function undoLastMonthWrap(render?: () => void): Promise<void> {
   await applyPlanOverrides();
   const plan = asFinancialPlan(PLAN);
   syncLegacySavingsFromAccounts(plan);
-  if (typeof render === 'function') render();
+  if (typeof render === 'function') (render as (o?: { refreshBalanceEditors?: boolean }) => void)({ refreshBalanceEditors: true });
 }
 
 let dashboardMonthSelectWired = false;
@@ -303,7 +303,7 @@ let dashboardMonthSelectWired = false;
  * Month dropdown: persist `dashboardViewMonthYm` and re-render (default log dates follow selection).
  * @param render
  */
-export function wireDashboardMonthSelector(render: () => void): void {
+export function wireDashboardMonthSelector(render: (opts?: { refreshBalanceEditors?: boolean }) => void): void {
   const sel = document.getElementById('dashboard-view-month') as HTMLSelectElement | null;
   if (!sel || dashboardMonthSelectWired) return;
   dashboardMonthSelectWired = true;
@@ -311,11 +311,11 @@ export function wireDashboardMonthSelector(render: () => void): void {
     const v = sel.value;
     PLAN.dashboardViewMonthYm = v === '' ? '' : (v as any);
     void savePlanOverrides();
-    if (typeof render === 'function') render();
+    if (typeof render === 'function') (render as (o?: { refreshBalanceEditors?: boolean }) => void)({ refreshBalanceEditors: true });
   });
 }
 
-export function wireMonthWrap(render: () => void): void {
+export function wireMonthWrap(render: (opts?: { refreshBalanceEditors?: boolean }) => void): void {
   const wrapBtn = document.getElementById('btn-month-wrap-up') as HTMLButtonElement | null;
   const undoBtn = document.getElementById('btn-month-wrap-undo') as HTMLButtonElement | null;
 
@@ -329,7 +329,7 @@ export function wireMonthWrap(render: () => void): void {
   if (wrapBtn) {
     wrapBtn.addEventListener('click', function () {
       void wrapUpWorkingMonth(function () {
-        render();
+        render({ refreshBalanceEditors: true });
         refreshUndo();
       });
     });
@@ -337,7 +337,7 @@ export function wireMonthWrap(render: () => void): void {
   if (undoBtn) {
     undoBtn.addEventListener('click', function () {
       void undoLastMonthWrap(function () {
-        render();
+        render({ refreshBalanceEditors: true });
         refreshUndo();
       });
     });

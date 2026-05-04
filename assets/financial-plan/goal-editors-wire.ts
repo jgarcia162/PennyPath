@@ -138,7 +138,6 @@ function wireMoneyMasks(rootEl: HTMLElement | null): void {
     if (!t || t.tagName !== 'INPUT') return;
     if (t.getAttribute('data-money') !== 'currency') return;
     (t as any).dataset.moneyDigits = digitsOnly(t.value);
-    setCaretToEnd(t);
   });
 
   rootEl.addEventListener(
@@ -258,7 +257,7 @@ function showGoal3Unsaved() {
   setSaveNeeds('btn-save-goal3-savings', true);
 }
 
-type RenderFn = (opts?: any) => void;
+type RenderFn = (opts?: { skipDebtsEditor?: boolean; skipSavingsEditor?: boolean; refreshBalanceEditors?: boolean }) => void;
 
 export function wireGoal2DebtEditor(render: RenderFn): void {
   const sortSel = document.getElementById('debts-editor-sort') as HTMLSelectElement | null;
@@ -267,7 +266,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       readDebtsEditorIntoPlan();
       (PLAN as any).debtsEditorSort = sortSel.value;
       void savePlanOverrides();
-      render();
+      render({ refreshBalanceEditors: true });
       lastSavedDebts = cloneDebtsSnapshot();
       setSaveNeeds('btn-save-goal2-debts', false);
       const st = document.getElementById('goal2-save-status');
@@ -281,7 +280,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       readDebtsEditorIntoPlan();
       (PLAN as any).debtsProgressSort = progressSortSel.value;
       void savePlanOverrides();
-      render();
+      render({ refreshBalanceEditors: true });
       lastSavedDebts = cloneDebtsSnapshot();
       setSaveNeeds('btn-save-goal2-debts', false);
       const st = document.getElementById('goal2-save-status');
@@ -294,7 +293,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
     if (debtDraftRerenderTimer != null) clearTimeout(debtDraftRerenderTimer);
     debtDraftRerenderTimer = window.setTimeout(function () {
       readDebtsEditorIntoPlan();
-      render({ skipDebtsEditor: true });
+      render({ skipDebtsEditor: true, skipSavingsEditor: true });
     }, 90);
   }
 
@@ -303,7 +302,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
     addBtn.addEventListener('click', function () {
       addDebtRowDraft(showGoal2Unsaved);
       readDebtsEditorIntoPlan();
-      render();
+      render({ refreshBalanceEditors: true });
     });
   }
 
@@ -320,7 +319,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if (seg !== 'active' && seg !== 'completed') return;
       readDebtsEditorIntoPlan();
       (PLAN as any).debtsEditorLedgerSegment = seg;
-      render();
+      render({ refreshBalanceEditors: true });
       showGoal2Unsaved();
     });
   }
@@ -353,7 +352,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         readDebtsEditorIntoPlan();
         setDebtLedgerStatusById(String(id), 'active');
         showGoal2Unsaved();
-        render();
+        render({ refreshBalanceEditors: true });
         return;
       }
       if (action === 'quick-payment') {
@@ -361,7 +360,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         // Apply payment(s) from inputs + persist immediately (no bottom Save required).
         readDebtsEditorIntoPlan();
         void savePlanOverrides();
-        render();
+        render({ refreshBalanceEditors: true });
         setSaveNeeds('btn-save-goal2-debts', false);
         showGoal2Saved();
         lastSavedDebts = cloneDebtsSnapshot();
@@ -395,12 +394,12 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         if (!wasDebtIdLastSaved(String(id))) {
           hardRemoveDebtById(String(id));
           showGoal2Unsaved();
-          render();
+          render({ refreshBalanceEditors: true });
           return;
         }
         setDebtLedgerStatusById(String(id), 'deleted');
         showGoal2Unsaved();
-        render();
+        render({ refreshBalanceEditors: true });
       },
     });
   }
@@ -417,7 +416,9 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if (debtId == null || paymentId == null) return;
       const ok = window.confirm('Remove this payment record?\n\nThis will add the amount back to the debt balance.');
       if (!ok) return;
-      removeDebtPayment(debtId, paymentId, showGoal2Unsaved, render);
+      removeDebtPayment(debtId, paymentId, showGoal2Unsaved, function () {
+        render({ refreshBalanceEditors: true });
+      });
       void savePlanOverrides();
       lastSavedDebts = cloneDebtsSnapshot();
     });
@@ -428,7 +429,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
     saveBtn.addEventListener('click', function () {
       readDebtsEditorIntoPlan();
       void savePlanOverrides();
-      render();
+      render({ refreshBalanceEditors: true });
       setSaveNeeds('btn-save-goal2-debts', false);
       showGoal2Saved();
       lastSavedDebts = cloneDebtsSnapshot();
@@ -442,7 +443,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       setSaveNeeds('btn-save-goal2-debts', false);
       setDebtsDraftFromSnapshot(lastSavedDebts);
       readDebtsEditorIntoPlan();
-      render();
+      render({ refreshBalanceEditors: true });
       const st = document.getElementById('goal2-save-status');
       if (st) st.textContent = 'Undid changes (not saved)';
       clearTimeout((wireGoal2DebtEditor as any)._t);
@@ -486,6 +487,16 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
 }
 
 export function wireGoal3SavingsEditor(render: RenderFn): void {
+  let savingsDraftRerenderTimer: number | null = null;
+  function scheduleSavingsDraftSyncToPlanAndRender(): void {
+    if (savingsDraftRerenderTimer != null) clearTimeout(savingsDraftRerenderTimer);
+    savingsDraftRerenderTimer = window.setTimeout(function () {
+      readSavingsEditorIntoPlan();
+      syncLegacySavingsFromAccounts(PLAN);
+      render({ skipDebtsEditor: true, skipSavingsEditor: true });
+    }, 90);
+  }
+
   const savingsHost = document.getElementById('savings-editor-list') as HTMLElement | null;
   wireMoneyMasks(savingsHost);
   if (savingsHost) {
@@ -497,6 +508,9 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if (!row || !savingsHostEl.contains(row)) return;
       if (!(t as any).matches('input, textarea, select')) return;
       showGoal3Unsaved();
+      // Same as debt Pay field: readSavingsEditorIntoPlan applies positive deposits and clears the input.
+      if ((t as any).matches && (t as any).matches('input[data-field="deposit"]')) return;
+      scheduleSavingsDraftSyncToPlanAndRender();
     }
     savingsHost.addEventListener('input', onSavingsFieldActivity);
     savingsHost.addEventListener('change', onSavingsFieldActivity);
@@ -510,7 +524,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         readSavingsEditorIntoPlan();
         syncLegacySavingsFromAccounts(PLAN);
         void savePlanOverrides();
-        render();
+        render({ refreshBalanceEditors: true });
         setSaveNeeds('btn-save-goal3-savings', false);
         showGoal3Saved();
         lastSavedSavings = cloneSavingsSnapshot();
@@ -536,13 +550,13 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
           hardRemoveSavingsById(String(id));
           syncLegacySavingsFromAccounts(PLAN);
           showGoal3Unsaved();
-          render();
+          render({ refreshBalanceEditors: true });
           return;
         }
         setSavingsLedgerStatusById(String(id), 'deleted');
         syncLegacySavingsFromAccounts(PLAN);
         showGoal3Unsaved();
-        render();
+        render({ refreshBalanceEditors: true });
       },
     });
   }
@@ -566,7 +580,9 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if (sid == null || depId == null) return;
       const ok = window.confirm('Remove this deposit record?\n\nThis will subtract the amount from the account balance.');
       if (!ok) return;
-      removeSavingsDeposit(sid, depId, showGoal3Unsaved, render);
+      removeSavingsDeposit(sid, depId, showGoal3Unsaved, function () {
+        render({ refreshBalanceEditors: true });
+      });
       syncLegacySavingsFromAccounts(PLAN);
       void savePlanOverrides();
       lastSavedSavings = cloneSavingsSnapshot();
@@ -579,7 +595,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       readSavingsEditorIntoPlan();
       syncLegacySavingsFromAccounts(PLAN);
       void savePlanOverrides();
-      render();
+      render({ refreshBalanceEditors: true });
       setSaveNeeds('btn-save-goal3-savings', false);
       showGoal3Saved();
       lastSavedSavings = cloneSavingsSnapshot();
@@ -594,7 +610,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       setSavingsDraftFromSnapshot(lastSavedSavings);
       readSavingsEditorIntoPlan();
       syncLegacySavingsFromAccounts(PLAN);
-      render();
+      render({ refreshBalanceEditors: true });
       const st = document.getElementById('goal3-save-status');
       if (st) st.textContent = 'Undid changes (not saved)';
       clearTimeout((wireGoal3SavingsEditor as any)._t);
@@ -757,7 +773,7 @@ export function wireDashboardTrashBin(render: RenderFn): void {
       showGoal2Unsaved();
     }
     void savePlanOverrides();
-    render();
+    render({ refreshBalanceEditors: true });
   });
 }
 
