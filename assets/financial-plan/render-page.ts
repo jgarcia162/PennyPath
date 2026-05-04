@@ -10,6 +10,7 @@ import { createMoneyFormatters, setText, setHtml, numOr } from './utils';
 import {
   renderGoal2Debts,
   renderDebtsEditor,
+  syncDebtsEditorLedgerTabs,
   syncDebtsEditorSortSelect,
   syncDebtsProgressSortSelect,
   renderGoal3SavingsAccounts,
@@ -221,23 +222,15 @@ export type PlanPageRenderOptions = {
   refreshBalanceEditors?: boolean;
 };
 
-function isEditableFocusInHost(hostId: string): boolean {
-  const host = document.getElementById(hostId);
-  const el = document.activeElement;
-  if (!host || !el || !host.contains(el)) return false;
-  if (el instanceof HTMLInputElement) return !el.disabled;
-  if (el instanceof HTMLTextAreaElement) return !el.disabled;
-  if (el instanceof HTMLSelectElement) return !el.disabled;
-  return false;
-}
-
 function shouldSkipDebtsEditorRender(opts?: PlanPageRenderOptions): boolean {
   if (opts && opts.skipDebtsEditor === true) return true;
   if (opts && opts.refreshBalanceEditors === true) return false;
   if (opts && opts.skipDebtsEditor === false) return false;
   const dlg = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
   if (!dlg || typeof dlg.open !== 'boolean' || !dlg.open) return false;
-  return isEditableFocusInHost('debts-editor-list');
+  // While the modal is open, never replace the table from a generic `render()` call: focus may not
+  // have moved into an input yet on the same tick as mousedown/click, so activeElement checks race.
+  return true;
 }
 
 function shouldSkipSavingsEditorRender(opts?: PlanPageRenderOptions): boolean {
@@ -246,7 +239,7 @@ function shouldSkipSavingsEditorRender(opts?: PlanPageRenderOptions): boolean {
   if (opts && opts.skipSavingsEditor === false) return false;
   const dlg = document.getElementById('goal3-editor-dialog') as HTMLDialogElement | null;
   if (!dlg || typeof dlg.open !== 'boolean' || !dlg.open) return false;
-  return isEditableFocusInHost('savings-editor-list');
+  return true;
 }
 
 /**
@@ -419,6 +412,9 @@ export function render(opts?: PlanPageRenderOptions): void {
   setTextDash('debts-paid-off-lifetime', String(d.debtsPaidOffLifetimeCount ?? 0));
   if (!shouldSkipDebtsEditorRender(opts)) {
     renderDebtsEditor(PLAN);
+  } else {
+    const g2 = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
+    if (g2 && g2.open) syncDebtsEditorLedgerTabs(PLAN);
   }
   syncDebtsEditorSortSelect(PLAN);
   syncDebtsProgressSortSelect(PLAN);
