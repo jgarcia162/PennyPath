@@ -20,6 +20,8 @@ function asStringArray(v: unknown): string[] {
 }
 
 function mapAccountRow(row: AccountRow, deposits: DepositRow[]): SavingsAccount {
+  const ls = (row as { ledger_status?: string }).ledger_status;
+  const ledgerStatus = ls === 'deleted' ? ('deleted' as const) : undefined;
   return {
     id: row.id,
     name: row.name,
@@ -27,6 +29,7 @@ function mapAccountRow(row: AccountRow, deposits: DepositRow[]): SavingsAccount 
     apyPct: row.apy_pct,
     goalIds: asStringArray(row.goal_ids),
     countTowardsGoal: !!row.count_towards_goal,
+    ...(ledgerStatus ? { ledgerStatus } : {}),
     depositHistory: deposits.map(function (d) {
       return { id: d.id, amount: d.amount, at: d.at };
     }),
@@ -34,6 +37,10 @@ function mapAccountRow(row: AccountRow, deposits: DepositRow[]): SavingsAccount 
 }
 
 function toAccountInsert(userId: string, account: SavingsAccount): AccountInsert {
+  const ledger_status =
+    account.ledgerStatus === 'deleted' || account.ledgerStatus === 'active'
+      ? account.ledgerStatus
+      : 'active';
   return {
     user_id: userId,
     id: account.id,
@@ -42,6 +49,7 @@ function toAccountInsert(userId: string, account: SavingsAccount): AccountInsert
     apy_pct: account.apyPct,
     count_towards_goal: !!account.countTowardsGoal,
     goal_ids: (account.goalIds || []) as any,
+    ledger_status,
   };
 }
 

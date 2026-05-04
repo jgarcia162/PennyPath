@@ -131,7 +131,7 @@ function normalizeSavingsAccount(a: unknown): SavingsAccount | null {
     goalIds = [ID_GOAL_HYSA];
   }
   const countTowardsGoal = goalIds.indexOf(ID_GOAL_HYSA) >= 0;
-  return {
+  const row: SavingsAccount = {
     id: id,
     name: String(o.name || 'Account'),
     current: numOr(o.current, 0),
@@ -140,6 +140,10 @@ function normalizeSavingsAccount(a: unknown): SavingsAccount | null {
     countTowardsGoal: countTowardsGoal,
     depositHistory: normalizeDepositHistory(o),
   };
+  if (o.ledgerStatus === 'deleted') {
+    row.ledgerStatus = 'deleted';
+  }
+  return row;
 }
 
 function migrateLegacySavingsFromJson(o: any): SavingsAccount[] {
@@ -280,8 +284,10 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
   }
   if (typeof payload.debtsEditorLedgerSegment === 'string') {
     const s = payload.debtsEditorLedgerSegment;
-    if (s === 'active' || s === 'completed' || s === 'deleted') {
-      (plan as any).debtsEditorLedgerSegment = s;
+    if (s === 'completed') {
+      (plan as any).debtsEditorLedgerSegment = 'completed';
+    } else {
+      (plan as any).debtsEditorLedgerSegment = 'active';
     }
   }
   if (Array.isArray(payload.debts)) {

@@ -14,6 +14,7 @@ import {
   addDebtRowDraft,
   removeDebtPayment,
   setDebtLedgerStatusById,
+  hardRemoveDebtById,
 } from './debt-editor';
 import {
   readSavingsEditorIntoPlan,
@@ -21,10 +22,26 @@ import {
   setSavingsDraftFromSnapshot,
   addSavingsRowDraft,
   removeSavingsDeposit,
+  setSavingsLedgerStatusById,
+  hardRemoveSavingsById,
 } from './savings-editor';
 
 let lastSavedDebts: { debts: Debt[] } | null = null;
 let lastSavedSavings: { savingsAccounts: SavingsAccount[] } | null = null;
+
+function wasDebtIdLastSaved(id: string): boolean {
+  if (!lastSavedDebts || !lastSavedDebts.debts) return false;
+  return lastSavedDebts.debts.some(function (d: Debt) {
+    return String(d.id) === String(id);
+  });
+}
+
+function wasSavingsIdLastSaved(id: string): boolean {
+  if (!lastSavedSavings || !lastSavedSavings.savingsAccounts) return false;
+  return lastSavedSavings.savingsAccounts.some(function (a: SavingsAccount) {
+    return String(a.id) === String(id);
+  });
+}
 
 function wireMoneyMasks(rootEl: HTMLElement | null): void {
   if (!rootEl) return;
@@ -300,7 +317,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       const segBtn = t.closest('[data-debts-segment]') as HTMLElement | null;
       if (!segBtn || !goal2Dialog.contains(segBtn)) return;
       const seg = segBtn.getAttribute('data-debts-segment');
-      if (seg !== 'active' && seg !== 'completed' && seg !== 'deleted') return;
+      if (seg !== 'active' && seg !== 'completed') return;
       readDebtsEditorIntoPlan();
       (PLAN as any).debtsEditorLedgerSegment = seg;
       render();
@@ -362,19 +379,25 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         const seg = debtsHostEl.dataset.debtsSegment || 'active';
         const intro =
           seg === 'completed'
-            ? 'Move this paid-off debt to Deleted'
-            : 'Archive this debt to Deleted';
+            ? 'Move this paid-off debt to Recently deleted'
+            : 'Archive this debt to Recently deleted';
         return (
           intro +
           (name ? ' (“' + name + '”)' : '') +
-          '?\n\nYou can restore it later from the Deleted tab. Click Save to sync.'
+          '?\n\nYou can restore it later from Recently deleted on the dashboard. Click Save to sync.'
         );
       },
       onConfirm: function (btn) {
+        readDebtsEditorIntoPlan();
         const row = btn.closest('.debt-row');
         const id = row ? row.getAttribute('data-debt-id') : null;
         if (id == null || String(id).trim() === '') return;
-        readDebtsEditorIntoPlan();
+        if (!wasDebtIdLastSaved(String(id))) {
+          hardRemoveDebtById(String(id));
+          showGoal2Unsaved();
+          render();
+          return;
+        }
         setDebtLedgerStatusById(String(id), 'deleted');
         showGoal2Unsaved();
         render();
@@ -505,9 +528,21 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         return 'Delete this savings account' + (name ? ' (“' + name + '”)' : '') + '?\n\nThis removes the row from the draft. Click Save to persist.';
       },
       onConfirm: function (btn) {
+        readSavingsEditorIntoPlan();
         const row = btn.closest('.savings-row');
-        if (row) row.remove();
+        const id = row ? row.getAttribute('data-savings-id') : null;
+        if (id == null || String(id).trim() === '') return;
+        if (!wasSavingsIdLastSaved(String(id))) {
+          hardRemoveSavingsById(String(id));
+          syncLegacySavingsFromAccounts(PLAN);
+          showGoal3Unsaved();
+          render();
+          return;
+        }
+        setSavingsLedgerStatusById(String(id), 'deleted');
+        syncLegacySavingsFromAccounts(PLAN);
         showGoal3Unsaved();
+        render();
       },
     });
   }
@@ -700,6 +735,30 @@ export function wireGoalEditorDialogs(): void {
 export function initEditorSnapshots() {
   lastSavedDebts = cloneDebtsSnapshot();
   lastSavedSavings = cloneSavingsSnapshot();
+}
+
+/** Restore debt/savings rows from the dashboard “Recently deleted” bin. */
+export function wireDashboardTrashBin(render: RenderFn): void {
+  document.addEventListener('click', function (e: MouseEvent) {
+    const t = e.target as HTMLElement | null;
+    if (!t || typeof t.closest !== 'function') return;
+    const btn = t.closest('[data-action="restore-trash-item"]') as HTMLElement | null;
+    if (!btn) return;
+    const kind = btn.getAttribute('data-trash-kind');
+    const id = btn.getAttribute('data-trash-id');
+    if (!id) return;
+    e.preventDefault();
+    if (kind === 'savings') {
+      setSavingsLedgerStatusById(id, 'active');
+      syncLegacySavingsFromAccounts(PLAN);
+      showGoal3Unsaved();
+    } else {
+      setDebtLedgerStatusById(id, 'active');
+      showGoal2Unsaved();
+    }
+    void savePlanOverrides();
+    render();
+  });
 }
 
 export { applyPlanOverrides, cloneDebtsSnapshot, cloneSavingsSnapshot };

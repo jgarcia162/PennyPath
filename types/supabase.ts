@@ -298,6 +298,7 @@ export type Database = {
           current: number
           goal_ids: Json
           id: string
+          ledger_status: string
           name: string
           user_id: string
         }
@@ -307,6 +308,7 @@ export type Database = {
           current?: number
           goal_ids?: Json
           id: string
+          ledger_status?: string
           name?: string
           user_id: string
         }
@@ -316,6 +318,7 @@ export type Database = {
           current?: number
           goal_ids?: Json
           id?: string
+          ledger_status?: string
           name?: string
           user_id?: string
         }

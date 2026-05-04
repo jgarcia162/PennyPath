@@ -65,6 +65,9 @@ export interface SavingsGoal {
   goalByYm: YyyyMm | '';
 }
 
+/** Archived savings rows (not shown in active lists). */
+export type SavingsLedgerStatus = 'active' | 'deleted';
+
 export interface SavingsAccount {
   id: string;
   name: string;
@@ -76,6 +79,8 @@ export interface SavingsAccount {
   /** Convenience boolean: whether it counts toward the Joint HYSA goal. */
   countTowardsGoal: boolean;
   depositHistory: DepositHistoryItem[];
+  /** Defaults to active when omitted. */
+  ledgerStatus?: SavingsLedgerStatus;
 }
 
 export interface Phase1Budget {
@@ -104,7 +109,7 @@ export interface PlanLabels {
   goalDebtWhen: string;
   monthsToCloseEfund: string;
   /** Persisted inside Supabase `financial_plans.labels` JSON. */
-  debtsEditorLedgerSegment?: DebtLedgerStatus;
+  debtsEditorLedgerSegment?: 'active' | 'completed';
 }
 
 /** Monthly budget breakdown row (How We Get There table); synced to legacy plan fields by role. */
@@ -189,8 +194,8 @@ export interface FinancialPlan {
   /** Increments when a debt first reaches paid-off; survives moving to deleted. */
   debtsPaidOffLifetimeCount?: number;
 
-  /** Which bucket the debts editor dialog is showing (local preference). */
-  debtsEditorLedgerSegment?: DebtLedgerStatus;
+  /** Which bucket the debts editor dialog is showing (active vs paid off only). */
+  debtsEditorLedgerSegment?: 'active' | 'completed';
 
   /** Optional editable budget breakdown rows (persisted via Supabase `labels` JSON). */
   budgetCategories?: BudgetCategoryRow[];
