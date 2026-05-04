@@ -13,6 +13,7 @@ import {
   setDebtsDraftFromSnapshot,
   addDebtRowDraft,
   removeDebtPayment,
+  setDebtLedgerStatusById,
 } from './debt-editor';
 import {
   readSavingsEditorIntoPlan,
@@ -291,6 +292,21 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
 
   const debtsHost = document.getElementById('debts-editor-list') as HTMLElement | null;
   wireMoneyMasks(debtsHost);
+  const goal2Dialog = document.getElementById('goal2-editor-dialog');
+  if (goal2Dialog) {
+    goal2Dialog.addEventListener('click', function (e: MouseEvent) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof (t as any).closest !== 'function') return;
+      const segBtn = t.closest('[data-debts-segment]') as HTMLElement | null;
+      if (!segBtn || !goal2Dialog.contains(segBtn)) return;
+      const seg = segBtn.getAttribute('data-debts-segment');
+      if (seg !== 'active' && seg !== 'completed' && seg !== 'deleted') return;
+      readDebtsEditorIntoPlan();
+      (PLAN as any).debtsEditorLedgerSegment = seg;
+      render();
+      showGoal2Unsaved();
+    });
+  }
   if (debtsHost) {
     const debtsHostEl = debtsHost;
     function onDebtRowFieldActivity(e: Event): void {
@@ -312,6 +328,17 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.getAttribute !== 'function') return;
       const action = t.getAttribute('data-action');
+      if (action === 'restore-active') {
+        e.preventDefault();
+        const row = t.closest('.debt-row');
+        const id = row ? row.getAttribute('data-debt-id') : null;
+        if (id == null || String(id).trim() === '') return;
+        readDebtsEditorIntoPlan();
+        setDebtLedgerStatusById(String(id), 'active');
+        showGoal2Unsaved();
+        render();
+        return;
+      }
       if (action === 'quick-payment') {
         e.preventDefault();
         // Apply payment(s) from inputs + persist immediately (no bottom Save required).
@@ -325,20 +352,31 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       }
     });
 
-    // Hold-to-delete debt rows (2s) then confirm.
+    // Hold-to-delete debt rows (2s) then confirm → soft-delete (deleted ledger).
     wireHoldToConfirm(debtsHost, 'button[data-action="remove"]', {
       holdMs: 2000,
       confirmMessage: function (btn) {
         const row = btn.closest('.debt-row');
         const nameEl = row ? (row.querySelector('input[data-field="name"]') as HTMLInputElement | null) : null;
         const name = nameEl ? String(nameEl.value || '').trim() : '';
-        return 'Delete this debt' + (name ? ' (“' + name + '”)' : '') + '?\n\nThis removes the row from the draft. Click Save to persist.';
+        const seg = debtsHostEl.dataset.debtsSegment || 'active';
+        const intro =
+          seg === 'completed'
+            ? 'Move this paid-off debt to Deleted'
+            : 'Archive this debt to Deleted';
+        return (
+          intro +
+          (name ? ' (“' + name + '”)' : '') +
+          '?\n\nYou can restore it later from the Deleted tab. Click Save to sync.'
+        );
       },
       onConfirm: function (btn) {
         const row = btn.closest('.debt-row');
-        if (row) row.remove();
-        showGoal2Unsaved();
+        const id = row ? row.getAttribute('data-debt-id') : null;
+        if (id == null || String(id).trim() === '') return;
         readDebtsEditorIntoPlan();
+        setDebtLedgerStatusById(String(id), 'deleted');
+        showGoal2Unsaved();
         render();
       },
     });

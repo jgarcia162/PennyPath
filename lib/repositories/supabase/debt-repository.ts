@@ -15,6 +15,9 @@ function requireUserId(userId: string | null | undefined): string {
 }
 
 function mapDebtRow(row: DebtRow, payments: PaymentRow[]): Debt {
+  const ls = (row as { ledger_status?: string }).ledger_status;
+  const ledgerStatus =
+    ls === 'completed' || ls === 'deleted' ? (ls as Debt['ledgerStatus']) : ls === 'active' ? 'active' : undefined;
   return {
     id: row.id,
     name: row.name,
@@ -24,6 +27,7 @@ function mapDebtRow(row: DebtRow, payments: PaymentRow[]): Debt {
     deferredAmount: row.deferred_amount,
     deferredExpiresOn: row.deferred_expires_on as any,
     deferredMonthsRemaining: row.deferred_months_remaining,
+    ...(ledgerStatus ? { ledgerStatus } : {}),
     paymentHistory: payments.map(function (p) {
       return { id: p.id, amount: p.amount, at: p.at };
     }),
@@ -31,6 +35,9 @@ function mapDebtRow(row: DebtRow, payments: PaymentRow[]): Debt {
 }
 
 function toDebtInsert(userId: string, debt: Debt): DebtInsert {
+  const ls = debt.ledgerStatus;
+  const ledger_status =
+    ls === 'completed' || ls === 'deleted' || ls === 'active' ? ls : 'active';
   return {
     user_id: userId,
     id: debt.id,
@@ -41,6 +48,7 @@ function toDebtInsert(userId: string, debt: Debt): DebtInsert {
     deferred_amount: debt.deferredAmount,
     deferred_expires_on: debt.deferredExpiresOn || '',
     deferred_months_remaining: debt.deferredMonthsRemaining,
+    ledger_status,
   };
 }
 

@@ -29,7 +29,18 @@ function asLabels(v: unknown): PlanLabels {
 }
 
 function mapRowToPlanConfig(row: FinancialPlansRow): Partial<FinancialPlan> {
-  const rawLabels = (row.labels || {}) as { budgetCategories?: unknown };
+  const rawLabels = (row.labels || {}) as {
+    budgetCategories?: unknown;
+    debtsEditorLedgerSegment?: unknown;
+  };
+  const seg = rawLabels.debtsEditorLedgerSegment;
+  const debtsEditorLedgerSegment =
+    seg === 'completed' || seg === 'deleted' || seg === 'active' ? seg : undefined;
+  const lifetimeRaw = (row as { debts_paid_off_lifetime_count?: number }).debts_paid_off_lifetime_count;
+  const debtsPaidOffLifetimeCount =
+    typeof lifetimeRaw === 'number' && Number.isFinite(lifetimeRaw)
+      ? Math.max(0, Math.floor(lifetimeRaw))
+      : undefined;
   return {
     monthlyTakeHome: row.monthly_take_home,
     paycheckAmount: row.paycheck_amount,
@@ -67,6 +78,8 @@ function mapRowToPlanConfig(row: FinancialPlansRow): Partial<FinancialPlan> {
     debtsProgressSort: row.debts_progress_sort as any,
     workingMonthYm: row.working_month_ym as any,
     dashboardViewMonthYm: row.dashboard_view_month_ym as any,
+    ...(debtsPaidOffLifetimeCount !== undefined ? { debtsPaidOffLifetimeCount } : {}),
+    ...(debtsEditorLedgerSegment ? { debtsEditorLedgerSegment } : {}),
     ...(Array.isArray(rawLabels.budgetCategories) ? { budgetCategories: rawLabels.budgetCategories as any } : {}),
   };
 }
@@ -111,7 +124,23 @@ function mapPlanToInsert(userId: string, plan: FinancialPlan): FinancialPlansIns
       ...(typeof (plan as any).budgetCategories !== 'undefined' && Array.isArray((plan as any).budgetCategories)
         ? { budgetCategories: (plan as any).budgetCategories }
         : {}),
+      ...(typeof (plan as any).debtsEditorLedgerSegment === 'string' &&
+      ((plan as any).debtsEditorLedgerSegment === 'active' ||
+        (plan as any).debtsEditorLedgerSegment === 'completed' ||
+        (plan as any).debtsEditorLedgerSegment === 'deleted')
+        ? { debtsEditorLedgerSegment: (plan as any).debtsEditorLedgerSegment }
+        : {}),
     } as any,
+
+    debts_paid_off_lifetime_count: Math.max(
+      0,
+      Math.floor(
+        typeof (plan as any).debtsPaidOffLifetimeCount === 'number' &&
+          Number.isFinite((plan as any).debtsPaidOffLifetimeCount)
+          ? (plan as any).debtsPaidOffLifetimeCount
+          : 0
+      )
+    ),
 
     debts_editor_sort: plan.debtsEditorSort,
     debts_progress_sort: plan.debtsProgressSort,

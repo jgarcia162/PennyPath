@@ -104,6 +104,7 @@ export type Database = {
           deferred_expires_on: string
           deferred_months_remaining: number
           id: string
+          ledger_status: string
           name: string
           paid_off: number
           user_id: string
@@ -115,6 +116,7 @@ export type Database = {
           deferred_expires_on?: string
           deferred_months_remaining?: number
           id: string
+          ledger_status?: string
           name?: string
           paid_off?: number
           user_id: string
@@ -126,6 +128,7 @@ export type Database = {
           deferred_expires_on?: string
           deferred_months_remaining?: number
           id?: string
+          ledger_status?: string
           name?: string
           paid_off?: number
           user_id?: string
@@ -162,6 +165,7 @@ export type Database = {
           dashboard_view_month_ym: string
           debt_free_by: string
           debts_editor_sort: string
+          debts_paid_off_lifetime_count: number
           debts_progress_sort: string
           efund_months: number
           fun_budget: number
@@ -196,6 +200,7 @@ export type Database = {
           dashboard_view_month_ym?: string
           debt_free_by?: string
           debts_editor_sort?: string
+          debts_paid_off_lifetime_count?: number
           debts_progress_sort?: string
           efund_months?: number
           fun_budget?: number
@@ -230,6 +235,7 @@ export type Database = {
           dashboard_view_month_ym?: string
           debt_free_by?: string
           debts_editor_sort?: string
+          debts_paid_off_lifetime_count?: number
           debts_progress_sort?: string
           efund_months?: number
           fun_budget?: number

@@ -978,8 +978,17 @@ export default function DashboardPage() {
             <div className="dashboard-split">
               <div className="dashboard-main">
                 <div className="dashboard-card">
-                  <div className="dashboard-card__head">
+                  <div className="dashboard-card__head dashboard-card__head--split">
                     <div className="dashboard-card__title">Per-debt progress</div>
+                    <div
+                      className="dashboard-debts-paid-badge"
+                      title="Times a debt has reached paid off (lifetime). Moving rows to Deleted does not reduce this."
+                    >
+                      <span id="dash-debts-paid-off-lifetime" className="dashboard-debts-paid-badge__n">
+                        0
+                      </span>
+                      <span className="dashboard-debts-paid-badge__lbl"> paid off</span>
+                    </div>
                   </div>
                   <div className="goal2-debts-wrap">
                     <div className="goal2-debts-toolbar">
@@ -1000,6 +1009,26 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className="goal2-debts" id="goal2-debts"></div>
+                  </div>
+                  <div className="dashboard-debt-archives no-print" aria-label="Archived debts">
+                    <details className="dashboard-debt-archive">
+                      <summary className="dashboard-debt-archive-summary">
+                        Paid off{' '}
+                        <span className="dashboard-debt-archive-count" id="dash-archive-completed-count">
+                          0
+                        </span>
+                      </summary>
+                      <div id="dash-debts-completed-list" className="dash-debt-archive-list" />
+                    </details>
+                    <details className="dashboard-debt-archive">
+                      <summary className="dashboard-debt-archive-summary">
+                        Deleted{' '}
+                        <span className="dashboard-debt-archive-count" id="dash-archive-deleted-count">
+                          0
+                        </span>
+                      </summary>
+                      <div id="dash-debts-deleted-list" className="dash-debt-archive-list" />
+                    </details>
                   </div>
                 </div>
               </div>
@@ -1130,6 +1159,23 @@ export default function DashboardPage() {
             <div className="goal-editor-inner balance-editor">
               <div className="debts-editor-header">
                 <div className="debts-editor-title">Debts</div>
+                <div className="debts-editor-ledger-tabs no-print" role="tablist" aria-label="Which debts to edit">
+                  <button type="button" className="debts-editor-ledger-tab" role="tab" data-debts-segment="active" id="debts-segment-active">
+                    Active
+                  </button>
+                  <button
+                    type="button"
+                    className="debts-editor-ledger-tab"
+                    role="tab"
+                    data-debts-segment="completed"
+                    id="debts-segment-completed"
+                  >
+                    Paid off
+                  </button>
+                  <button type="button" className="debts-editor-ledger-tab" role="tab" data-debts-segment="deleted" id="debts-segment-deleted">
+                    Deleted
+                  </button>
+                </div>
                 <div className="debts-editor-sort">
                   <label htmlFor="debts-editor-sort" className="debts-editor-sort-label">
                     Sort by

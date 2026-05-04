@@ -3074,6 +3074,58 @@ body.financial-plan-demo-mode #checkin-form {
   justify-content: flex-end;
 }
 .debts-editor-title { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #888; font-weight: 700; }
+
+.debts-editor-ledger-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.debts-editor-ledger-tab {
+  border: 1px solid rgba(60, 68, 82, 0.18);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.debts-editor-ledger-tab:hover {
+  background: rgba(90, 122, 106, 0.12);
+}
+.debts-editor-ledger-tab.is-selected {
+  background: rgba(90, 122, 106, 0.22);
+  border-color: rgba(90, 122, 106, 0.35);
+}
+:root[data-theme="dark"] .debts-editor-ledger-tab {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+:root[data-theme="dark"] .debts-editor-ledger-tab.is-selected {
+  background: rgba(90, 122, 106, 0.28);
+}
+
+.editor-table__cell--debt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.btn-restore-debt {
+  background: rgba(60, 68, 82, 0.08);
+  color: var(--text);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-restore-debt:hover {
+  background: rgba(90, 122, 106, 0.18);
+}
+
 .debts-editor-sort {
   display: flex;
   align-items: center;
@@ -3583,6 +3635,79 @@ body.financial-plan-demo-mode #checkin-form {
 }
 
 /* GOAL 2: PER-DEBT PROGRESS (independent sort: #debts-progress-sort vs editor) */
+.dashboard-card__head--split {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+}
+.dashboard-debts-paid-badge {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sage);
+  white-space: nowrap;
+}
+.dashboard-debts-paid-badge__n {
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-debts-paid-badge__lbl {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.dashboard-debt-archives {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dashboard-debt-archive {
+  border: 1px solid rgba(60, 68, 82, 0.1);
+  border-radius: 10px;
+  padding: 6px 12px 10px;
+  background: rgba(60, 68, 82, 0.02);
+}
+.dashboard-debt-archive-summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  list-style: none;
+}
+.dashboard-debt-archive-summary::-webkit-details-marker {
+  display: none;
+}
+.dashboard-debt-archive-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+.dash-debt-archive-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dash-debt-archive-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+  color: #555;
+}
+.dash-debt-archive-name {
+  font-weight: 700;
+  color: var(--text);
+}
+.dash-debt-archive-meta {
+  font-size: 11px;
+  color: #777;
+  white-space: nowrap;
+}
+:root[data-theme="dark"] .dash-debt-archive-meta {
+  color: rgba(255, 255, 255, 0.55);
+}
+
 .goal2-debts-wrap {
   margin-top: 14px;
   margin-bottom: 14px;
