@@ -55,6 +55,7 @@ export function wirePlanTabs(): void {
     if (!dash) return;
     if (w === 'savings') activatePairB(dash);
     else activatePair(dash);
+    if (panelDash) panelDash.dataset.dashboardView = w;
     if (opts && opts.updateHash) {
       try {
         history.replaceState(null, '', w === 'savings' ? '#dashboard/savings' : '#dashboard/debts');

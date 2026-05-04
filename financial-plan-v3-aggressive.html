@@ -569,7 +569,14 @@
   </div>
   </section>
 
-  <section class="page-tab-panel page-tab-panel--dashboard" id="panel-dashboard" role="tabpanel" aria-labelledby="tab-dashboard" hidden>
+  <section
+    class="page-tab-panel page-tab-panel--dashboard"
+    id="panel-dashboard"
+    role="tabpanel"
+    aria-labelledby="tab-dashboard"
+    data-dashboard-view="debts"
+    hidden
+  >
     <div class="dashboard-hero">
       <div class="dashboard-hero__title">Dashboard</div>
       <div class="dashboard-hero__sub">Edit debts and savings here. Changes reflect instantly in the Financial Plan outline.</div>
@@ -599,50 +606,39 @@
       </p>
     </div>
 
-    <div class="dashboard-tabs no-print" role="tablist" aria-label="Dashboard tabs">
-      <button type="button" class="dashboard-tab-btn" id="tab-dashboard-debts" role="tab" aria-selected="true" aria-controls="panel-dashboard-debts">
-        Debts
-      </button>
-      <button type="button" class="dashboard-tab-btn" id="tab-dashboard-savings" role="tab" aria-selected="false" aria-controls="panel-dashboard-savings">
-        Savings
-      </button>
-    </div>
+    <div class="dashboard-view-toolbar no-print">
+      <div class="dashboard-tabs" role="tablist" aria-label="Dashboard tabs">
+        <button type="button" class="dashboard-tab-btn" id="tab-dashboard-debts" role="tab" aria-selected="true" aria-controls="panel-dashboard-debts">
+          Debts
+        </button>
+        <button type="button" class="dashboard-tab-btn" id="tab-dashboard-savings" role="tab" aria-selected="false" aria-controls="panel-dashboard-savings">
+          Savings
+        </button>
+      </div>
 
-    <div class="dashboard-editor-actions no-print" aria-label="Quick editors">
-      <button
-        type="button"
-        class="dashboard-editor-action-btn dashboard-editor-action-btn--debts"
-        id="btn-open-debts-editor"
-        aria-expanded="false"
-        aria-haspopup="dialog"
-        aria-controls="goal2-editor-dialog"
-      >
-        Edit debts
-      </button>
-      <button
-        type="button"
-        class="dashboard-editor-action-btn dashboard-editor-action-btn--savings"
-        id="btn-open-savings-editor"
-        aria-expanded="false"
-        aria-haspopup="dialog"
-        aria-controls="goal3-editor-dialog"
-      >
-        Edit savings
-      </button>
+      <div class="dashboard-editor-actions" aria-label="Quick editors">
+        <button
+          type="button"
+          class="dashboard-editor-action-btn dashboard-editor-action-btn--debts"
+          id="btn-open-debts-editor"
+          aria-expanded="false"
+          aria-haspopup="dialog"
+          aria-controls="goal2-editor-dialog"
+        >
+          Edit debts
+        </button>
+        <button
+          type="button"
+          class="dashboard-editor-action-btn dashboard-editor-action-btn--savings"
+          id="btn-open-savings-editor"
+          aria-expanded="false"
+          aria-haspopup="dialog"
+          aria-controls="goal3-editor-dialog"
+        >
+          Edit savings
+        </button>
+      </div>
     </div>
-
-    <section class="dashboard-deleted-bin no-print" aria-label="Recently deleted items">
-      <details class="dashboard-deleted-bin-details">
-        <summary class="dashboard-deleted-bin-summary">
-          Recently deleted <span class="dashboard-debt-archive-count" id="dash-deleted-items-count">0</span>
-        </summary>
-        <p class="dashboard-deleted-bin-hint">
-          Debts and savings you removed <strong>after they were saved</strong> land here. Draft rows you delete before
-          Save are discarded and do not appear.
-        </p>
-        <div id="dash-deleted-items-list" class="dash-deleted-items-list"></div>
-      </details>
-    </section>
 
     <section class="dashboard-tab-panel" id="panel-dashboard-debts" role="tabpanel" aria-labelledby="tab-dashboard-debts">
       <div class="dashboard-split">
@@ -687,6 +683,32 @@
           </div>
         </div>
       </div>
+    </section>
+
+    <section class="dashboard-tab-panel" id="panel-dashboard-savings" role="tabpanel" aria-labelledby="tab-dashboard-savings" hidden>
+      <div class="dashboard-split">
+        <div class="dashboard-main">
+          <div class="dashboard-card">
+            <div class="dashboard-card__head">
+              <div class="dashboard-card__title">Accounts & recent deposits</div>
+            </div>
+            <div class="goal3-savings" id="goal3-savings"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="dashboard-deleted-bin no-print" aria-label="Recently deleted items">
+      <details class="dashboard-deleted-bin-details">
+        <summary class="dashboard-deleted-bin-summary">
+          Recently deleted <span class="dashboard-debt-archive-count" id="dash-deleted-items-count">0</span>
+        </summary>
+        <p class="dashboard-deleted-bin-hint">
+          Debts and savings you removed <strong>after they were saved</strong> land here. Draft rows you delete before
+          Save are discarded and do not appear.
+        </p>
+        <div id="dash-deleted-items-list" class="dash-deleted-items-list"></div>
+      </details>
     </section>
 
     <!-- Native <details> hides body with display:none when closed, so height/grid transitions do not run; use button + class toggle instead. -->
@@ -758,19 +780,6 @@
         </div>
       </div>
     </div>
-
-    <section class="dashboard-tab-panel" id="panel-dashboard-savings" role="tabpanel" aria-labelledby="tab-dashboard-savings" hidden>
-      <div class="dashboard-split">
-        <div class="dashboard-main">
-          <div class="dashboard-card">
-            <div class="dashboard-card__head">
-              <div class="dashboard-card__title">Accounts & recent deposits</div>
-            </div>
-            <div class="goal3-savings" id="goal3-savings"></div>
-          </div>
-        </div>
-      </div>
-    </section>
   </section>
 
 </div>
