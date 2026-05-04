@@ -244,6 +244,11 @@ export function setDebtsDraftFromSnapshot(snap: { debts: Debt[] } | null | undef
 export function addDebtRowDraft(showUnsaved: () => void): void {
   const host = document.getElementById('debts-editor-list');
   if (!host) return;
+  // New rows are active-ledger drafts; on the "Paid off" segment readDebtsEditorIntoPlan forces
+  // ledgerStatus 'completed' for every row — never add while that tab is selected (+ Add is disabled, this is a guard).
+  if (normalizeDebtsEditorSegment(host.dataset.debtsSegment || 'active') === 'completed') {
+    return;
+  }
   const empty = host.querySelector('.editor-empty-state');
   if (empty) empty.remove();
   const id = 'd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
