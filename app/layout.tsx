@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import type { Viewport } from 'next';
 
 import { TrialCloseBeacon } from './components/TrialCloseBeacon';
 import { fontCormorant, fontDmSans, fontJetBrains, fontOutfit } from './fonts';
@@ -7,6 +8,12 @@ import './globals.css';
 export const metadata = {
   title: 'PennyPath',
   description: 'Family financial planning tools.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

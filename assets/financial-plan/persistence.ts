@@ -28,6 +28,7 @@ import { numOr } from './utils';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { yyyyMmFromDate } from './monthly-activity';
 import { ID_GOAL_HYSA, ensureSavingsGoals, normalizeSavingsGoalRow } from './savings-goals';
+import { normalizeLedgerStatus } from './debt-ledger';
 
 function safeReadLocalPlanPayload(): any | null {
   try {
@@ -130,7 +131,7 @@ function normalizeSavingsAccount(a: unknown): SavingsAccount | null {
     goalIds = [ID_GOAL_HYSA];
   }
   const countTowardsGoal = goalIds.indexOf(ID_GOAL_HYSA) >= 0;
-  return {
+  const row: SavingsAccount = {
     id: id,
     name: String(o.name || 'Account'),
     current: numOr(o.current, 0),
@@ -139,6 +140,10 @@ function normalizeSavingsAccount(a: unknown): SavingsAccount | null {
     countTowardsGoal: countTowardsGoal,
     depositHistory: normalizeDepositHistory(o),
   };
+  if (o.ledgerStatus === 'deleted') {
+    row.ledgerStatus = 'deleted';
+  }
+  return row;
 }
 
 function migrateLegacySavingsFromJson(o: any): SavingsAccount[] {
@@ -179,6 +184,8 @@ export function applyBlankFinancialBalances(plan: FinancialPlan): void {
   (plan as any).debts = [];
   (plan as any).debtsEditorSort = (PLAN_DEFAULTS as any).debtsEditorSort || 'saved';
   (plan as any).debtsProgressSort = (PLAN_DEFAULTS as any).debtsProgressSort || 'saved';
+  (plan as any).debtsPaidOffLifetimeCount = 0;
+  (plan as any).debtsEditorLedgerSegment = 'active';
   (plan as any).workingMonthYm = yyyyMmFromDate(new Date()) as YyyyMm;
   (plan as any).dashboardViewMonthYm = '';
   (plan as any).savingsGoals = JSON.parse(JSON.stringify((PLAN_DEFAULTS as any).savingsGoals));
@@ -272,17 +279,34 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
   if (Array.isArray(payload.savingsGoals) && payload.savingsGoals.length) {
     (plan as any).savingsGoals = payload.savingsGoals.map(normalizeSavingsGoalRow).filter(Boolean) as SavingsGoal[];
   }
+  if (typeof payload.debtsPaidOffLifetimeCount === 'number' && Number.isFinite(payload.debtsPaidOffLifetimeCount)) {
+    (plan as any).debtsPaidOffLifetimeCount = Math.max(0, Math.floor(payload.debtsPaidOffLifetimeCount));
+  }
+  if (typeof payload.debtsEditorLedgerSegment === 'string') {
+    const s = payload.debtsEditorLedgerSegment;
+    if (s === 'completed') {
+      (plan as any).debtsEditorLedgerSegment = 'completed';
+    } else {
+      (plan as any).debtsEditorLedgerSegment = 'active';
+    }
+  }
   if (Array.isArray(payload.debts)) {
     (plan as any).debts = payload.debts
       .filter(function (d: any) {
         return d && typeof d === 'object';
       })
       .map(function (d: any) {
-        return {
+        let ledgerStatus = normalizeLedgerStatus(d.ledgerStatus);
+        const current = Math.max(0, numOr(d.current, 0));
+        const paidOff = Math.max(0, numOr(d.paidOff, 0));
+        if (!d.ledgerStatus && current <= 0 && paidOff > 0) {
+          ledgerStatus = 'completed';
+        }
+        const row: Debt = {
           id: String(d.id || Math.random().toString(36).slice(2)),
           name: String(d.name || 'Debt'),
-          current: Math.max(0, numOr(d.current, 0)),
-          paidOff: Math.max(0, numOr(d.paidOff, 0)),
+          current: current,
+          paidOff: paidOff,
           aprPct: numOr(d.aprPct, DEFAULT_DEBT_APR_PCT),
           deferredAmount: Math.max(0, numOr(d.deferredAmount, 0)),
           deferredExpiresOn: typeof d.deferredExpiresOn === 'string' ? d.deferredExpiresOn : '',
@@ -290,8 +314,19 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
             ? Math.max(0, Math.floor(d.deferredMonthsRemaining))
             : 0,
           paymentHistory: normalizePaymentHistory(d),
-        } as Debt;
+        };
+        if (ledgerStatus === 'completed' || ledgerStatus === 'deleted') {
+          (row as any).ledgerStatus = ledgerStatus;
+        }
+        return row;
       });
+    const debtsArr = (plan as any).debts as Debt[];
+    let lifetime = numOr((plan as any).debtsPaidOffLifetimeCount, 0);
+    const completedN = debtsArr.filter(function (x: Debt) {
+      return normalizeLedgerStatus(x && x.ledgerStatus) === 'completed';
+    }).length;
+    if (lifetime < completedN) lifetime = completedN;
+    (plan as any).debtsPaidOffLifetimeCount = lifetime;
   }
   if (Array.isArray(payload.savingsAccounts) && payload.savingsAccounts.length) {
     (plan as any).savingsAccounts = payload.savingsAccounts.map(normalizeSavingsAccount).filter(Boolean) as SavingsAccount[];

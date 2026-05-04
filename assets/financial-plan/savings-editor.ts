@@ -9,80 +9,118 @@ import { appendSavingsEditorEmptyState, buildSavingsEditorThead, buildSavingsRow
 import { normalizeDepositHistory, newDepositId } from './persistence';
 import { ID_GOAL_HYSA, ensureSavingsGoals, getAccountGoalIds } from './savings-goals';
 import { defaultLogAtIsoForEdits } from './default-log-at';
+import { concatSavingsLedgerOrder, partitionSavingsByLedger } from './savings-ledger';
+
+function parseSavingsRowFromDOM(row: Element, rowIdx: number, planAcc: SavingsAccount[]): SavingsAccount {
+  let id = row.getAttribute('data-savings-id');
+  if (id == null || String(id).trim() === '') {
+    id = planAcc[rowIdx] ? String(planAcc[rowIdx].id) : 's_' + rowIdx;
+  } else {
+    id = String(id).trim();
+  }
+  const nameEl = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
+  const curEl = row.querySelector('input[data-field="current"]') as HTMLInputElement | null;
+  const apyEl = row.querySelector('input[data-field="apyPct"]') as HTMLInputElement | null;
+  const depEl = row.querySelector('input[data-field="deposit"]') as HTMLInputElement | null;
+  const name = nameEl ? String(nameEl.value || 'Account').trim() : 'Account';
+  const rawCurrent = curEl ? parseMoneyInput(curEl.value) : null;
+  const rawApy = apyEl ? parseMoneyInput(apyEl.value) : null;
+  const deposit = depEl ? parseMoneyInput(depEl.value) : null;
+
+  const prev = planAcc.find(function (a: SavingsAccount) {
+    return String(a.id) === String(id);
+  });
+  const prevByIndex = !prev && planAcc[rowIdx] ? planAcc[rowIdx] : null;
+  const base = prev || prevByIndex;
+  let currentBal: number;
+  if (rawCurrent !== null) {
+    currentBal = rawCurrent;
+  } else if (base && Number.isFinite(Number(base.current))) {
+    currentBal = Number(base.current);
+  } else {
+    currentBal = 0;
+  }
+
+  let apyPctVal: number;
+  if (rawApy !== null) {
+    apyPctVal = rawApy;
+  } else if (base && Number.isFinite(Number(base.apyPct))) {
+    apyPctVal = Number(base.apyPct);
+  } else {
+    apyPctVal = DEFAULT_SAVINGS_APY_PCT;
+  }
+
+  let hist: DepositHistoryItem[] = normalizeDepositHistory(base);
+  if (deposit !== null && deposit > 0) {
+    const dep = roundMoney(deposit);
+    currentBal = roundMoney(currentBal + dep);
+    hist = hist.slice();
+    hist.push({ id: newDepositId(), amount: dep, at: defaultLogAtIsoForEdits() });
+    if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
+    if (depEl) depEl.value = '';
+  }
+
+  const goalIds: string[] = [];
+  row.querySelectorAll('input[data-field="goalId"]:checked').forEach(function (cb: Element) {
+    const gid = cb.getAttribute('data-goal-id');
+    if (gid) goalIds.push(String(gid));
+  });
+  const countTowardsGoal = goalIds.indexOf(ID_GOAL_HYSA) >= 0;
+
+  return {
+    id: String(id),
+    name: name || 'Account',
+    current: roundMoney(currentBal),
+    apyPct: roundMoney(apyPctVal),
+    goalIds: goalIds,
+    countTowardsGoal: countTowardsGoal,
+    depositHistory: hist,
+  };
+}
 
 export function readSavingsEditorIntoPlan(): void {
   const host = document.getElementById('savings-editor-list');
   if (!host) return;
+  const planAcc: SavingsAccount[] = Array.isArray((PLAN as any).savingsAccounts)
+    ? ((PLAN as any).savingsAccounts as SavingsAccount[])
+    : [];
+  const parts = partitionSavingsByLedger(planAcc);
   const rows = host.querySelectorAll('.savings-row');
-  const next: SavingsAccount[] = [];
-  const planAcc: SavingsAccount[] = Array.isArray((PLAN as any).savingsAccounts) ? ((PLAN as any).savingsAccounts as SavingsAccount[]) : [];
+  const parsed: SavingsAccount[] = [];
   rows.forEach(function (row: Element, rowIdx: number) {
-    let id = row.getAttribute('data-savings-id');
-    if (id == null || String(id).trim() === '') {
-      id = planAcc[rowIdx] ? String(planAcc[rowIdx].id) : 's_' + rowIdx;
-    } else {
-      id = String(id).trim();
-    }
-    const nameEl = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
-    const curEl = row.querySelector('input[data-field="current"]') as HTMLInputElement | null;
-    const apyEl = row.querySelector('input[data-field="apyPct"]') as HTMLInputElement | null;
-    const depEl = row.querySelector('input[data-field="deposit"]') as HTMLInputElement | null;
-    const name = nameEl ? String(nameEl.value || 'Account').trim() : 'Account';
-    const rawCurrent = curEl ? parseMoneyInput(curEl.value) : null;
-    const rawApy = apyEl ? parseMoneyInput(apyEl.value) : null;
-    const deposit = depEl ? parseMoneyInput(depEl.value) : null;
-
-    const prev = planAcc.find(function (a: SavingsAccount) {
-      return String(a.id) === String(id);
-    });
-    const prevByIndex = !prev && planAcc[rowIdx] ? planAcc[rowIdx] : null;
-    const base = prev || prevByIndex;
-    let currentBal: number;
-    if (rawCurrent !== null) {
-      currentBal = rawCurrent;
-    } else if (base && Number.isFinite(Number(base.current))) {
-      currentBal = Number(base.current);
-    } else {
-      currentBal = 0;
-    }
-
-    let apyPctVal: number;
-    if (rawApy !== null) {
-      apyPctVal = rawApy;
-    } else if (base && Number.isFinite(Number(base.apyPct))) {
-      apyPctVal = Number(base.apyPct);
-    } else {
-      apyPctVal = DEFAULT_SAVINGS_APY_PCT;
-    }
-
-    let hist: DepositHistoryItem[] = normalizeDepositHistory(base);
-    if (deposit !== null && deposit > 0) {
-      const dep = roundMoney(deposit);
-      currentBal = roundMoney(currentBal + dep);
-      hist = hist.slice();
-      hist.push({ id: newDepositId(), amount: dep, at: defaultLogAtIsoForEdits() });
-      if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
-      if (depEl) depEl.value = '';
-    }
-
-    const goalIds: string[] = [];
-    row.querySelectorAll('input[data-field="goalId"]:checked').forEach(function (cb: Element) {
-      const gid = cb.getAttribute('data-goal-id');
-      if (gid) goalIds.push(String(gid));
-    });
-    const countTowardsGoal = goalIds.indexOf(ID_GOAL_HYSA) >= 0;
-
-    next.push({
-      id: String(id),
-      name: name || 'Account',
-      current: roundMoney(currentBal),
-      apyPct: roundMoney(apyPctVal),
-      goalIds: goalIds,
-      countTowardsGoal: countTowardsGoal,
-      depositHistory: hist,
-    });
+    parsed.push(parseSavingsRowFromDOM(row, rowIdx, planAcc));
   });
-  PLAN.savingsAccounts = next;
+  PLAN.savingsAccounts = concatSavingsLedgerOrder({
+    active: parsed,
+    deleted: parts.deleted,
+  });
+}
+
+export function hardRemoveSavingsById(id: string): void {
+  const accs: SavingsAccount[] = Array.isArray((PLAN as any).savingsAccounts)
+    ? ((PLAN as any).savingsAccounts as SavingsAccount[])
+    : [];
+  (PLAN as any).savingsAccounts = accs.filter(function (a: SavingsAccount) {
+    return String(a.id) !== String(id);
+  });
+}
+
+export function setSavingsLedgerStatusById(id: string, status: 'active' | 'deleted'): void {
+  const accs: SavingsAccount[] = Array.isArray((PLAN as any).savingsAccounts)
+    ? ([...((PLAN as any).savingsAccounts as SavingsAccount[])] as SavingsAccount[])
+    : [];
+  const idx = accs.findIndex(function (a: SavingsAccount) {
+    return String(a.id) === String(id);
+  });
+  if (idx === -1) return;
+  const a = accs[idx];
+  if (status === 'active') {
+    const { ledgerStatus: _x, ...rest } = { ...a, ledgerStatus: undefined };
+    accs[idx] = rest as SavingsAccount;
+  } else {
+    accs[idx] = { ...a, ledgerStatus: 'deleted' };
+  }
+  PLAN.savingsAccounts = concatSavingsLedgerOrder(partitionSavingsByLedger(accs));
 }
 
 export function cloneSavingsSnapshot(): { savingsAccounts: SavingsAccount[] } {
@@ -90,7 +128,7 @@ export function cloneSavingsSnapshot(): { savingsAccounts: SavingsAccount[] } {
     savingsAccounts: (Array.isArray((PLAN as any).savingsAccounts) ? ((PLAN as any).savingsAccounts as SavingsAccount[]) : []).map(function (
       a: SavingsAccount
     ) {
-      return {
+      const row: SavingsAccount = {
         id: String(a.id),
         name: String(a.name || 'Account'),
         current: roundMoney(numOr(a.current, 0)),
@@ -99,6 +137,10 @@ export function cloneSavingsSnapshot(): { savingsAccounts: SavingsAccount[] } {
         countTowardsGoal: getAccountGoalIds(a).indexOf(ID_GOAL_HYSA) >= 0,
         depositHistory: normalizeDepositHistory(a),
       };
+      if (a.ledgerStatus === 'deleted') {
+        row.ledgerStatus = 'deleted';
+      }
+      return row;
     }),
   };
 }
@@ -108,7 +150,8 @@ export function setSavingsDraftFromSnapshot(snap: { savingsAccounts: SavingsAcco
   const host = document.getElementById('savings-editor-list');
   if (!host) return;
   host.innerHTML = '';
-  if (!snap.savingsAccounts.length) {
+  const active = partitionSavingsByLedger(snap.savingsAccounts || []).active;
+  if (!active.length) {
     appendSavingsEditorEmptyState(host);
     return;
   }
@@ -119,7 +162,7 @@ export function setSavingsDraftFromSnapshot(snap: { savingsAccounts: SavingsAcco
   const tbody = document.createElement('tbody');
   ensureSavingsGoals(PLAN);
   const sg: SavingsGoal[] = (PLAN as any).savingsGoals || [];
-  snap.savingsAccounts.forEach(function (a: SavingsAccount) {
+  active.forEach(function (a: SavingsAccount) {
     tbody.appendChild(buildSavingsRowTR(a, sg));
   });
   table.appendChild(tbody);

@@ -56,7 +56,7 @@ type MonthExportPlanPayload = Pick<
   | 'debtsProgressSort'
 > & {
   savingsAccounts: Array<
-    Pick<SavingsAccount, 'id' | 'name' | 'current' | 'apyPct'> & {
+    Pick<SavingsAccount, 'id' | 'name' | 'current' | 'apyPct' | 'ledgerStatus'> & {
       depositHistory: DepositHistoryItem[];
     }
   >;
@@ -71,6 +71,7 @@ type MonthExportPlanPayload = Pick<
       | 'deferredAmount'
       | 'deferredExpiresOn'
       | 'deferredMonthsRemaining'
+      | 'ledgerStatus'
     > & { paymentHistory: PaymentHistoryItem[] }
   >;
 };
@@ -88,7 +89,7 @@ function clonePlanBalancesOnly(plan: FinancialPlan): MonthExportPlanPayload {
 
   const debts = Array.isArray(plan && (plan as any).debts) ? ((plan as any).debts as Debt[]) : [];
   out.debts = debts.map(function (d: any) {
-    return {
+    const rowDebts: MonthExportPlanPayload['debts'][number] = {
       id: String(d && d.id ? d.id : ''),
       name: String((d && d.name) || 'Debt'),
       current: roundMoney(numOr(d && d.current, 0)),
@@ -101,17 +102,28 @@ function clonePlanBalancesOnly(plan: FinancialPlan): MonthExportPlanPayload {
         : 0,
       paymentHistory: Array.isArray(d && d.paymentHistory) ? d.paymentHistory.slice() : [],
     };
+    if (d && (d.ledgerStatus === 'completed' || d.ledgerStatus === 'deleted')) {
+      rowDebts.ledgerStatus = d.ledgerStatus;
+    }
+    return rowDebts;
   });
 
-  const accs = getSavingsAccounts((plan || {}) as FinancialPlan);
-  out.savingsAccounts = accs.map(function (a: any) {
-    return {
+  const rawAccs =
+    Array.isArray((plan as any).savingsAccounts) && (plan as any).savingsAccounts.length
+      ? ((plan as any).savingsAccounts as SavingsAccount[])
+      : getSavingsAccounts((plan || {}) as FinancialPlan);
+  out.savingsAccounts = rawAccs.map(function (a: any) {
+    const row: MonthExportPlanPayload['savingsAccounts'][number] = {
       id: String(a && a.id ? a.id : ''),
       name: String((a && a.name) || 'Account'),
       current: roundMoney(numOr(a && a.current, 0)),
       apyPct: roundMoney(numOr(a && a.apyPct, 0)),
       depositHistory: Array.isArray(a && a.depositHistory) ? a.depositHistory.slice() : [],
     };
+    if (a && a.ledgerStatus === 'deleted') {
+      row.ledgerStatus = 'deleted';
+    }
+    return row;
   });
 
   return out;

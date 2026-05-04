@@ -32,6 +32,9 @@ export type DepositHistoryItem = MoneyLedgerItem;
 
 // --------- Financial Plan models ----------
 
+/** Where this debt sits in the UI: accruing, paid off, or removed from active tracking. */
+export type DebtLedgerStatus = 'active' | 'completed' | 'deleted';
+
 export interface Debt {
   id: string;
   name: string;
@@ -39,6 +42,8 @@ export interface Debt {
   current: number;
   /** Lifetime paid down (used for progress). */
   paidOff: number;
+  /** Defaults to active when omitted (legacy plans). */
+  ledgerStatus?: DebtLedgerStatus;
   /** APR as a percent (e.g. `22` means 22%). */
   aprPct: number;
   /** Deferred/promo balance (0% while promo active). */
@@ -60,6 +65,9 @@ export interface SavingsGoal {
   goalByYm: YyyyMm | '';
 }
 
+/** Archived savings rows (not shown in active lists). */
+export type SavingsLedgerStatus = 'active' | 'deleted';
+
 export interface SavingsAccount {
   id: string;
   name: string;
@@ -71,6 +79,8 @@ export interface SavingsAccount {
   /** Convenience boolean: whether it counts toward the Joint HYSA goal. */
   countTowardsGoal: boolean;
   depositHistory: DepositHistoryItem[];
+  /** Defaults to active when omitted. */
+  ledgerStatus?: SavingsLedgerStatus;
 }
 
 export interface Phase1Budget {
@@ -98,6 +108,8 @@ export interface PlanLabels {
   goalHysaWhen: string;
   goalDebtWhen: string;
   monthsToCloseEfund: string;
+  /** Persisted inside Supabase `financial_plans.labels` JSON. */
+  debtsEditorLedgerSegment?: 'active' | 'completed';
 }
 
 /** Monthly budget breakdown row (How We Get There table); synced to legacy plan fields by role. */
@@ -178,6 +190,12 @@ export interface FinancialPlan {
   debtsProgressSort: DebtsProgressSort;
   workingMonthYm: YyyyMm | '';
   dashboardViewMonthYm: YyyyMm | '';
+
+  /** Increments when a debt first reaches paid-off; survives moving to deleted. */
+  debtsPaidOffLifetimeCount?: number;
+
+  /** Which bucket the debts editor dialog is showing (active vs paid off only). */
+  debtsEditorLedgerSegment?: 'active' | 'completed';
 
   /** Optional editable budget breakdown rows (persisted via Supabase `labels` JSON). */
   budgetCategories?: BudgetCategoryRow[];
@@ -324,6 +342,9 @@ export interface DerivedPlanMetrics {
   debtPayoffWhenLabel: string;
   debtPayoffWhenNote: string;
   debtGoalWhenLine: string;
+
+  /** Same as plan field; surfaced for dashboard binding. */
+  debtsPaidOffLifetimeCount: number;
 }
 
 export interface EndOfPlanLiquidSummary {

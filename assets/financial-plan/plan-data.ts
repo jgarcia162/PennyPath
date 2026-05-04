@@ -98,6 +98,8 @@ export const PLAN: FinancialPlan = {
   },
   debtsEditorSort: 'saved',
   debtsProgressSort: 'saved',
+  debtsPaidOffLifetimeCount: 0,
+  debtsEditorLedgerSegment: 'active',
   workingMonthYm: '',
   dashboardViewMonthYm: '',
   savingsGoals: [

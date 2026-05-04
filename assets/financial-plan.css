@@ -701,6 +701,93 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(233, 233, 246, 0.92);
 }
 
+/* ── Mobile: hero + plan tab chrome (Financial Plan / Dashboard) ── */
+@media (max-width: 768px) {
+  .cover {
+    padding: 40px 20px 36px;
+  }
+  .cover h1 {
+    font-size: clamp(26px, 9vw, 44px);
+  }
+  .cover-stats {
+    grid-template-columns: 1fr;
+    gap: 0;
+    padding-top: 24px;
+  }
+  .cover-stat {
+    padding: 14px 0;
+    margin: 0 !important;
+    border-right: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .cover-stat:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+  }
+  .content {
+    padding: 32px 16px 56px;
+  }
+  .page-tabs {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    justify-content: stretch;
+    gap: 8px;
+    padding: 6px;
+  }
+  .page-tab-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    padding: 10px 12px;
+  }
+  .collapsible-controls__toggle {
+    min-height: 44px;
+    padding: 12px 16px;
+  }
+  /* Wide tables / grids inside sections: scroll horizontally instead of stretching the page */
+  .section-collapsible__anim {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .section-collapsible__summary {
+    min-height: 44px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+    box-sizing: border-box;
+  }
+  .dashboard-view-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .dashboard-view-toolbar .dashboard-editor-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+  .dashboard-tabs {
+    display: flex;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    justify-content: stretch;
+    gap: 8px;
+    padding: 6px;
+  }
+  .dashboard-tab-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+  }
+  .dashboard-editor-action-btn {
+    min-height: 44px;
+    padding: 12px 16px;
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}
+
 .page-tab-panel[hidden] {
   display: none;
 }
@@ -2358,6 +2445,21 @@ body.financial-plan-demo-mode #checkin-form {
   }
 }
 
+.dashboard-view-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+  margin: 0 0 18px;
+}
+.dashboard-view-toolbar .dashboard-tabs {
+  margin-bottom: 0;
+}
+.dashboard-view-toolbar .dashboard-editor-actions {
+  margin: 0;
+}
+
 .dashboard-tabs {
   display: inline-flex;
   flex-wrap: wrap;
@@ -2367,10 +2469,6 @@ body.financial-plan-demo-mode #checkin-form {
   border: 1px solid rgba(60, 68, 82, 0.10);
   background: rgba(255, 255, 255, 0.28);
   margin: 0 0 18px;
-}
-/* Edge editor tabs replace the horizontal dashboard tabs on desktop. */
-.page-tab-panel--dashboard .dashboard-tabs {
-  display: none;
 }
 .dashboard-tab-btn {
   appearance: none;
@@ -2402,6 +2500,15 @@ body.financial-plan-demo-mode #checkin-form {
   gap: 10px;
   align-items: center;
   margin: 12px 0 18px;
+}
+/* Only show Edit debts or Edit savings for the active Debts / Savings toggle */
+#panel-dashboard[data-dashboard-view='debts'] .dashboard-editor-action-btn--savings,
+#panel-dashboard[data-dashboard-view='savings'] .dashboard-editor-action-btn--debts {
+  display: none !important;
+}
+#panel-dashboard[data-dashboard-view='debts'] .dashboard-editor-action-btn--debts,
+#panel-dashboard[data-dashboard-view='savings'] .dashboard-editor-action-btn--savings {
+  display: inline-flex;
 }
 .dashboard-editor-action-btn {
   appearance: none;
@@ -2548,11 +2655,6 @@ body.financial-plan-demo-mode #checkin-form {
   }
 }
 
-@media (max-width: 900px) {
-  .page-tab-panel--dashboard .dashboard-tabs {
-    display: inline-flex;
-  }
-}
 :root[data-theme="dark"] .dashboard-tabs {
   border-color: rgba(255, 255, 255, 0.10);
   background: rgba(255, 255, 255, 0.04);
@@ -2997,6 +3099,58 @@ body.financial-plan-demo-mode #checkin-form {
   justify-content: flex-end;
 }
 .debts-editor-title { font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; color: #888; font-weight: 700; }
+
+.debts-editor-ledger-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.debts-editor-ledger-tab {
+  border: 1px solid rgba(60, 68, 82, 0.18);
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.debts-editor-ledger-tab:hover {
+  background: rgba(90, 122, 106, 0.12);
+}
+.debts-editor-ledger-tab.is-selected {
+  background: rgba(90, 122, 106, 0.22);
+  border-color: rgba(90, 122, 106, 0.35);
+}
+:root[data-theme="dark"] .debts-editor-ledger-tab {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+:root[data-theme="dark"] .debts-editor-ledger-tab.is-selected {
+  background: rgba(90, 122, 106, 0.28);
+}
+
+.editor-table__cell--debt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.btn-restore-debt {
+  background: rgba(60, 68, 82, 0.08);
+  color: var(--text);
+  border: none;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-restore-debt:hover {
+  background: rgba(90, 122, 106, 0.18);
+}
+
 .debts-editor-sort {
   display: flex;
   align-items: center;
@@ -3506,6 +3660,167 @@ body.financial-plan-demo-mode #checkin-form {
 }
 
 /* GOAL 2: PER-DEBT PROGRESS (independent sort: #debts-progress-sort vs editor) */
+.dashboard-card__head--split {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 14px;
+}
+.dashboard-debts-paid-badge {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sage);
+  white-space: nowrap;
+}
+.dashboard-debts-paid-badge__n {
+  font-variant-numeric: tabular-nums;
+}
+.dashboard-debts-paid-badge__lbl {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.dashboard-debt-archives {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dashboard-debt-archive {
+  border: 1px solid rgba(60, 68, 82, 0.1);
+  border-radius: 10px;
+  padding: 6px 12px 10px;
+  background: rgba(60, 68, 82, 0.02);
+}
+.dashboard-debt-archive-summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  list-style: none;
+}
+.dashboard-debt-archive-summary::-webkit-details-marker {
+  display: none;
+}
+.dashboard-debt-archive-count {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+.dash-debt-archive-list {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dash-debt-archive-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 12px;
+  color: #555;
+}
+.dash-debt-archive-name {
+  font-weight: 700;
+  color: var(--text);
+}
+.dash-debt-archive-meta {
+  font-size: 11px;
+  color: #777;
+  white-space: nowrap;
+}
+:root[data-theme="dark"] .dash-debt-archive-meta {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.dashboard-deleted-bin {
+  margin: 16px 0 12px;
+}
+.dashboard-deleted-bin-details {
+  border: 1px solid rgba(180, 90, 90, 0.22);
+  border-radius: 10px;
+  padding: 6px 12px 10px;
+  background: rgba(180, 90, 90, 0.05);
+}
+.dashboard-deleted-bin-summary {
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 13px;
+  list-style: none;
+}
+.dashboard-deleted-bin-summary::-webkit-details-marker {
+  display: none;
+}
+.dashboard-deleted-bin-hint {
+  margin: 8px 0 10px;
+  font-size: 12px;
+  color: #666;
+  line-height: 1.45;
+}
+:root[data-theme="dark"] .dashboard-deleted-bin-hint {
+  color: rgba(255, 255, 255, 0.65);
+}
+:root[data-theme="dark"] .dashboard-deleted-bin-details {
+  border-color: rgba(255, 120, 120, 0.25);
+  background: rgba(255, 120, 120, 0.06);
+}
+.dash-deleted-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dash-deleted-items-empty {
+  margin: 0;
+  font-size: 12px;
+  color: #888;
+}
+:root[data-theme="dark"] .dash-deleted-items-empty {
+  color: rgba(255, 255, 255, 0.5);
+}
+.dash-deleted-item-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(60, 68, 82, 0.04);
+  border: 1px solid rgba(60, 68, 82, 0.1);
+}
+:root[data-theme="dark"] .dash-deleted-item-row {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+.dash-deleted-item-main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+.dash-deleted-item-kind {
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: #888;
+}
+.dash-deleted-item-name {
+  font-weight: 700;
+  font-size: 13px;
+}
+.dash-deleted-item-meta {
+  font-size: 11px;
+  color: #777;
+  flex: 1 1 160px;
+}
+:root[data-theme="dark"] .dash-deleted-item-meta {
+  color: rgba(255, 255, 255, 0.55);
+}
+.dash-deleted-item-restore {
+  flex-shrink: 0;
+}
+
 .goal2-debts-wrap {
   margin-top: 14px;
   margin-bottom: 14px;

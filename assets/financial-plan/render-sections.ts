@@ -4,6 +4,12 @@
 
 import type { Debt, DerivedPlanMetrics, FinancialPlan, SavingsAccount, SavingsGoal } from '../../types/index.js';
 import { DEFAULT_DEBT_APR_PCT, DEFAULT_SAVINGS_APY_PCT, PLAN } from './plan-data';
+import {
+  getDebtsEditorSegment,
+  partitionDebtsByLedger,
+  type DebtsEditorSegment,
+} from './debt-ledger';
+import { partitionSavingsByLedger } from './savings-ledger';
 import { ensureSavingsGoals, accountContributesToGoal } from './savings-goals';
 import { numOr, formatCurrencyInput, formatMoneyInput } from './utils';
 
@@ -89,16 +95,27 @@ function sortDebtListByMode(list: Debt[], mode: string): Debt[] {
  * Debts in Goal 2 editor row order (saved array order, or balance / APR).
  */
 export function getDebtsInEditorOrder(plan: Pick<FinancialPlan, 'debts' | 'debtsEditorSort'>): Debt[] {
-  const list = Array.isArray(plan.debts) ? (plan.debts.slice() as Debt[]) : [];
+  const list = partitionDebtsByLedger(Array.isArray(plan.debts) ? (plan.debts as Debt[]) : []).active;
   const mode = normalizeDebtsEditorSort(plan.debtsEditorSort as unknown);
   return sortDebtListByMode(list, mode);
+}
+
+/** Debts shown in the editor for the current ledger segment (dialog tab). */
+export function getDebtsInEditorOrderForSegment(
+  plan: Pick<FinancialPlan, 'debts' | 'debtsEditorSort' | 'debtsEditorLedgerSegment'>
+): Debt[] {
+  const segment = getDebtsEditorSegment(plan as FinancialPlan);
+  const parts = partitionDebtsByLedger(Array.isArray(plan.debts) ? (plan.debts as Debt[]) : []);
+  const bucket = segment === 'completed' ? parts.completed : parts.active;
+  const mode = normalizeDebtsEditorSort(plan.debtsEditorSort as unknown);
+  return sortDebtListByMode(bucket.slice(), mode);
 }
 
 /**
  * Order for Goal 2 per-debt progress cards (`#goal2-debts`).
  */
 export function getDebtsInProgressOrder(plan: Pick<FinancialPlan, 'debts' | 'debtsProgressSort'>): Debt[] {
-  const list = Array.isArray(plan.debts) ? (plan.debts.slice() as Debt[]) : [];
+  const list = partitionDebtsByLedger(Array.isArray(plan.debts) ? (plan.debts as Debt[]) : []).active;
   const mode = normalizeDebtsProgressSort(plan.debtsProgressSort as unknown);
   return sortDebtListByMode(list, mode);
 }
@@ -198,14 +215,35 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
   });
 }
 
-export function appendDebtsEditorEmptyState(host: HTMLElement): void {
+export function appendDebtsEditorEmptyState(host: HTMLElement, segment?: DebtsEditorSegment): void {
+  const seg = segment || 'active';
+  const copy =
+    seg === 'completed'
+      ? {
+          icon: '✓',
+          title: 'No paid-off debts yet',
+          text:
+            'When an active debt reaches <strong>$0</strong> balance with payments on record, it moves here automatically.',
+        }
+      : {
+          icon: '📊',
+          title: 'No debts yet',
+          text:
+            'Add credit cards or loans to track balances, APR, promos, and payments. Use <strong>+ Add debt</strong> below to get started.',
+        };
   const wrap = document.createElement('div');
   wrap.className = 'editor-empty-state';
   wrap.setAttribute('role', 'status');
   wrap.innerHTML =
-    '<div class="editor-empty-state__icon" aria-hidden="true">📊</div>' +
-    '<h3 class="editor-empty-state__title">No debts yet</h3>' +
-    '<p class="editor-empty-state__text">Add credit cards or loans to track balances, APR, promos, and payments. Use <strong>+ Add debt</strong> below to get started.</p>';
+    '<div class="editor-empty-state__icon" aria-hidden="true">' +
+    copy.icon +
+    '</div>' +
+    '<h3 class="editor-empty-state__title">' +
+    copy.title +
+    '</h3>' +
+    '<p class="editor-empty-state__text">' +
+    copy.text +
+    '</p>';
   host.appendChild(wrap);
 }
 
@@ -238,7 +276,7 @@ export function buildDebtsEditorThead() {
   return thead;
 }
 
-export function buildDebtRowTR(debt: Debt): HTMLTableRowElement {
+export function buildDebtRowTR(debt: Debt, segment: DebtsEditorSegment = 'active'): HTMLTableRowElement {
   const row = document.createElement('tr');
   row.className = 'debt-row';
   row.setAttribute('data-debt-id', String(debt.id));
@@ -287,13 +325,28 @@ export function buildDebtRowTR(debt: Debt): HTMLTableRowElement {
     )
   );
   const rmTd = document.createElement('td');
-  rmTd.className = 'editor-table__cell--actions';
-  const rm = document.createElement('button');
-  rm.type = 'button';
-  rm.className = 'btn-remove-debt';
-  rm.setAttribute('data-action', 'remove');
-  rm.textContent = 'Remove';
-  rmTd.appendChild(rm);
+  rmTd.className = 'editor-table__cell--actions editor-table__cell--debt-actions';
+  if (segment === 'completed') {
+    const rm = document.createElement('button');
+    rm.type = 'button';
+    rm.className = 'btn-remove-debt';
+    rm.setAttribute('data-action', 'remove');
+    rm.textContent = 'To Deleted';
+    rmTd.appendChild(rm);
+    const restore = document.createElement('button');
+    restore.type = 'button';
+    restore.className = 'btn-restore-debt';
+    restore.setAttribute('data-action', 'restore-active');
+    restore.textContent = 'Restore';
+    rmTd.appendChild(restore);
+  } else {
+    const rm = document.createElement('button');
+    rm.type = 'button';
+    rm.className = 'btn-remove-debt';
+    rm.setAttribute('data-action', 'remove');
+    rm.textContent = 'Remove';
+    rmTd.appendChild(rm);
+  }
   row.appendChild(rmTd);
 
   const nameInput = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
@@ -313,25 +366,153 @@ export function buildDebtRowTR(debt: Debt): HTMLTableRowElement {
   return row;
 }
 
+export function syncDebtsEditorLedgerTabs(plan: FinancialPlan): void {
+  const seg = getDebtsEditorSegment(plan);
+  document.querySelectorAll('[data-debts-segment]').forEach(function (el) {
+    const btn = el as HTMLButtonElement;
+    const v = btn.getAttribute('data-debts-segment');
+    const selected = v === seg;
+    btn.setAttribute('aria-selected', selected ? 'true' : 'false');
+    btn.classList.toggle('is-selected', selected);
+  });
+}
+
 export function renderDebtsEditor(plan: FinancialPlan): void {
   const host = document.getElementById('debts-editor-list') as HTMLElement | null;
   if (!host) return;
+  const segment = getDebtsEditorSegment(plan);
+  host.dataset.debtsSegment = segment;
   host.innerHTML = '';
-  const debts = getDebtsInEditorOrder(plan);
+  const debts = getDebtsInEditorOrderForSegment(plan);
   if (debts.length === 0) {
-    appendDebtsEditorEmptyState(host);
+    appendDebtsEditorEmptyState(host, segment);
+  } else {
+    const table = document.createElement('table');
+    table.className = 'editor-table editor-table--debts';
+    table.setAttribute('role', 'grid');
+    table.appendChild(buildDebtsEditorThead());
+    const tbody = document.createElement('tbody');
+    debts.forEach(function (debt) {
+      tbody.appendChild(buildDebtRowTR(debt, segment));
+    });
+    table.appendChild(tbody);
+    host.appendChild(table);
+  }
+  syncDebtsEditorLedgerTabs(plan);
+  const addBtn = document.getElementById('btn-add-debt') as HTMLButtonElement | null;
+  if (addBtn) addBtn.disabled = segment !== 'active';
+}
+
+/** Dashboard: paid-off debts summary (`#dash-debts-completed-list`). */
+export function renderDashboardDebtArchives(plan: FinancialPlan, moneyExact: MoneyFn): void {
+  const parts = partitionDebtsByLedger(Array.isArray(plan.debts) ? (plan.debts as Debt[]) : []);
+  const setCount = function (id: string, n: number): void {
+    const el = document.getElementById(id);
+    if (el) el.textContent = String(n);
+  };
+  setCount('dash-archive-completed-count', parts.completed.length);
+
+  function fillCompletedList(hostId: string, list: Debt[]): void {
+    const host = document.getElementById(hostId);
+    if (!host) return;
+    host.innerHTML = '';
+    list.forEach(function (debt: Debt) {
+      const row = document.createElement('div');
+      row.className = 'dash-debt-archive-row';
+      const name = document.createElement('span');
+      name.className = 'dash-debt-archive-name';
+      name.textContent = debt.name || 'Debt';
+      const meta = document.createElement('span');
+      meta.className = 'dash-debt-archive-meta';
+      const cur = Number.isFinite(debt.current) ? debt.current : 0;
+      const paid = Number.isFinite(debt.paidOff) ? debt.paidOff : 0;
+      meta.textContent = moneyExact(cur) + ' left · ' + moneyExact(paid) + ' paid';
+      row.appendChild(name);
+      row.appendChild(meta);
+      host.appendChild(row);
+    });
+  }
+
+  fillCompletedList('dash-debts-completed-list', parts.completed);
+}
+
+/** Unified trash: deleted debts + deleted savings (`#dash-deleted-items-list`). */
+export function renderDashboardDeletedBin(plan: FinancialPlan, moneyExact: MoneyFn): void {
+  const debtDel = partitionDebtsByLedger(Array.isArray(plan.debts) ? (plan.debts as Debt[]) : []).deleted;
+  const savDel = partitionSavingsByLedger(
+    Array.isArray((plan as any).savingsAccounts) ? ((plan as any).savingsAccounts as SavingsAccount[]) : []
+  ).deleted;
+  const n = debtDel.length + savDel.length;
+  const countEl = document.getElementById('dash-deleted-items-count');
+  if (countEl) countEl.textContent = String(n);
+
+  const host = document.getElementById('dash-deleted-items-list');
+  if (!host) return;
+  host.innerHTML = '';
+  if (n === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'dash-deleted-items-empty';
+    empty.textContent = 'Nothing deleted yet.';
+    host.appendChild(empty);
     return;
   }
-  const table = document.createElement('table');
-  table.className = 'editor-table editor-table--debts';
-  table.setAttribute('role', 'grid');
-  table.appendChild(buildDebtsEditorThead());
-  const tbody = document.createElement('tbody');
-  debts.forEach(function (debt) {
-    tbody.appendChild(buildDebtRowTR(debt));
+
+  debtDel.forEach(function (debt: Debt) {
+    host.appendChild(buildTrashRowEl('debt', String(debt.id), debt.name || 'Debt', 'Debt', moneyExact, debt));
   });
-  table.appendChild(tbody);
-  host.appendChild(table);
+  savDel.forEach(function (acc: SavingsAccount) {
+    host.appendChild(buildTrashRowEl('savings', String(acc.id), acc.name || 'Account', 'Savings', moneyExact, acc));
+  });
+}
+
+function buildTrashRowEl(
+  kind: 'debt' | 'savings',
+  id: string,
+  title: string,
+  kindLabel: string,
+  moneyExact: MoneyFn,
+  row: Debt | SavingsAccount
+): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'dash-deleted-item-row';
+
+  const main = document.createElement('div');
+  main.className = 'dash-deleted-item-main';
+  const lab = document.createElement('span');
+  lab.className = 'dash-deleted-item-kind';
+  lab.textContent = kindLabel;
+  const nm = document.createElement('span');
+  nm.className = 'dash-deleted-item-name';
+  nm.textContent = title;
+  main.appendChild(lab);
+  main.appendChild(nm);
+
+  let metaStr = '';
+  if (kind === 'debt') {
+    const d = row as Debt;
+    const cur = Number.isFinite(d.current) ? d.current : 0;
+    const paid = Number.isFinite(d.paidOff) ? d.paidOff : 0;
+    metaStr = moneyExact(cur) + ' left · ' + moneyExact(paid) + ' paid';
+  } else {
+    const a = row as SavingsAccount;
+    metaStr = moneyExact(numOr(a.current, 0)) + ' balance';
+  }
+  const meta = document.createElement('span');
+  meta.className = 'dash-deleted-item-meta';
+  meta.textContent = metaStr;
+
+  const restore = document.createElement('button');
+  restore.type = 'button';
+  restore.className = 'btn-restore-debt dash-deleted-item-restore';
+  restore.setAttribute('data-action', 'restore-trash-item');
+  restore.setAttribute('data-trash-kind', kind);
+  restore.setAttribute('data-trash-id', id);
+  restore.textContent = 'Restore';
+
+  wrap.appendChild(main);
+  wrap.appendChild(meta);
+  wrap.appendChild(restore);
+  return wrap;
 }
 
 export function syncDebtsEditorSortSelect(plan: Pick<FinancialPlan, 'debtsEditorSort'>): void {
