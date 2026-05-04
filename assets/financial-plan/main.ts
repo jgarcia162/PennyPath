@@ -6,7 +6,7 @@
  */
 
 import { PLAN } from './plan-data';
-import { render as renderPlanPage } from './render-page';
+import { render as renderPlanPage, type PlanPageRenderOptions } from './render-page';
 import { wireAiPayoffPlan } from './ai-payoff-plan-wire';
 import { wireBillPaymentCalendar } from './ai-bill-calendar-wire';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
@@ -32,7 +32,7 @@ import { getTrialSeed, isTrialSessionActive } from '../../lib/trial/trial-sessio
 const aiPayoffUi = wireAiPayoffPlan(PLAN);
 const billCalUi = wireBillPaymentCalendar(PLAN);
 
-function render(opts?: { skipDebtsEditor?: boolean }): void {
+function render(opts?: PlanPageRenderOptions): void {
   renderPlanPage(opts);
   if (aiPayoffUi && aiPayoffUi.refreshAfterPlanChange) {
     aiPayoffUi.refreshAfterPlanChange();
@@ -126,7 +126,7 @@ function wireWipeAllButton(): void {
     }
     void applyPlanOverrides();
     syncLegacySavingsFromAccounts(PLAN);
-    render();
+    render({ refreshBalanceEditors: true });
     initEditorSnapshots();
     void renderBadges();
   });

@@ -14,7 +14,7 @@ import {
 import { savePlanOverrides } from './persistence';
 import { setBudgetBreakdownEditMode } from './budget-breakdown-state';
 
-type RenderFn = () => void;
+type RenderFn = (opts?: { refreshBalanceEditors?: boolean }) => void;
 type BudgetRowLike = BudgetCategoryRow;
 
 function findRow(plan: FinancialPlan, id: string): BudgetCategoryRow | undefined {
@@ -165,7 +165,7 @@ export function wireBudgetBreakdown(render: RenderFn): void {
       rows.splice(idx, 1);
       syncBudgetRowsToLegacyFields(PLAN as FinancialPlan);
       updateBufferRowAmount(PLAN as FinancialPlan);
-      render();
+      render({ refreshBalanceEditors: true });
     });
   }
 
@@ -175,7 +175,7 @@ export function wireBudgetBreakdown(render: RenderFn): void {
       captureSnapshot();
       setStatus('');
       setBudgetBreakdownEditMode(true);
-      render();
+      render({ refreshBalanceEditors: true });
     });
   }
 
@@ -189,7 +189,7 @@ export function wireBudgetBreakdown(render: RenderFn): void {
         editSnapshot = null;
         setBudgetBreakdownEditMode(false);
         setStatus('');
-        render();
+        render({ refreshBalanceEditors: true });
       } catch {
         setStatus('Could not save changes. Please try again.');
       }
@@ -203,7 +203,7 @@ export function wireBudgetBreakdown(render: RenderFn): void {
       editSnapshot = null;
       setBudgetBreakdownEditMode(false);
       setStatus('');
-      render();
+      render({ refreshBalanceEditors: true });
     });
   }
 
@@ -212,7 +212,7 @@ export function wireBudgetBreakdown(render: RenderFn): void {
       e.preventDefault();
       restoreSnapshot();
       setStatus('');
-      render();
+      render({ refreshBalanceEditors: true });
     });
   }
 
@@ -235,7 +235,7 @@ export function wireBudgetBreakdown(render: RenderFn): void {
       rows.splice(insertAt, 0, nu);
       syncBudgetRowsToLegacyFields(PLAN as FinancialPlan);
       updateBufferRowAmount(PLAN as FinancialPlan);
-      render();
+      render({ refreshBalanceEditors: true });
       window.setTimeout(function () {
         const el = document.querySelector('.budget-row--editable[data-budget-id="' + nu.id + '"] .budget-cat-label') as
           | HTMLInputElement

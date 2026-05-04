@@ -8,10 +8,48 @@ import { TrialCountdown } from '../components/TrialCountdown';
 import { migrateLocalStorageToSupabase } from '../../lib/migrate-localstorage';
 import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
 
-/** Prevents React reconciliation from wiping vanilla-filled editor DOM (fixes lost focus while typing). */
-const StableDebtsEditorListHost = memo(
-  function StableDebtsEditorListHost() {
-    return <div className="debts-editor-list" id="debts-editor-list" suppressHydrationWarning />;
+/**
+ * Keeps the whole Goal 2 editor chrome (ledger tabs, sort control, and list host) off React’s
+ * reconciliation path. The savings dialog only wraps the list this way; debts used to wrap only
+ * the list while the header lived in a sibling React subtree—parent re-renders could replace
+ * tab/select DOM and steal focus from inputs in the list.
+ */
+const StableGoal2DebtsEditorFields = memo(
+  function StableGoal2DebtsEditorFields() {
+    return (
+      <>
+        <div className="debts-editor-header">
+          <div className="debts-editor-title">Debts</div>
+          <div className="debts-editor-ledger-tabs no-print" role="tablist" aria-label="Which debts to edit">
+            <button type="button" className="debts-editor-ledger-tab" role="tab" data-debts-segment="active" id="debts-segment-active">
+              Active
+            </button>
+            <button
+              type="button"
+              className="debts-editor-ledger-tab"
+              role="tab"
+              data-debts-segment="completed"
+              id="debts-segment-completed"
+            >
+              Paid off
+            </button>
+          </div>
+          <div className="debts-editor-sort">
+            <label htmlFor="debts-editor-sort" className="debts-editor-sort-label">
+              Sort by
+            </label>
+            <select id="debts-editor-sort" className="debts-editor-sort-select" aria-label="Sort debts">
+              <option value="saved">Saved order</option>
+              <option value="balance-desc">Balance (high → low)</option>
+              <option value="balance-asc">Balance (low → high)</option>
+              <option value="apr-desc">APR % (high → low)</option>
+              <option value="apr-asc">APR % (low → high)</option>
+            </select>
+          </div>
+        </div>
+        <div className="debts-editor-list" id="debts-editor-list" suppressHydrationWarning />
+      </>
+    );
   },
   () => true
 );
@@ -1181,36 +1219,7 @@ export default function DashboardPage() {
           </div>
           <div className="goal-editor-dialog__body">
             <div className="goal-editor-inner balance-editor">
-              <div className="debts-editor-header">
-                <div className="debts-editor-title">Debts</div>
-                <div className="debts-editor-ledger-tabs no-print" role="tablist" aria-label="Which debts to edit">
-                  <button type="button" className="debts-editor-ledger-tab" role="tab" data-debts-segment="active" id="debts-segment-active">
-                    Active
-                  </button>
-                  <button
-                    type="button"
-                    className="debts-editor-ledger-tab"
-                    role="tab"
-                    data-debts-segment="completed"
-                    id="debts-segment-completed"
-                  >
-                    Paid off
-                  </button>
-                </div>
-                <div className="debts-editor-sort">
-                  <label htmlFor="debts-editor-sort" className="debts-editor-sort-label">
-                    Sort by
-                  </label>
-                  <select id="debts-editor-sort" className="debts-editor-sort-select" aria-label="Sort debts">
-                    <option value="saved">Saved order</option>
-                    <option value="balance-desc">Balance (high → low)</option>
-                    <option value="balance-asc">Balance (low → high)</option>
-                    <option value="apr-desc">APR % (high → low)</option>
-                    <option value="apr-asc">APR % (low → high)</option>
-                  </select>
-                </div>
-              </div>
-              <StableDebtsEditorListHost />
+              <StableGoal2DebtsEditorFields />
               <div className="balance-editor-actions">
                 <div className="balance-editor-actions-primary">
                   <button type="button" className="btn-save" id="btn-save-goal2-debts">

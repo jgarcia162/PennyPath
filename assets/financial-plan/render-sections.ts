@@ -518,13 +518,17 @@ function buildTrashRowEl(
 export function syncDebtsEditorSortSelect(plan: Pick<FinancialPlan, 'debtsEditorSort'>): void {
   const sortSel = document.getElementById('debts-editor-sort') as HTMLSelectElement | null;
   if (!sortSel) return;
-  sortSel.value = normalizeDebtsEditorSort(plan.debtsEditorSort as unknown);
+  const next = normalizeDebtsEditorSort(plan.debtsEditorSort as unknown);
+  if (sortSel.value === next) return;
+  sortSel.value = next;
 }
 
 export function syncDebtsProgressSortSelect(plan: Pick<FinancialPlan, 'debtsProgressSort'>): void {
   const sortSel = document.getElementById('debts-progress-sort') as HTMLSelectElement | null;
   if (!sortSel) return;
-  sortSel.value = normalizeDebtsProgressSort(plan.debtsProgressSort as unknown);
+  const next = normalizeDebtsProgressSort(plan.debtsProgressSort as unknown);
+  if (sortSel.value === next) return;
+  sortSel.value = next;
 }
 
 export function appendSavingsEditorEmptyState(host: HTMLElement): void {
