@@ -9,6 +9,12 @@ function clamp0(n) {
   return Math.max(0, Number.isFinite(x) ? x : 0);
 }
 
+/** Archived debts (paid-off / deleted) do not participate in payoff simulation. */
+function debtLedgerActive(d) {
+  const s = d && d.ledgerStatus;
+  return !s || s === 'active';
+}
+
 /** APR % from plan (number or numeric string). 0% is valid — do not use Number.isFinite on raw strings. */
 function aprPctFromDebt(d, plan) {
   const raw = d && d.aprPct;
@@ -86,7 +92,7 @@ export function projectPayoffTimeline(plan, opts) {
   const noEarlyBreak = !!(opts && opts.noEarlyBreak);
   const startDate = parseStartDate(plan || {});
 
-  const debts = (Array.isArray(plan && plan.debts) ? plan.debts : []).map(function (d) {
+  const debts = (Array.isArray(plan && plan.debts) ? plan.debts : []).filter(debtLedgerActive).map(function (d) {
     return {
       id: String((d && d.id) || ''),
       current: clamp0(d && d.current),
@@ -214,7 +220,7 @@ export function projectPayoffTimeline(plan, opts) {
  */
 export function projectDebtPayoffYm(plan, opts) {
   const cap = opts && Number.isFinite(opts.maxMonths) ? Math.max(12, opts.maxMonths | 0) : 600;
-  const debts = (Array.isArray(plan && plan.debts) ? plan.debts : []).filter(Boolean);
+  const debts = (Array.isArray(plan && plan.debts) ? plan.debts : []).filter(debtLedgerActive).filter(Boolean);
   const totalCurrent = debts.reduce(function (s, d) {
     return s + clamp0(d && d.current);
   }, 0);

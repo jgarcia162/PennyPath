@@ -636,8 +636,15 @@
       <div class="dashboard-split">
         <div class="dashboard-main">
           <div class="dashboard-card">
-            <div class="dashboard-card__head">
+            <div class="dashboard-card__head dashboard-card__head--split">
               <div class="dashboard-card__title">Per-debt progress</div>
+              <div
+                class="dashboard-debts-paid-badge"
+                title="Times a debt has reached paid off (lifetime). Moving rows to Deleted does not reduce this."
+              >
+                <span id="dash-debts-paid-off-lifetime" class="dashboard-debts-paid-badge__n">0</span>
+                <span class="dashboard-debts-paid-badge__lbl"> paid off</span>
+              </div>
             </div>
             <div class="goal2-debts-wrap">
               <div class="goal2-debts-toolbar">
@@ -656,6 +663,20 @@
                 </div>
               </div>
               <div class="goal2-debts" id="goal2-debts"></div>
+            </div>
+            <div class="dashboard-debt-archives no-print" aria-label="Archived debts">
+              <details class="dashboard-debt-archive">
+                <summary class="dashboard-debt-archive-summary">
+                  Paid off <span class="dashboard-debt-archive-count" id="dash-archive-completed-count">0</span>
+                </summary>
+                <div id="dash-debts-completed-list" class="dash-debt-archive-list"></div>
+              </details>
+              <details class="dashboard-debt-archive">
+                <summary class="dashboard-debt-archive-summary">
+                  Deleted <span class="dashboard-debt-archive-count" id="dash-archive-deleted-count">0</span>
+                </summary>
+                <div id="dash-debts-deleted-list" class="dash-debt-archive-list"></div>
+              </details>
             </div>
           </div>
         </div>
@@ -772,6 +793,11 @@
       <div class="goal-editor-inner balance-editor">
         <div class="debts-editor-header">
           <div class="debts-editor-title">Debts</div>
+          <div class="debts-editor-ledger-tabs no-print" role="tablist" aria-label="Which debts to edit">
+            <button type="button" class="debts-editor-ledger-tab" role="tab" data-debts-segment="active" id="debts-segment-active">Active</button>
+            <button type="button" class="debts-editor-ledger-tab" role="tab" data-debts-segment="completed" id="debts-segment-completed">Paid off</button>
+            <button type="button" class="debts-editor-ledger-tab" role="tab" data-debts-segment="deleted" id="debts-segment-deleted">Deleted</button>
+          </div>
           <div class="debts-editor-sort">
             <label for="debts-editor-sort" class="debts-editor-sort-label">Sort by</label>
             <select id="debts-editor-sort" class="debts-editor-sort-select" aria-label="Sort debts">

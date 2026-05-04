@@ -15,6 +15,7 @@ import {
 } from './savings-goals';
 import { projectPayoffTimeline, projectDebtPayoffYm } from './payoff-projection.js';
 import { isoInLocalYyyyMm, monthLabel, yyyyMmFromDate } from './monthly-activity';
+import { activeDebtsOnly } from './debt-ledger';
 
 /** Working month for monthly debt progress (`YYYY-MM`). Falls back to the real calendar month. */
 export function getWorkingMonthYm(plan: FinancialPlan): YyyyMm {
@@ -141,7 +142,7 @@ export function derived(plan: FinancialPlan): DerivedPlanMetrics {
   const totalAssets = accs.reduce(function (s, a) {
     return s + numOr((a as any).current, 0);
   }, 0);
-  const debts = Array.isArray((plan as any).debts) ? (plan as any).debts : [];
+  const debts = activeDebtsOnly(Array.isArray((plan as any).debts) ? ((plan as any).debts as any[]) : []);
   const totalDebt = debts.reduce(function (sum: number, d: any) {
     return sum + numOr(d.current, 0);
   }, 0);
@@ -223,6 +224,11 @@ export function derived(plan: FinancialPlan): DerivedPlanMetrics {
   const dashboardFollowsWorking =
     !(typeof (plan as any).dashboardViewMonthYm === 'string' && /^\d{4}-\d{2}$/.test((plan as any).dashboardViewMonthYm));
 
+  const debtsPaidOffLifetimeCount = Math.max(
+    0,
+    Math.floor(numOr((plan as any).debtsPaidOffLifetimeCount, 0))
+  );
+
   const payoff = projectDebtPayoffYm(plan, { maxMonths: 600 });
   const debtPayoffYm = payoff.ym;
   const debtPayoffMonthIndex = payoff.monthIndex;
@@ -291,6 +297,7 @@ export function derived(plan: FinancialPlan): DerivedPlanMetrics {
     monthlyDebtPct,
     monthlyDebtBudgetRemaining,
     savingsAccounts: accs,
+    debtsPaidOffLifetimeCount,
   } as any;
 }
 
