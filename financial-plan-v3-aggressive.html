@@ -631,6 +631,18 @@
       </button>
     </div>
 
+    <section class="dashboard-deleted-bin no-print" aria-label="Recently deleted items">
+      <details class="dashboard-deleted-bin-details">
+        <summary class="dashboard-deleted-bin-summary">
+          Recently deleted <span class="dashboard-debt-archive-count" id="dash-deleted-items-count">0</span>
+        </summary>
+        <p class="dashboard-deleted-bin-hint">
+          Debts and savings you removed <strong>after they were saved</strong> land here. Draft rows you delete before
+          Save are discarded and do not appear.
+        </p>
+        <div id="dash-deleted-items-list" class="dash-deleted-items-list"></div>
+      </details>
+    </section>
 
     <section class="dashboard-tab-panel" id="panel-dashboard-debts" role="tabpanel" aria-labelledby="tab-dashboard-debts">
       <div class="dashboard-split">
@@ -640,7 +652,7 @@
               <div class="dashboard-card__title">Per-debt progress</div>
               <div
                 class="dashboard-debts-paid-badge"
-                title="Times a debt has reached paid off (lifetime). Moving rows to Deleted does not reduce this."
+                title="Times a debt has reached paid off (lifetime). Removing saved debts does not reduce this."
               >
                 <span id="dash-debts-paid-off-lifetime" class="dashboard-debts-paid-badge__n">0</span>
                 <span class="dashboard-debts-paid-badge__lbl"> paid off</span>
@@ -670,12 +682,6 @@
                   Paid off <span class="dashboard-debt-archive-count" id="dash-archive-completed-count">0</span>
                 </summary>
                 <div id="dash-debts-completed-list" class="dash-debt-archive-list"></div>
-              </details>
-              <details class="dashboard-debt-archive">
-                <summary class="dashboard-debt-archive-summary">
-                  Deleted <span class="dashboard-debt-archive-count" id="dash-archive-deleted-count">0</span>
-                </summary>
-                <div id="dash-debts-deleted-list" class="dash-debt-archive-list"></div>
               </details>
             </div>
           </div>
@@ -786,7 +792,7 @@
   <div class="goal-editor-dialog__chrome">
     <div class="goal-editor-dialog__header">
       <h2 class="goal-editor-dialog__title" id="goal2-editor-dialog-title">Debts editor</h2>
-      <span class="goal-editor-dialog__meta toolwin__meta" id="goal2-editor-dialog-totals" aria-live="polite"></span>
+      <span class="goal-editor-dialog__meta toolwin__meta" id="goal2-editor-dialog-totals" aria-live="off"></span>
       <button type="button" class="goal-editor-dialog__close" data-close-goal-dialog aria-label="Close">×</button>
     </div>
     <div class="goal-editor-dialog__body">
@@ -796,7 +802,6 @@
           <div class="debts-editor-ledger-tabs no-print" role="tablist" aria-label="Which debts to edit">
             <button type="button" class="debts-editor-ledger-tab" role="tab" data-debts-segment="active" id="debts-segment-active">Active</button>
             <button type="button" class="debts-editor-ledger-tab" role="tab" data-debts-segment="completed" id="debts-segment-completed">Paid off</button>
-            <button type="button" class="debts-editor-ledger-tab" role="tab" data-debts-segment="deleted" id="debts-segment-deleted">Deleted</button>
           </div>
           <div class="debts-editor-sort">
             <label for="debts-editor-sort" class="debts-editor-sort-label">Sort by</label>
@@ -833,7 +838,7 @@
   <div class="goal-editor-dialog__chrome">
     <div class="goal-editor-dialog__header">
       <h2 class="goal-editor-dialog__title" id="goal3-editor-dialog-title">Savings editor</h2>
-      <span class="goal-editor-dialog__meta toolwin__meta" id="goal3-editor-dialog-totals" aria-live="polite"></span>
+      <span class="goal-editor-dialog__meta toolwin__meta" id="goal3-editor-dialog-totals" aria-live="off"></span>
       <button type="button" class="goal-editor-dialog__close" data-close-goal-dialog aria-label="Close">×</button>
     </div>
     <div class="goal-editor-dialog__body">

@@ -4,7 +4,8 @@
 
 import type { Debt, DebtLedgerStatus, FinancialPlan } from '../../types/index.js';
 
-export type DebtLedgerSegment = DebtLedgerStatus;
+/** Which bucket the debts editor dialog shows (deleted rows live on the dashboard only). */
+export type DebtsEditorSegment = 'active' | 'completed';
 
 const VALID: Record<string, DebtLedgerStatus> = {
   active: 'active',
@@ -17,12 +18,10 @@ export function normalizeLedgerStatus(raw: unknown): DebtLedgerStatus {
   return 'active';
 }
 
-export function normalizeDebtsEditorSegment(raw: unknown): DebtLedgerSegment {
-  return normalizeLedgerStatus(raw) === 'deleted'
-    ? 'deleted'
-    : normalizeLedgerStatus(raw) === 'completed'
-      ? 'completed'
-      : 'active';
+export function normalizeDebtsEditorSegment(raw: unknown): DebtsEditorSegment {
+  const s = normalizeLedgerStatus(raw);
+  if (s === 'completed') return 'completed';
+  return 'active';
 }
 
 export function isDebtLedgerActive(d: Debt | null | undefined): boolean {
@@ -68,6 +67,6 @@ export function concatDebtsLedgerOrder(parts: {
   return [...parts.active, ...parts.completed, ...parts.deleted];
 }
 
-export function getDebtsEditorSegment(plan: FinancialPlan): DebtLedgerSegment {
+export function getDebtsEditorSegment(plan: FinancialPlan): DebtsEditorSegment {
   return normalizeDebtsEditorSegment((plan as any).debtsEditorLedgerSegment);
 }

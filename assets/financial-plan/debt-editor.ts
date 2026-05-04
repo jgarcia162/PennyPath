@@ -13,7 +13,7 @@ import {
   normalizeDebtsEditorSegment,
   normalizeLedgerStatus,
   partitionDebtsByLedger,
-  type DebtLedgerSegment,
+  type DebtsEditorSegment,
 } from './debt-ledger';
 
 function stripOptionalLedger(d: Debt): Debt {
@@ -151,15 +151,6 @@ export function readDebtsEditorIntoPlan(): void {
     });
     return;
   }
-
-  const nextDeleted = parsed.map(function (d: Debt) {
-    return { ...d, ledgerStatus: 'deleted' as const };
-  });
-  PLAN.debts = concatDebtsLedgerOrder({
-    active: parts.active,
-    completed: parts.completed,
-    deleted: dedupeDebtIdsLastWins(nextDeleted),
-  });
 }
 
 function dedupeDebtIdsLastWins(list: Debt[]): Debt[] {
@@ -168,6 +159,13 @@ function dedupeDebtIdsLastWins(list: Debt[]): Debt[] {
     byId.set(String(d.id), d);
   });
   return Array.from(byId.values());
+}
+
+export function hardRemoveDebtById(id: string): void {
+  const debts: Debt[] = Array.isArray((PLAN as any).debts) ? ((PLAN as any).debts as Debt[]) : [];
+  (PLAN as any).debts = debts.filter(function (d: Debt) {
+    return String(d.id) !== String(id);
+  });
 }
 
 export function setDebtLedgerStatusById(id: string, status: DebtLedgerStatus): void {
@@ -220,17 +218,12 @@ export function setDebtsDraftFromSnapshot(snap: { debts: Debt[] } | null | undef
   const host = document.getElementById('debts-editor-list');
   if (host) {
     host.innerHTML = '';
-    const segment: DebtLedgerSegment = normalizeDebtsEditorSegment(
+    const segment: DebtsEditorSegment = normalizeDebtsEditorSegment(
       (PLAN as any).debtsEditorLedgerSegment || host.dataset.debtsSegment || 'active'
     );
     host.dataset.debtsSegment = segment;
     const partsSnap = partitionDebtsByLedger(snap.debts || []);
-    const show =
-      segment === 'active'
-        ? partsSnap.active
-        : segment === 'completed'
-          ? partsSnap.completed
-          : partsSnap.deleted;
+    const show = segment === 'completed' ? partsSnap.completed : partsSnap.active;
     if (!show.length) {
       appendDebtsEditorEmptyState(host, segment);
       return;

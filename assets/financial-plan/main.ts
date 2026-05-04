@@ -16,6 +16,7 @@ import {
   wireGoal2DebtEditor,
   wireGoal3SavingsEditor,
   wireGoalEditorDialogs,
+  wireDashboardTrashBin,
 } from './goal-editors-wire';
 import { wirePlanTabs } from './tabs-wire';
 import { wireGoalTargetsEditor } from './goal-targets-wire';
@@ -143,6 +144,7 @@ async function init(): Promise<void> {
   initEditorSnapshots();
   wireGoal2DebtEditor(render);
   wireGoal3SavingsEditor(render);
+  wireDashboardTrashBin(render);
   wireGoalEditorDialogs();
   wirePlanTabs();
   wireGoalTargetsEditor(render);

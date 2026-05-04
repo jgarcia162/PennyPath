@@ -1,13 +1,27 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
-
+import { useEffect, useState, memo } from 'react';
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
 import { LogoutForm } from '../components/LogoutForm';
 import { TrialCountdown } from '../components/TrialCountdown';
 import { migrateLocalStorageToSupabase } from '../../lib/migrate-localstorage';
 import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
+
+/** Prevents React reconciliation from wiping vanilla-filled editor DOM (fixes lost focus while typing). */
+const StableDebtsEditorListHost = memo(
+  function StableDebtsEditorListHost() {
+    return <div className="debts-editor-list" id="debts-editor-list" suppressHydrationWarning />;
+  },
+  () => true
+);
+
+const StableSavingsEditorListHost = memo(
+  function StableSavingsEditorListHost() {
+    return <div className="savings-editor-list" id="savings-editor-list" suppressHydrationWarning />;
+  },
+  () => true
+);
 
 export default function DashboardPage() {
   const [booting, setBooting] = useState(true);
@@ -974,6 +988,22 @@ export default function DashboardPage() {
             </button>
           </div>
 
+          <section className="dashboard-deleted-bin no-print" aria-label="Recently deleted items">
+            <details className="dashboard-deleted-bin-details">
+              <summary className="dashboard-deleted-bin-summary">
+                Recently deleted{' '}
+                <span className="dashboard-debt-archive-count" id="dash-deleted-items-count">
+                  0
+                </span>
+              </summary>
+              <p className="dashboard-deleted-bin-hint">
+                Debts and savings you removed <strong>after they were saved</strong> land here. Draft rows you delete
+                before Save are discarded and do not appear.
+              </p>
+              <div id="dash-deleted-items-list" className="dash-deleted-items-list" />
+            </details>
+          </section>
+
           <section className="dashboard-tab-panel" id="panel-dashboard-debts" role="tabpanel" aria-labelledby="tab-dashboard-debts">
             <div className="dashboard-split">
               <div className="dashboard-main">
@@ -982,7 +1012,7 @@ export default function DashboardPage() {
                     <div className="dashboard-card__title">Per-debt progress</div>
                     <div
                       className="dashboard-debts-paid-badge"
-                      title="Times a debt has reached paid off (lifetime). Moving rows to Deleted does not reduce this."
+                      title="Times a debt has reached paid off (lifetime). Removing saved debts does not reduce this."
                     >
                       <span id="dash-debts-paid-off-lifetime" className="dashboard-debts-paid-badge__n">
                         0
@@ -1019,15 +1049,6 @@ export default function DashboardPage() {
                         </span>
                       </summary>
                       <div id="dash-debts-completed-list" className="dash-debt-archive-list" />
-                    </details>
-                    <details className="dashboard-debt-archive">
-                      <summary className="dashboard-debt-archive-summary">
-                        Deleted{' '}
-                        <span className="dashboard-debt-archive-count" id="dash-archive-deleted-count">
-                          0
-                        </span>
-                      </summary>
-                      <div id="dash-debts-deleted-list" className="dash-debt-archive-list" />
                     </details>
                   </div>
                 </div>
@@ -1150,7 +1171,7 @@ export default function DashboardPage() {
             <h2 className="goal-editor-dialog__title" id="goal2-editor-dialog-title">
               Debts editor
             </h2>
-            <span className="goal-editor-dialog__meta toolwin__meta" id="goal2-editor-dialog-totals" aria-live="polite"></span>
+            <span className="goal-editor-dialog__meta toolwin__meta" id="goal2-editor-dialog-totals" aria-live="off"></span>
             <button type="button" className="goal-editor-dialog__close" data-close-goal-dialog aria-label="Close">
               ×
             </button>
@@ -1172,9 +1193,6 @@ export default function DashboardPage() {
                   >
                     Paid off
                   </button>
-                  <button type="button" className="debts-editor-ledger-tab" role="tab" data-debts-segment="deleted" id="debts-segment-deleted">
-                    Deleted
-                  </button>
                 </div>
                 <div className="debts-editor-sort">
                   <label htmlFor="debts-editor-sort" className="debts-editor-sort-label">
@@ -1189,7 +1207,7 @@ export default function DashboardPage() {
                   </select>
                 </div>
               </div>
-              <div className="debts-editor-list" id="debts-editor-list"></div>
+              <StableDebtsEditorListHost />
               <div className="balance-editor-actions">
                 <div className="balance-editor-actions-primary">
                   <button type="button" className="btn-save" id="btn-save-goal2-debts">
@@ -1223,14 +1241,14 @@ export default function DashboardPage() {
             <h2 className="goal-editor-dialog__title" id="goal3-editor-dialog-title">
               Savings editor
             </h2>
-            <span className="goal-editor-dialog__meta toolwin__meta" id="goal3-editor-dialog-totals" aria-live="polite"></span>
+            <span className="goal-editor-dialog__meta toolwin__meta" id="goal3-editor-dialog-totals" aria-live="off"></span>
             <button type="button" className="goal-editor-dialog__close" data-close-goal-dialog aria-label="Close">
               ×
             </button>
           </div>
           <div className="goal-editor-dialog__body">
             <div className="goal-editor-inner balance-editor">
-              <div className="savings-editor-list" id="savings-editor-list"></div>
+              <StableSavingsEditorListHost />
               <div className="balance-editor-actions">
                 <div className="balance-editor-actions-primary">
                   <button type="button" className="btn-save" id="btn-save-goal3-savings">

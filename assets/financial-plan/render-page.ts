@@ -16,6 +16,7 @@ import {
   renderSavingsEditor,
   renderSavingsGoalsStack,
   renderDashboardDebtArchives,
+  renderDashboardDeletedBin,
 } from './render-sections';
 import { ensureSavingsGoals } from './savings-goals';
 import { renderPayoffTimeline, renderBadges } from './features.js';
@@ -372,6 +373,7 @@ export function render(opts?: { skipDebtsEditor?: boolean }): void {
 
   renderGoal2Debts(PLAN, moneyExact);
   renderDashboardDebtArchives(PLAN, moneyExact);
+  renderDashboardDeletedBin(PLAN, moneyExact);
   setTextDash('debts-paid-off-lifetime', String(d.debtsPaidOffLifetimeCount ?? 0));
   if (!(opts && opts.skipDebtsEditor)) {
     renderDebtsEditor(PLAN);

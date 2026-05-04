@@ -33,9 +33,10 @@ function mapRowToPlanConfig(row: FinancialPlansRow): Partial<FinancialPlan> {
     budgetCategories?: unknown;
     debtsEditorLedgerSegment?: unknown;
   };
-  const seg = rawLabels.debtsEditorLedgerSegment;
-  const debtsEditorLedgerSegment =
-    seg === 'completed' || seg === 'deleted' || seg === 'active' ? seg : undefined;
+  const segRaw = rawLabels.debtsEditorLedgerSegment;
+  const seg = typeof segRaw === 'string' ? segRaw : '';
+  const debtsEditorLedgerSegment: 'active' | 'completed' | undefined =
+    seg === 'completed' ? 'completed' : seg === 'active' || seg === 'deleted' ? 'active' : undefined;
   const lifetimeRaw = (row as { debts_paid_off_lifetime_count?: number }).debts_paid_off_lifetime_count;
   const debtsPaidOffLifetimeCount =
     typeof lifetimeRaw === 'number' && Number.isFinite(lifetimeRaw)
@@ -125,9 +126,7 @@ function mapPlanToInsert(userId: string, plan: FinancialPlan): FinancialPlansIns
         ? { budgetCategories: (plan as any).budgetCategories }
         : {}),
       ...(typeof (plan as any).debtsEditorLedgerSegment === 'string' &&
-      ((plan as any).debtsEditorLedgerSegment === 'active' ||
-        (plan as any).debtsEditorLedgerSegment === 'completed' ||
-        (plan as any).debtsEditorLedgerSegment === 'deleted')
+      ((plan as any).debtsEditorLedgerSegment === 'active' || (plan as any).debtsEditorLedgerSegment === 'completed')
         ? { debtsEditorLedgerSegment: (plan as any).debtsEditorLedgerSegment }
         : {}),
     } as any,

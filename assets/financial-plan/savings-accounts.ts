@@ -5,10 +5,11 @@
 import type { FinancialPlan, SavingsAccount } from '../../types/index.js';
 import { numOr } from './utils';
 import { ID_GOAL_HYSA } from './savings-goals';
+import { isSavingsLedgerActive } from './savings-ledger';
 
 export function getSavingsAccounts(plan: FinancialPlan): SavingsAccount[] {
   if (Array.isArray((plan as any).savingsAccounts) && (plan as any).savingsAccounts.length) {
-    return (plan as any).savingsAccounts as SavingsAccount[];
+    return ((plan as any).savingsAccounts as SavingsAccount[]).filter(isSavingsLedgerActive);
   }
   return [
     {
