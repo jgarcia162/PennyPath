@@ -102,9 +102,7 @@ function clonePlanBalancesOnly(plan: FinancialPlan): MonthExportPlanPayload {
         : 0,
       paymentHistory: Array.isArray(d && d.paymentHistory) ? d.paymentHistory.slice() : [],
     };
-    if (d && (d.ledgerStatus === 'completed' || d.ledgerStatus === 'deleted')) {
-      rowDebts.ledgerStatus = d.ledgerStatus;
-    }
+    // Do not copy ledgerStatus: as-of exports reverse balances from the live row; current archive status would misrepresent history.
     return rowDebts;
   });
 
@@ -120,9 +118,6 @@ function clonePlanBalancesOnly(plan: FinancialPlan): MonthExportPlanPayload {
       apyPct: roundMoney(numOr(a && a.apyPct, 0)),
       depositHistory: Array.isArray(a && a.depositHistory) ? a.depositHistory.slice() : [],
     };
-    if (a && a.ledgerStatus === 'deleted') {
-      row.ledgerStatus = 'deleted';
-    }
     return row;
   });
 

@@ -21,7 +21,15 @@ const StableGoal2DebtsEditorFields = memo(
         <div className="debts-editor-header">
           <div className="debts-editor-title">Debts</div>
           <div className="debts-editor-ledger-tabs no-print" role="tablist" aria-label="Which debts to edit">
-            <button type="button" className="debts-editor-ledger-tab" role="tab" data-debts-segment="active" id="debts-segment-active">
+            <button
+              type="button"
+              className="debts-editor-ledger-tab is-selected"
+              role="tab"
+              data-debts-segment="active"
+              id="debts-segment-active"
+              aria-selected="true"
+              tabIndex={0}
+            >
               Active
             </button>
             <button
@@ -30,6 +38,8 @@ const StableGoal2DebtsEditorFields = memo(
               role="tab"
               data-debts-segment="completed"
               id="debts-segment-completed"
+              aria-selected="false"
+              tabIndex={-1}
             >
               Paid off
             </button>

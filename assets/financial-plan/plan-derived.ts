@@ -142,7 +142,8 @@ export function derived(plan: FinancialPlan): DerivedPlanMetrics {
   const totalAssets = accs.reduce(function (s, a) {
     return s + numOr((a as any).current, 0);
   }, 0);
-  const debts = activeDebtsOnly(Array.isArray((plan as any).debts) ? ((plan as any).debts as any[]) : []);
+  const unfilteredDebts = Array.isArray((plan as any).debts) ? ((plan as any).debts as any[]) : [];
+  const debts = activeDebtsOnly(unfilteredDebts);
   const totalDebt = debts.reduce(function (sum: number, d: any) {
     return sum + numOr(d.current, 0);
   }, 0);
@@ -235,10 +236,14 @@ export function derived(plan: FinancialPlan): DerivedPlanMetrics {
   let debtPayoffWhenLabel = '—';
   let debtPayoffWhenNote = '';
   let debtGoalWhenLine = '';
-  if (debts.length === 0) {
+  if (unfilteredDebts.length === 0) {
     debtPayoffWhenLabel = '—';
     debtPayoffWhenNote = '';
     debtGoalWhenLine = 'Add a debt in Goal 2';
+  } else if (unfilteredDebts.length > 0 && debts.length === 0) {
+    debtPayoffWhenLabel = 'Paid off';
+    debtPayoffWhenNote = 'No balances on the active list — all debts are paid off or archived.';
+    debtGoalWhenLine = 'Paid off';
   } else if (totalDebt <= 0) {
     debtPayoffWhenLabel = 'Paid off';
     debtPayoffWhenNote = 'All listed debts at $0.';

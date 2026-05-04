@@ -539,7 +539,19 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         const row = btn.closest('.savings-row');
         const nameEl = row ? (row.querySelector('input[data-field="name"]') as HTMLInputElement | null) : null;
         const name = nameEl ? String(nameEl.value || '').trim() : '';
-        return 'Delete this savings account' + (name ? ' (“' + name + '”)' : '') + '?\n\nThis removes the row from the draft. Click Save to persist.';
+        const id = row ? row.getAttribute('data-savings-id') : null;
+        if (id && wasSavingsIdLastSaved(String(id))) {
+          return (
+            'Move this savings account' +
+            (name ? ' (“' + name + '”)' : '') +
+            ' to Recently deleted?\n\nYou can restore it later from Recently deleted on the dashboard. Click Save to sync.'
+          );
+        }
+        return (
+          'Delete this savings account' +
+          (name ? ' (“' + name + '”)' : '') +
+          '?\n\nThis removes the row from the draft. Click Save to persist.'
+        );
       },
       onConfirm: function (btn) {
         readSavingsEditorIntoPlan();
@@ -772,8 +784,14 @@ export function wireDashboardTrashBin(render: RenderFn): void {
       setDebtLedgerStatusById(id, 'active');
       showGoal2Unsaved();
     }
-    void savePlanOverrides();
-    render({ refreshBalanceEditors: true });
+    void savePlanOverrides().then(function () {
+      if (kind === 'savings') {
+        lastSavedSavings = cloneSavingsSnapshot();
+      } else {
+        lastSavedDebts = cloneDebtsSnapshot();
+      }
+      render({ refreshBalanceEditors: true });
+    });
   });
 }
 
