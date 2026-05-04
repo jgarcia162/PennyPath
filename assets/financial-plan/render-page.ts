@@ -416,7 +416,13 @@ export function render(opts?: PlanPageRenderOptions): void {
     renderDebtsEditor(PLAN);
   } else {
     const g2 = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
-    if (g2 && g2.open) syncDebtsEditorLedgerTabs(PLAN);
+    if (g2 && g2.open) {
+      const list = document.getElementById('debts-editor-list');
+      const ae = document.activeElement;
+      if (!list || !ae || !list.contains(ae)) {
+        syncDebtsEditorLedgerTabs(PLAN);
+      }
+    }
   }
   syncDebtsEditorSortSelect(PLAN);
   syncDebtsProgressSortSelect(PLAN);
