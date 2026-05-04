@@ -6,6 +6,7 @@ import type { Debt, DerivedPlanMetrics, FinancialPlan, SavingsAccount, SavingsGo
 import { DEFAULT_DEBT_APR_PCT, DEFAULT_SAVINGS_APY_PCT, PLAN } from './plan-data';
 import {
   getDebtsEditorSegment,
+  normalizeDebtsEditorSegment,
   partitionDebtsByLedger,
   type DebtsEditorSegment,
 } from './debt-ledger';
@@ -366,6 +367,58 @@ export function buildDebtRowTR(debt: Debt, segment: DebtsEditorSegment = 'active
   return row;
 }
 
+type DebtsEditorFocusSnap = {
+  debtId: string;
+  field: string;
+  selStart: number | null;
+  selEnd: number | null;
+};
+
+function captureDebtsEditorFocus(host: HTMLElement): DebtsEditorFocusSnap | null {
+  const ae = document.activeElement;
+  if (!ae || !host.contains(ae)) return null;
+  const row = (ae as HTMLElement).closest('.debt-row');
+  if (!row) return null;
+  const debtId = row.getAttribute('data-debt-id');
+  if (!debtId) return null;
+  if (ae instanceof HTMLInputElement || ae instanceof HTMLTextAreaElement) {
+    const field = ae.getAttribute('data-field');
+    if (!field) return null;
+    return {
+      debtId,
+      field,
+      selStart: ae.selectionStart,
+      selEnd: ae.selectionEnd,
+    };
+  }
+  return null;
+}
+
+function restoreDebtsEditorFocus(host: HTMLElement, snap: DebtsEditorFocusSnap): void {
+  function run(): void {
+    const idEsc = typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(snap.debtId) : snap.debtId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const fieldEsc =
+      typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(snap.field) : snap.field.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+    const row = host.querySelector('[data-debt-id="' + idEsc + '"]');
+    if (!row) return;
+    const el = row.querySelector(
+      'input[data-field="' + fieldEsc + '"],textarea[data-field="' + fieldEsc + '"]'
+    ) as HTMLInputElement | HTMLTextAreaElement | null;
+    if (!el) return;
+    el.focus();
+    if (snap.selStart != null && snap.selEnd != null && typeof el.setSelectionRange === 'function') {
+      try {
+        el.setSelectionRange(snap.selStart, snap.selEnd);
+      } catch {
+        /* date/time inputs may reject arbitrary ranges */
+      }
+    }
+  }
+  queueMicrotask(function () {
+    requestAnimationFrame(run);
+  });
+}
+
 export function syncDebtsEditorLedgerTabs(plan: FinancialPlan): void {
   const seg = getDebtsEditorSegment(plan);
   document.querySelectorAll('[data-debts-segment]').forEach(function (el) {
@@ -380,7 +433,14 @@ export function syncDebtsEditorLedgerTabs(plan: FinancialPlan): void {
 export function renderDebtsEditor(plan: FinancialPlan): void {
   const host = document.getElementById('debts-editor-list') as HTMLElement | null;
   if (!host) return;
+  const prevSegAttr = host.getAttribute('data-debts-segment');
   const segment = getDebtsEditorSegment(plan);
+  const sameLedgerSegment =
+    prevSegAttr == null ||
+    prevSegAttr === '' ||
+    normalizeDebtsEditorSegment(prevSegAttr) === segment;
+  const focusSnap = sameLedgerSegment ? captureDebtsEditorFocus(host) : null;
+
   host.dataset.debtsSegment = segment;
   host.innerHTML = '';
   const debts = getDebtsInEditorOrderForSegment(plan);
@@ -401,6 +461,8 @@ export function renderDebtsEditor(plan: FinancialPlan): void {
   syncDebtsEditorLedgerTabs(plan);
   const addBtn = document.getElementById('btn-add-debt') as HTMLButtonElement | null;
   if (addBtn) addBtn.disabled = segment !== 'active';
+
+  if (focusSnap) restoreDebtsEditorFocus(host, focusSnap);
 }
 
 /** Dashboard: paid-off debts summary (`#dash-debts-completed-list`). */
