@@ -1291,7 +1291,10 @@
     </div>
   </div>
 </dialog>
-<script src="assets/site-settings.ts"></script>
+<script type="module">
+  import { bindSiteSettings } from './assets/site-settings.ts';
+  bindSiteSettings();
+</script>
 <script src="assets/dev-mode.ts"></script>
 </body>
 </html>

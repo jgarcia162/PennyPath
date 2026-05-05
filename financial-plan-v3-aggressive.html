@@ -927,7 +927,10 @@
 <script src="assets/safe-api-origin.ts"></script>
 <script src="assets/theme-service.ts" defer></script>
 <script src="assets/color-palette-service.ts" defer></script>
-<script src="assets/site-settings.ts" defer></script>
+<script type="module">
+  import { bindSiteSettings } from './assets/site-settings.ts';
+  bindSiteSettings();
+</script>
 <script src="assets/dev-mode.ts" defer></script>
 <script type="module" src="assets/financial-plan/payoff-projection.js"></script>
 <script src="assets/checkin-service.ts" defer></script>

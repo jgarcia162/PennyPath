@@ -84,6 +84,7 @@ export default function RealEstatePage() {
 
   useEffect(() => {
     let cancelled = false;
+    let disposeSiteSettings: (() => void) | undefined;
     document.body.classList.add('re-page');
 
     async function boot() {
@@ -102,7 +103,11 @@ export default function RealEstatePage() {
         }
 
         // Settings/dev scripts were loaded at the bottom of the HTML (non-defer).
-        await import('../../assets/site-settings');
+        const siteSettings = await import('../../assets/site-settings');
+        disposeSiteSettings?.();
+        if (!cancelled) {
+          disposeSiteSettings = siteSettings.bindSiteSettings();
+        }
         await import('../../assets/dev-mode');
       } catch (e) {
         if (cancelled) return;
@@ -116,6 +121,7 @@ export default function RealEstatePage() {
     boot();
     return () => {
       cancelled = true;
+      disposeSiteSettings?.();
       document.body.classList.remove('re-page');
     };
   }, []);

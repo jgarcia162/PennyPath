@@ -13,6 +13,7 @@ export default function HistoryPage() {
 
   useEffect(() => {
     let cancelled = false;
+    let disposeSiteSettings: (() => void) | undefined;
     document.body.classList.add('history-page');
 
     async function boot() {
@@ -22,7 +23,11 @@ export default function HistoryPage() {
         // Load order matches `history.html`.
         await import('../../assets/theme-service');
         await import('../../assets/color-palette-service');
-        await import('../../assets/site-settings');
+        const siteSettings = await import('../../assets/site-settings');
+        disposeSiteSettings?.();
+        if (!cancelled) {
+          disposeSiteSettings = siteSettings.bindSiteSettings();
+        }
         await import('../../assets/dev-mode');
         await import('../../assets/checkin-service');
         await import('../../assets/financial-plan/history-main.js');
@@ -38,6 +43,7 @@ export default function HistoryPage() {
     boot();
     return () => {
       cancelled = true;
+      disposeSiteSettings?.();
       document.body.classList.remove('history-page');
     };
   }, []);
