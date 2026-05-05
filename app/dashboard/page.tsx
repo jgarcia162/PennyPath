@@ -205,15 +205,15 @@ export default function DashboardPage() {
           <span className="logo__text">PennyPath</span>
         </Link>
         <nav className="site-nav" aria-label="Site">
-          <a className="site-nav__tab site-nav__tab--active" href="/dashboard" aria-current="page">
+          <Link className="site-nav__tab site-nav__tab--active" href="/dashboard" aria-current="page">
             💰 Financial Plan
-          </a>
-          <a className="site-nav__tab" href="/real-estate">
+          </Link>
+          <Link className="site-nav__tab" href="/real-estate">
             🏠 Real Estate
-          </a>
-          <a className="site-nav__tab" href="/history">
+          </Link>
+          <Link className="site-nav__tab" href="/history">
             📅 History
-          </a>
+          </Link>
         </nav>
         <div className="site-header__settings">
           <TrialCountdown />
