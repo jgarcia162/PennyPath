@@ -170,7 +170,8 @@ export default function DashboardPage() {
         await migrateLocalStorageToSupabase();
 
         // Entrypoint: wires UI and features (reads DOM immediately if document is ready).
-        await import('../../assets/financial-plan/main');
+        const { bootFinancialPlanPage } = await import('../../assets/financial-plan/main');
+        await bootFinancialPlanPage();
       } catch (e) {
         if (cancelled) return;
         // Keep the page usable even if wiring fails; surface a console error for debugging.

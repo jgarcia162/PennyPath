@@ -158,10 +158,10 @@ async function init(): Promise<void> {
   wireBudgetBreakdown(render);
 }
 
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', function () {
-    void init();
-  });
-} else {
-  void init();
+/**
+ * Next.js loads this module once per document and caches it. Client navigations back to
+ * `/dashboard` must call this explicitly — the module top-level does not run again.
+ */
+export async function bootFinancialPlanPage(): Promise<void> {
+  await init();
 }

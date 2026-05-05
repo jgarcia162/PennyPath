@@ -932,7 +932,10 @@
 <script type="module" src="assets/financial-plan/payoff-projection.js"></script>
 <script src="assets/checkin-service.ts" defer></script>
 <script src="assets/badges.ts" defer></script>
-<script type="module" src="assets/financial-plan/main.ts"></script>
+<script type="module">
+  import { bootFinancialPlanPage } from './assets/financial-plan/main.ts';
+  void bootFinancialPlanPage();
+</script>
 
 </body>
 </html>
