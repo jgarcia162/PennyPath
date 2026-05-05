@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import {
@@ -12,6 +13,7 @@ import { clearTrialSession, enableTrialSession } from '../../lib/trial/trial-ses
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
 
 export default function LoginClient() {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +38,8 @@ export default function LoginClient() {
         return;
       }
 
-      window.location.href = '/dashboard';
+      router.replace('/dashboard');
+      router.refresh();
     } catch {
       setLoading(false);
     }
@@ -61,7 +64,8 @@ export default function LoginClient() {
         setLoading(false);
         return;
       }
-      window.location.href = '/dashboard';
+      router.replace('/dashboard');
+      router.refresh();
     } catch {
       setLoading(false);
     }
