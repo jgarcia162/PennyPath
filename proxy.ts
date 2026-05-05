@@ -19,8 +19,16 @@ export async function proxy(request: NextRequest) {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
+      setAll(cookiesToSet, cookieHeaders) {
+        cookiesToSet.forEach(({ name, value, options }) => {
+          response.cookies.set(name, value, options);
+        });
+        // Prevent CDN/browser caches from serving auth responses to other users (Supabase SSR contract).
+        if (cookieHeaders && typeof cookieHeaders === 'object') {
+          Object.entries(cookieHeaders).forEach(([key, value]) => {
+            if (typeof value === 'string') response.headers.set(key, value);
+          });
+        }
       },
     },
   });

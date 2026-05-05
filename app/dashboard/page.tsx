@@ -151,6 +151,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
+    let disposeSiteSettings: (() => void) | undefined;
 
     async function boot() {
       // Everything below assumes a browser environment and the DOM nodes rendered by this page.
@@ -161,7 +162,11 @@ export default function DashboardPage() {
         await import('../../assets/safe-api-origin');
         await import('../../assets/theme-service');
         await import('../../assets/color-palette-service');
-        await import('../../assets/site-settings');
+        const siteSettings = await import('../../assets/site-settings');
+        disposeSiteSettings?.();
+        if (!cancelled) {
+          disposeSiteSettings = siteSettings.bindSiteSettings();
+        }
         await import('../../assets/dev-mode');
         await import('../../assets/financial-plan/payoff-projection.js');
         await import('../../assets/checkin-service');
@@ -170,7 +175,8 @@ export default function DashboardPage() {
         await migrateLocalStorageToSupabase();
 
         // Entrypoint: wires UI and features (reads DOM immediately if document is ready).
-        await import('../../assets/financial-plan/main');
+        const { bootFinancialPlanPage } = await import('../../assets/financial-plan/main');
+        await bootFinancialPlanPage();
       } catch (e) {
         if (cancelled) return;
         // Keep the page usable even if wiring fails; surface a console error for debugging.
@@ -184,6 +190,7 @@ export default function DashboardPage() {
     boot();
     return () => {
       cancelled = true;
+      disposeSiteSettings?.();
     };
   }, []);
 
@@ -204,15 +211,15 @@ export default function DashboardPage() {
           <span className="logo__text">PennyPath</span>
         </Link>
         <nav className="site-nav" aria-label="Site">
-          <a className="site-nav__tab site-nav__tab--active" href="/dashboard" aria-current="page">
+          <Link className="site-nav__tab site-nav__tab--active" href="/dashboard" aria-current="page">
             💰 Financial Plan
-          </a>
-          <a className="site-nav__tab" href="/real-estate">
+          </Link>
+          <Link className="site-nav__tab" href="/real-estate">
             🏠 Real Estate
-          </a>
-          <a className="site-nav__tab" href="/history">
+          </Link>
+          <Link className="site-nav__tab" href="/history">
             📅 History
-          </a>
+          </Link>
         </nav>
         <div className="site-header__settings">
           <TrialCountdown />

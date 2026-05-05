@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Viewport } from 'next';
 
+import { InactivitySessionGuard } from './components/InactivitySessionGuard';
 import { TrialCloseBeacon } from './components/TrialCloseBeacon';
 import { fontCormorant, fontDmSans, fontJetBrains, fontOutfit } from './fonts';
 import './globals.css';
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         className={`${fontOutfit.className} ${fontOutfit.variable} ${fontCormorant.variable} ${fontJetBrains.variable} ${fontDmSans.variable} min-h-screen antialiased`}
       >
         <TrialCloseBeacon />
+        <InactivitySessionGuard />
         {children}
       </body>
     </html>

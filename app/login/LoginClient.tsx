@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import {
@@ -11,7 +12,12 @@ import {
 import { clearTrialSession, enableTrialSession } from '../../lib/trial/trial-session';
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
 
-export default function LoginClient() {
+type LoginClientProps = {
+  sessionEndReason?: string | null;
+};
+
+export default function LoginClient({ sessionEndReason }: LoginClientProps) {
+  const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +42,8 @@ export default function LoginClient() {
         return;
       }
 
-      window.location.href = '/dashboard';
+      router.replace('/dashboard');
+      router.refresh();
     } catch {
       setLoading(false);
     }
@@ -61,7 +68,8 @@ export default function LoginClient() {
         setLoading(false);
         return;
       }
-      window.location.href = '/dashboard';
+      router.replace('/dashboard');
+      router.refresh();
     } catch {
       setLoading(false);
     }
@@ -114,6 +122,12 @@ export default function LoginClient() {
           <p className="auth-form__sub">
             Start a time-boxed trial with sample data, or use your email and password to access your planner.
           </p>
+
+          {sessionEndReason === 'inactivity' ? (
+            <p className="auth-form__notice" role="status">
+              You were signed out after a period of inactivity.
+            </p>
+          ) : null}
 
           <form onSubmit={onSubmit}>
             <div className="auth-form__field">
