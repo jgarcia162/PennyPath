@@ -3,7 +3,11 @@ import { redirect } from 'next/navigation';
 import { createSupabaseServerClient } from '../../lib/supabase/server';
 import LoginClient from './LoginClient';
 
-export default async function LoginPage() {
+type LoginPageProps = {
+  searchParams: Promise<{ reason?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
@@ -11,5 +15,6 @@ export default async function LoginPage() {
   if (user) {
     redirect('/dashboard');
   }
-  return <LoginClient />;
+  const { reason } = await searchParams;
+  return <LoginClient sessionEndReason={reason} />;
 }
