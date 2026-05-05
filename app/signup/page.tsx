@@ -37,7 +37,7 @@ export default function SignupPage() {
         setLoading(false);
         return;
       }
-      router.push('/dashboard');
+      router.replace('/dashboard');
       router.refresh();
     } catch {
       setLoading(false);

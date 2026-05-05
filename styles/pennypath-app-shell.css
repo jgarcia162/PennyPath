@@ -295,6 +295,17 @@
   border: 1px solid rgba(217, 99, 99, 0.22);
 }
 
+.auth-form__notice {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  padding: 10px 12px !important;
+  margin: 12px 0 0;
+  border-radius: var(--radius-sm);
+  color: var(--forest-mid) !important;
+  background: rgba(212, 245, 229, 0.45);
+  border: 1px solid rgba(46, 125, 82, 0.2);
+}
+
 .auth-form-password {
   display: flex;
   align-items: center;
