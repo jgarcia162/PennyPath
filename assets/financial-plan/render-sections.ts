@@ -827,6 +827,9 @@ export function renderGoal3SavingsAccounts(
 
     const wrap = document.createElement('div');
     wrap.className = 'goal3-savings-account';
+    wrap.setAttribute('data-savings-id', String(acc.id || ''));
+    wrap.setAttribute('role', 'button');
+    wrap.tabIndex = 0;
 
     const head = document.createElement('div');
     head.className = 'goal3-savings-head';

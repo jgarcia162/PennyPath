@@ -582,6 +582,28 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
 
   const goal3Host = document.getElementById('goal3-savings') as HTMLElement | null;
   if (goal3Host) {
+    function openSavingsEditorForId(sid: string): void {
+      const openBtn = document.getElementById('btn-open-savings-editor') as HTMLButtonElement | null;
+      if (openBtn) openBtn.click();
+
+      function focusRow(): void {
+        const listHost = document.getElementById('savings-editor-list') as HTMLElement | null;
+        if (!listHost) return;
+        const idEsc =
+          typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(sid) : sid.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const row = listHost.querySelector('[data-savings-id="' + idEsc + '"]') as HTMLElement | null;
+        if (!row) return;
+        const input = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
+        if (input && typeof input.focus === 'function') input.focus();
+      }
+
+      queueMicrotask(function () {
+        requestAnimationFrame(function () {
+          focusRow();
+        });
+      });
+    }
+
     goal3Host.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function') return;
@@ -598,6 +620,34 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       syncLegacySavingsFromAccounts(PLAN);
       void savePlanOverrides();
       lastSavedSavings = cloneSavingsSnapshot();
+    });
+
+    goal3Host.addEventListener('click', function (e) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function') return;
+      const accountEl = t.closest('.goal3-savings-account') as HTMLElement | null;
+      if (!accountEl) return;
+
+      // Ignore clicks on interactive children (details toggles, remove buttons).
+      if (t.closest('summary, button, a, input, select, textarea, .goal3-remove-deposit')) return;
+
+      const sid = accountEl.getAttribute('data-savings-id');
+      if (!sid) return;
+      e.preventDefault();
+      openSavingsEditorForId(String(sid));
+    });
+
+    goal3Host.addEventListener('keydown', function (e) {
+      const ke = e as KeyboardEvent;
+      if (ke.key !== 'Enter' && ke.key !== ' ') return;
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function') return;
+      const accountEl = t.closest('.goal3-savings-account') as HTMLElement | null;
+      if (!accountEl) return;
+      const sid = accountEl.getAttribute('data-savings-id');
+      if (!sid) return;
+      e.preventDefault();
+      openSavingsEditorForId(String(sid));
     });
   }
 
