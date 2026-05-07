@@ -504,6 +504,10 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       setSaveNeeds('btn-save-goal2-debts', false);
       showGoal2Saved();
       lastSavedDebts = cloneDebtsSnapshot();
+      const dlg = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
+      try {
+        if (dlg && typeof dlg.close === 'function') dlg.close();
+      } catch {}
     }, { signal });
   }
 
@@ -744,6 +748,10 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       setSaveNeeds('btn-save-goal3-savings', false);
       showGoal3Saved();
       lastSavedSavings = cloneSavingsSnapshot();
+      const dlg = document.getElementById('goal3-editor-dialog') as HTMLDialogElement | null;
+      try {
+        if (dlg && typeof dlg.close === 'function') dlg.close();
+      } catch {}
     }, { signal });
   }
 
@@ -768,7 +776,12 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
   const resetBtn = document.getElementById('btn-reset-goal3-savings');
   if (resetBtn) {
     resetBtn.addEventListener('click', function () {
-      setSavingsDraftFromSnapshot({ savingsAccounts: JSON.parse(JSON.stringify(PLAN_DEFAULTS.savingsAccounts || [])) });
+      // Reset draft should restore the initial snapshot (e.g. trial seed) rather than zeroing balances.
+      if (lastSavedSavings) {
+        setSavingsDraftFromSnapshot(lastSavedSavings);
+      } else {
+        setSavingsDraftFromSnapshot({ savingsAccounts: JSON.parse(JSON.stringify(PLAN_DEFAULTS.savingsAccounts || [])) });
+      }
       showGoal3Unsaved();
       const st = document.getElementById('goal3-save-status');
       if (st) st.textContent = 'Reset draft (click Save to apply)';
