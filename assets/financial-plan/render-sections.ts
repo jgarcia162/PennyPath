@@ -785,7 +785,7 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   if (nameInput) nameInput.value = acc.name || '';
   const cur = numOr(acc.current, 0);
   const apy = numOr(acc.apyPct, DEFAULT_SAVINGS_APY_PCT);
-  if (curInput) curInput.value = cur > 0 ? formatCurrencyInput(cur) : '';
+  if (curInput) curInput.value = cur !== 0 ? formatCurrencyInput(cur) : '';
   if (apyInput) apyInput.value = apy > 0 ? formatMoneyInput(apy) : '';
 
   return row;

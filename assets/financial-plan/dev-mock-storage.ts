@@ -270,9 +270,10 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
   ];
 
   return {
-    hysaBalance: hysaCurrent,
-    joseSavings: joseCurrent,
-    sherlynaSavings: sherCurrent,
+    // Trial/demo should never start with negative balances.
+    hysaBalance: Math.max(0, hysaCurrent),
+    joseSavings: Math.max(0, joseCurrent),
+    sherlynaSavings: Math.max(0, sherCurrent),
     savingsAccounts,
     savingsGoals: [
       { id: 'goal-hysa', name: 'Joint HYSA', targetAmount: 50000, goalByYm: '2027-06' },
@@ -426,12 +427,12 @@ export function applyDemoPlanSnapshot(plan: FinancialPlan, opts?: { seed?: strin
 
   const hysaName = pick(rng, ['Joint Savings', 'Family HYSA', 'Primary Savings']);
   const hysaApy = randMoney(rng, 2.75, 4.75, 0.05);
-  const hysaCurrent = randMoney(rng, 12000, 52000, 50);
+  const hysaCurrent = Math.max(0, randMoney(rng, 12000, 52000, 50));
   const personal1Name = pick(rng, firstNames) + ' — personal';
   const personal2Name = pick(rng, firstNames) + ' — personal';
 
-  const joseCurrent = randMoney(rng, 1500, 12000, 25);
-  const sherCurrent = randMoney(rng, 3500, 28000, 25);
+  const joseCurrent = Math.max(0, randMoney(rng, 1500, 12000, 25));
+  const sherCurrent = Math.max(0, randMoney(rng, 3500, 28000, 25));
 
   const hysaDep = buildRichDepositHistory(months, {
     base: randMoney(rng, 220, 650, 5),
