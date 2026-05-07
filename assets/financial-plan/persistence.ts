@@ -300,7 +300,8 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
         let ledgerStatus = normalizeLedgerStatus(d.ledgerStatus);
         const current = Math.max(0, numOr(d.current, 0));
         const paidOff = Math.max(0, numOr(d.paidOff, 0));
-        if (!d.ledgerStatus && current <= 0 && paidOff > 0) {
+        const hasAnyPayments = Array.isArray(d.paymentHistory) && d.paymentHistory.length > 0;
+        if (!d.ledgerStatus && current <= 0 && (paidOff > 0 || hasAnyPayments)) {
           ledgerStatus = 'completed';
         }
         const row: Debt = {
