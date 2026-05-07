@@ -160,11 +160,12 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
     fill.style.width = pct.toFixed(2) + '%';
     track.appendChild(fill);
 
-    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const cutoff = now - 30 * 24 * 60 * 60 * 1000;
     const history = Array.isArray(debt.paymentHistory) ? debt.paymentHistory : [];
     const recent = history.filter(function (p) {
       const ts = new Date(p.at).getTime();
-      return Number.isFinite(ts) && ts >= cutoff;
+      return Number.isFinite(ts) && ts >= cutoff && ts <= now;
     });
     recent.sort(function (a, b) {
       return new Date(b.at).getTime() - new Date(a.at).getTime();
@@ -935,10 +936,11 @@ export function renderGoal3SavingsAccounts(
     goalsDetails.appendChild(goalsSummary);
     goalsDetails.appendChild(goalsAnim);
 
-    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const cutoff = now - 30 * 24 * 60 * 60 * 1000;
     const recent = hist.filter(function (p) {
       const ts = new Date(p.at).getTime();
-      return Number.isFinite(ts) && ts >= cutoff;
+      return Number.isFinite(ts) && ts >= cutoff && ts <= now;
     });
     recent.sort(function (a, b) {
       return new Date(b.at).getTime() - new Date(a.at).getTime();

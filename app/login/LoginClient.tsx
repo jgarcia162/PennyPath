@@ -10,6 +10,7 @@ import {
   setSaveLoginPreference,
 } from '../../lib/supabase/browser';
 import { clearTrialSession, enableTrialSession } from '../../lib/trial/trial-session';
+import { STORAGE_KEY } from '../../assets/financial-plan/plan-data';
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
 
 type LoginClientProps = {
@@ -32,6 +33,12 @@ export default function LoginClient({ sessionEndReason }: LoginClientProps) {
     setLoading(true);
     try {
       setSaveLoginPreference(false);
+      // Ensure each trial starts from a fresh demo snapshot.
+      try {
+        window.localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // ignore
+      }
       enableTrialSession();
 
       const supabase = createSupabaseBrowserClient({ saveLogin: false });
