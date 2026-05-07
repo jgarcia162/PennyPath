@@ -134,6 +134,9 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
 
     const wrap = document.createElement('div');
     wrap.className = 'goal2-debt';
+    wrap.setAttribute('data-debt-id', String(debt.id || ''));
+    wrap.setAttribute('role', 'button');
+    wrap.tabIndex = 0;
 
     const head = document.createElement('div');
     head.className = 'goal2-debt-head';

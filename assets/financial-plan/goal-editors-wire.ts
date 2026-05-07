@@ -406,6 +406,30 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
 
   const goal2Host = document.getElementById('goal2-debts');
   if (goal2Host) {
+    function openDebtsEditorForId(debtId: string): void {
+      const openBtn = document.getElementById('btn-open-debts-editor') as HTMLButtonElement | null;
+      if (openBtn) openBtn.click();
+
+      function focusRow(): void {
+        const listHost = document.getElementById('debts-editor-list') as HTMLElement | null;
+        if (!listHost) return;
+        const idEsc =
+          typeof CSS !== 'undefined' && CSS.escape
+            ? CSS.escape(debtId)
+            : debtId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const row = listHost.querySelector('[data-debt-id="' + idEsc + '"]') as HTMLElement | null;
+        if (!row) return;
+        const input = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
+        if (input && typeof input.focus === 'function') input.focus();
+      }
+
+      queueMicrotask(function () {
+        requestAnimationFrame(function () {
+          focusRow();
+        });
+      });
+    }
+
     goal2Host.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function') return;
@@ -421,6 +445,34 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       });
       void savePlanOverrides();
       lastSavedDebts = cloneDebtsSnapshot();
+    });
+
+    goal2Host.addEventListener('click', function (e) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function') return;
+      const debtEl = t.closest('.goal2-debt') as HTMLElement | null;
+      if (!debtEl) return;
+
+      // Ignore clicks on interactive children (details toggles, remove buttons).
+      if (t.closest('summary, button, a, input, select, textarea, .goal2-remove-payment')) return;
+
+      const debtId = debtEl.getAttribute('data-debt-id');
+      if (!debtId) return;
+      e.preventDefault();
+      openDebtsEditorForId(String(debtId));
+    });
+
+    goal2Host.addEventListener('keydown', function (e) {
+      const ke = e as KeyboardEvent;
+      if (ke.key !== 'Enter' && ke.key !== ' ') return;
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function') return;
+      const debtEl = t.closest('.goal2-debt') as HTMLElement | null;
+      if (!debtEl) return;
+      const debtId = debtEl.getAttribute('data-debt-id');
+      if (!debtId) return;
+      e.preventDefault();
+      openDebtsEditorForId(String(debtId));
     });
   }
 
