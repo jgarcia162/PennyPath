@@ -76,6 +76,14 @@ function randMoney(rng: () => number, min: number, max: number, step: number = 1
   return Math.round((min + n * step) * 100) / 100;
 }
 
+function sumLedgerAmounts(items: Array<{ amount?: number }> | null | undefined): number {
+  if (!Array.isArray(items)) return 0;
+  return items.reduce(function (s, p) {
+    const n = typeof p?.amount === 'number' && Number.isFinite(p.amount) ? Number(p.amount) : 0;
+    return s + n;
+  }, 0);
+}
+
 function isoLocal(y: number, mo: number, day: number, h?: number | null, min?: number): string {
   return new Date(y, mo, Math.min(28, day), h == null ? 12 : h, min || 0, 0).toISOString();
 }
@@ -216,7 +224,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     {
       id: 'hysa',
       name: 'Joint Savings',
-      current: hysaCurrent,
+      current: Math.max(hysaCurrent, sumLedgerAmounts(hysaDep)),
       apyPct: 3.25,
       goalIds: ['goal-hysa', 'goal-efund'],
       countTowardsGoal: true,
@@ -225,7 +233,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     {
       id: 'jose',
       name: 'Avery — personal',
-      current: joseCurrent,
+      current: Math.max(joseCurrent, sumLedgerAmounts(joseDep)),
       apyPct: 4.15,
       goalIds: ['goal-personal', 'goal-efund'],
       countTowardsGoal: false,
@@ -234,7 +242,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     {
       id: 'sher',
       name: 'Jordan — personal',
-      current: sherCurrent,
+      current: Math.max(sherCurrent, sumLedgerAmounts(sherDep)),
       apyPct: 0,
       goalIds: ['goal-personal', 'goal-efund'],
       countTowardsGoal: false,
@@ -243,7 +251,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     {
       id: 'vacation',
       name: 'Vacation fund',
-      current: vacationCurrent,
+      current: Math.max(vacationCurrent, sumLedgerAmounts(vacationDep)),
       apyPct: 3.5,
       goalIds: [],
       countTowardsGoal: false,
@@ -252,7 +260,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     {
       id: 'kids',
       name: 'Kids — 529',
-      current: kidsCurrent,
+      current: Math.max(kidsCurrent, sumLedgerAmounts(kidsDep)),
       apyPct: 0,
       goalIds: [],
       countTowardsGoal: false,
@@ -261,7 +269,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     {
       id: 'ibonds',
       name: 'I-Bonds ladder',
-      current: ibondsCurrent,
+      current: Math.max(ibondsCurrent, sumLedgerAmounts(ibondsDep)),
       apyPct: 0,
       goalIds: [],
       countTowardsGoal: false,
@@ -426,7 +434,7 @@ export function applyDemoPlanSnapshot(plan: FinancialPlan, opts?: { seed?: strin
   const kidNames = ['Kids', '529', 'College', 'Future'];
 
   const hysaName = pick(rng, ['Joint Savings', 'Family HYSA', 'Primary Savings']);
-  const hysaApy = randMoney(rng, 2.75, 4.75, 0.05);
+  const hysaApy = Math.max(0, randMoney(rng, 2.75, 4.75, 0.05));
   const hysaCurrent = Math.max(0, randMoney(rng, 12000, 52000, 50));
   const personal1Name = pick(rng, firstNames) + ' — personal';
   const personal2Name = pick(rng, firstNames) + ' — personal';
@@ -467,7 +475,7 @@ export function applyDemoPlanSnapshot(plan: FinancialPlan, opts?: { seed?: strin
     {
       id: 'hysa',
       name: hysaName,
-      current: hysaCurrent,
+      current: Math.max(hysaCurrent, sumLedgerAmounts(hysaDep)),
       apyPct: hysaApy,
       goalIds: ['goal-hysa', 'goal-efund'],
       countTowardsGoal: true,
@@ -476,8 +484,8 @@ export function applyDemoPlanSnapshot(plan: FinancialPlan, opts?: { seed?: strin
     {
       id: 'jose',
       name: personal1Name,
-      current: joseCurrent,
-      apyPct: randMoney(rng, 0, 4.5, 0.05),
+      current: Math.max(joseCurrent, sumLedgerAmounts(joseDep)),
+      apyPct: Math.max(0, randMoney(rng, 0, 4.5, 0.05)),
       goalIds: ['goal-personal', 'goal-efund'],
       countTowardsGoal: false,
       depositHistory: joseDep,
@@ -485,8 +493,8 @@ export function applyDemoPlanSnapshot(plan: FinancialPlan, opts?: { seed?: strin
     {
       id: 'sher',
       name: personal2Name,
-      current: sherCurrent,
-      apyPct: randMoney(rng, 0, 4.5, 0.05),
+      current: Math.max(sherCurrent, sumLedgerAmounts(sherDep)),
+      apyPct: Math.max(0, randMoney(rng, 0, 4.5, 0.05)),
       goalIds: ['goal-personal', 'goal-efund'],
       countTowardsGoal: false,
       depositHistory: sherDep,

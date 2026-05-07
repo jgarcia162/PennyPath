@@ -125,6 +125,7 @@ function normalizeSavingsAccount(a: unknown): SavingsAccount | null {
   } else {
     apyPct = DEFAULT_SAVINGS_APY_PCT;
   }
+  apyPct = Math.max(0, numOr(apyPct, 0));
   let goalIds: string[] = [];
   if (Array.isArray(o.goalIds) && o.goalIds.length) {
     goalIds = o.goalIds.map(String).filter(Boolean);
