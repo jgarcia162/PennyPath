@@ -260,6 +260,14 @@ function showGoal3Unsaved() {
 type RenderFn = (opts?: { skipDebtsEditor?: boolean; skipSavingsEditor?: boolean; refreshBalanceEditors?: boolean }) => void;
 
 export function wireGoal2DebtEditor(render: RenderFn): void {
+  // This module can be initialized multiple times (Next.js client navigation back to /dashboard).
+  // Abort previous listeners so we don't double-bind actions (double add rows, scroll-lock stuck, etc).
+  const prevAc = (wireGoal2DebtEditor as any)._ac as AbortController | undefined;
+  if (prevAc) prevAc.abort();
+  const ac = new AbortController();
+  (wireGoal2DebtEditor as any)._ac = ac;
+  const signal = ac.signal;
+
   const sortSel = document.getElementById('debts-editor-sort') as HTMLSelectElement | null;
   if (sortSel) {
     sortSel.addEventListener('change', function () {
@@ -271,7 +279,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       setSaveNeeds('btn-save-goal2-debts', false);
       const st = document.getElementById('goal2-save-status');
       if (st) st.textContent = '';
-    });
+    }, { signal });
   }
 
   const progressSortSel = document.getElementById('debts-progress-sort') as HTMLSelectElement | null;
@@ -285,7 +293,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       setSaveNeeds('btn-save-goal2-debts', false);
       const st = document.getElementById('goal2-save-status');
       if (st) st.textContent = '';
-    });
+    }, { signal });
   }
 
   let debtDraftRerenderTimer: number | null = null;
@@ -303,7 +311,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       addDebtRowDraft(showGoal2Unsaved);
       readDebtsEditorIntoPlan();
       render({ refreshBalanceEditors: true });
-    });
+    }, { signal });
   }
 
   const debtsHost = document.getElementById('debts-editor-list') as HTMLElement | null;
@@ -321,7 +329,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       (PLAN as any).debtsEditorLedgerSegment = seg;
       render({ refreshBalanceEditors: true });
       showGoal2Unsaved();
-    });
+    }, { signal });
   }
   if (debtsHost) {
     const debtsHostEl = debtsHost;
@@ -338,8 +346,8 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if ((t as any).matches && (t as any).matches('input[data-field="payment"]')) return;
       scheduleDebtsDraftSyncToPlanAndRender();
     }
-    debtsHost.addEventListener('input', onDebtRowFieldActivity);
-    debtsHost.addEventListener('change', onDebtRowFieldActivity);
+    debtsHost.addEventListener('input', onDebtRowFieldActivity, { signal });
+    debtsHost.addEventListener('change', onDebtRowFieldActivity, { signal });
     debtsHost.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.getAttribute !== 'function') return;
@@ -366,7 +374,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         lastSavedDebts = cloneDebtsSnapshot();
         return;
       }
-    });
+    }, { signal });
 
     // Hold-to-delete debt rows (2s) then confirm → soft-delete (deleted ledger).
     wireHoldToConfirm(debtsHost, 'button[data-action="remove"]', {
@@ -407,6 +415,10 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   const goal2Host = document.getElementById('goal2-debts');
   if (goal2Host) {
     function openDebtsEditorForId(debtId: string): void {
+      // Ensure the editor is on the Active segment so "+ Add debt" works and the row exists.
+      (PLAN as any).debtsEditorLedgerSegment = 'active';
+      render({ refreshBalanceEditors: true });
+
       const openBtn = document.getElementById('btn-open-debts-editor') as HTMLButtonElement | null;
       if (openBtn) openBtn.click();
 
@@ -445,7 +457,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       });
       void savePlanOverrides();
       lastSavedDebts = cloneDebtsSnapshot();
-    });
+    }, { signal });
 
     goal2Host.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
@@ -460,7 +472,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if (!debtId) return;
       e.preventDefault();
       openDebtsEditorForId(String(debtId));
-    });
+    }, { signal });
 
     goal2Host.addEventListener('keydown', function (e) {
       const ke = e as KeyboardEvent;
@@ -473,7 +485,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if (!debtId) return;
       e.preventDefault();
       openDebtsEditorForId(String(debtId));
-    });
+    }, { signal });
   }
 
   const saveBtn = document.getElementById('btn-save-goal2-debts');
@@ -485,7 +497,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       setSaveNeeds('btn-save-goal2-debts', false);
       showGoal2Saved();
       lastSavedDebts = cloneDebtsSnapshot();
-    });
+    }, { signal });
   }
 
   const undoBtn = document.getElementById('btn-undo-goal2-debts');
@@ -502,7 +514,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       (wireGoal2DebtEditor as any)._t = setTimeout(function () {
         if (st) st.textContent = '';
       }, 2200);
-    });
+    }, { signal });
   }
 
   const resetBtn = document.getElementById('btn-reset-goal2-debts');
@@ -532,13 +544,19 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       (wireGoal2DebtEditor as any)._t2 = setTimeout(function () {
         if (st) st.textContent = '';
       }, 2400);
-    });
+    }, { signal });
   }
 
   setSaveNeeds('btn-save-goal2-debts', false);
 }
 
 export function wireGoal3SavingsEditor(render: RenderFn): void {
+  const prevAc = (wireGoal3SavingsEditor as any)._ac as AbortController | undefined;
+  if (prevAc) prevAc.abort();
+  const ac = new AbortController();
+  (wireGoal3SavingsEditor as any)._ac = ac;
+  const signal = ac.signal;
+
   let savingsDraftRerenderTimer: number | null = null;
   function scheduleSavingsDraftSyncToPlanAndRender(): void {
     if (savingsDraftRerenderTimer != null) clearTimeout(savingsDraftRerenderTimer);
@@ -564,8 +582,8 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if ((t as any).matches && (t as any).matches('input[data-field="deposit"]')) return;
       scheduleSavingsDraftSyncToPlanAndRender();
     }
-    savingsHost.addEventListener('input', onSavingsFieldActivity);
-    savingsHost.addEventListener('change', onSavingsFieldActivity);
+    savingsHost.addEventListener('input', onSavingsFieldActivity, { signal });
+    savingsHost.addEventListener('change', onSavingsFieldActivity, { signal });
 
     savingsHost.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
@@ -582,7 +600,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         lastSavedSavings = cloneSavingsSnapshot();
         return;
       }
-    });
+    }, { signal });
 
     // Hold-to-delete savings rows (2s) then confirm.
     wireHoldToConfirm(savingsHost, 'button[data-action="remove"]', {
@@ -629,7 +647,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
   if (addBtn) {
     addBtn.addEventListener('click', function () {
       addSavingsRowDraft(showGoal3Unsaved);
-    });
+    }, { signal });
   }
 
   const goal3Host = document.getElementById('goal3-savings') as HTMLElement | null;
@@ -672,7 +690,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       syncLegacySavingsFromAccounts(PLAN);
       void savePlanOverrides();
       lastSavedSavings = cloneSavingsSnapshot();
-    });
+    }, { signal });
 
     goal3Host.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
@@ -687,7 +705,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if (!sid) return;
       e.preventDefault();
       openSavingsEditorForId(String(sid));
-    });
+    }, { signal });
 
     goal3Host.addEventListener('keydown', function (e) {
       const ke = e as KeyboardEvent;
@@ -700,7 +718,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if (!sid) return;
       e.preventDefault();
       openSavingsEditorForId(String(sid));
-    });
+    }, { signal });
   }
 
   const saveBtn = document.getElementById('btn-save-goal3-savings') as HTMLButtonElement | null;
@@ -713,7 +731,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       setSaveNeeds('btn-save-goal3-savings', false);
       showGoal3Saved();
       lastSavedSavings = cloneSavingsSnapshot();
-    });
+    }, { signal });
   }
 
   const undoBtn = document.getElementById('btn-undo-goal3-savings') as HTMLButtonElement | null;
@@ -731,7 +749,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       (wireGoal3SavingsEditor as any)._t = setTimeout(function () {
         if (st) st.textContent = '';
       }, 2200);
-    });
+    }, { signal });
   }
 
   const resetBtn = document.getElementById('btn-reset-goal3-savings');
@@ -745,7 +763,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       (wireGoal3SavingsEditor as any)._t2 = setTimeout(function () {
         if (st) st.textContent = '';
       }, 2400);
-    });
+    }, { signal });
   }
 
   setSaveNeeds('btn-save-goal3-savings', false);
@@ -802,10 +820,27 @@ function unlockBodyScrollForGoalDialog() {
 
 /** Centered modal editors (native `<dialog>` + `showModal`). */
 export function wireGoalEditorDialogs(): void {
+  const prevAc = (wireGoalEditorDialogs as any)._ac as AbortController | undefined;
+  if (prevAc) prevAc.abort();
+  const ac = new AbortController();
+  (wireGoalEditorDialogs as any)._ac = ac;
+  const signal = ac.signal;
+
   ['goal2-editor-dialog', 'goal3-editor-dialog'].forEach(function (id) {
     const d = document.getElementById(id) as HTMLDialogElement | null;
     if (d && typeof d.close === 'function') d.close();
   });
+  // If a dialog was opened multiple times due to double-bound listeners, scroll lock can get stuck.
+  // Always reset on rewire.
+  bodyScrollLockDepth = 0;
+  try {
+    document.documentElement.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+  } catch {}
 
   function bindDialog(dialogId: string, btnIds: string | string[]): void {
     const dlg = document.getElementById(dialogId) as HTMLDialogElement | null;
@@ -836,13 +871,13 @@ export function wireGoalEditorDialogs(): void {
         }
         lockBodyScrollForGoalDialog();
         setExpanded(true);
-      });
+      }, { signal });
     });
 
     dlg.addEventListener('close', function () {
       unlockBodyScrollForGoalDialog();
       setExpanded(false);
-    });
+    }, { signal });
 
     dlg.addEventListener('click', function (e) {
       if (e.target === dlg) {
@@ -855,7 +890,7 @@ export function wireGoalEditorDialogs(): void {
       if (el && typeof el.closest === 'function' && el.closest('[data-close-goal-dialog]')) {
         dlg.close();
       }
-    });
+    }, { signal });
   }
 
   bindDialog('goal2-editor-dialog', ['btn-toggle-goal2-editor', 'btn-open-debts-editor']);
