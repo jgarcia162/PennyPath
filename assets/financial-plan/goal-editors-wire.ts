@@ -308,6 +308,13 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   const addBtn = document.getElementById('btn-add-debt') as HTMLButtonElement | null;
   if (addBtn) {
     addBtn.addEventListener('click', function () {
+      // Always add debts to the Active ledger segment.
+      // If the editor is currently showing Paid off, switch segments first so
+      // readDebtsEditorIntoPlan() doesn't stamp ledgerStatus=completed onto drafts.
+      if ((PLAN as any).debtsEditorLedgerSegment !== 'active') {
+        (PLAN as any).debtsEditorLedgerSegment = 'active';
+        render({ refreshBalanceEditors: true });
+      }
       addDebtRowDraft(showGoal2Unsaved);
       readDebtsEditorIntoPlan();
       render({ refreshBalanceEditors: true });
@@ -520,23 +527,29 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   const resetBtn = document.getElementById('btn-reset-goal2-debts');
   if (resetBtn) {
     resetBtn.addEventListener('click', function () {
-      setDebtsDraftFromSnapshot({
-        debts: (PLAN_DEFAULTS.debts || []).map(function (d) {
-          return {
-            id: d.id,
-            name: d.name,
-            current: d.current,
-            paidOff: d.paidOff,
-            aprPct: Number.isFinite((d as any).aprPct) ? Number((d as any).aprPct) : 0,
-            deferredAmount: Number.isFinite((d as any).deferredAmount) ? Number((d as any).deferredAmount) : 0,
-            deferredExpiresOn: typeof (d as any).deferredExpiresOn === 'string' ? (d as any).deferredExpiresOn : '',
-            deferredMonthsRemaining: Number.isFinite((d as any).deferredMonthsRemaining)
-              ? Math.max(0, Math.floor(Number((d as any).deferredMonthsRemaining)))
-              : 0,
-            paymentHistory: [],
-          };
-        }),
-      });
+      // Reset draft should not wipe existing debt rows.
+      // Prefer restoring the last-saved snapshot; fall back to defaults only if we never bootstrapped.
+      if (lastSavedDebts) {
+        setDebtsDraftFromSnapshot(lastSavedDebts);
+      } else {
+        setDebtsDraftFromSnapshot({
+          debts: (PLAN_DEFAULTS.debts || []).map(function (d) {
+            return {
+              id: d.id,
+              name: d.name,
+              current: d.current,
+              paidOff: d.paidOff,
+              aprPct: Number.isFinite((d as any).aprPct) ? Number((d as any).aprPct) : 0,
+              deferredAmount: Number.isFinite((d as any).deferredAmount) ? Number((d as any).deferredAmount) : 0,
+              deferredExpiresOn: typeof (d as any).deferredExpiresOn === 'string' ? (d as any).deferredExpiresOn : '',
+              deferredMonthsRemaining: Number.isFinite((d as any).deferredMonthsRemaining)
+                ? Math.max(0, Math.floor(Number((d as any).deferredMonthsRemaining)))
+                : 0,
+              paymentHistory: [],
+            };
+          }),
+        });
+      }
       showGoal2Unsaved();
       const st = document.getElementById('goal2-save-status');
       if (st) st.textContent = 'Reset draft (click Save to apply)';

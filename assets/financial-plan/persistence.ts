@@ -29,6 +29,7 @@ import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { yyyyMmFromDate } from './monthly-activity';
 import { ID_GOAL_HYSA, ensureSavingsGoals, normalizeSavingsGoalRow } from './savings-goals';
 import { normalizeLedgerStatus } from './debt-ledger';
+import { isTrialSessionActive } from '../../lib/trial/trial-session';
 
 function safeReadLocalPlanPayload(): any | null {
   try {
@@ -389,6 +390,10 @@ export async function applyPlanOverrides(): Promise<void> {
 }
 
 export async function savePlanOverrides(): Promise<void> {
+  // Trial sessions should not persist any edits beyond the current tab lifetime.
+  if (isTrialSessionActive()) {
+    return;
+  }
   if (isFinancialPlanDemoMode()) {
     // If the user is editing, treat it as opting out of demo mode.
     // Persist locally so refreshes don't revert to the mock snapshot.

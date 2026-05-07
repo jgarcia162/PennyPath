@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react';
 
-import { isTrialSessionActive } from '../../lib/trial/trial-session';
+import { STORAGE_KEY } from '../../assets/financial-plan/plan-data';
+import { clearTrialSession, isTrialSessionActive } from '../../lib/trial/trial-session';
 
 /**
  * When the user closes the tab/window during an active trial, `beforeunload` is unreliable for
@@ -21,6 +22,14 @@ export function TrialCloseBeacon() {
           credentials: 'include',
           keepalive: true,
         });
+      } catch {
+        // ignore
+      }
+
+      // Also clear browser-cached plan state so the next “Take a peek” starts fresh.
+      clearTrialSession();
+      try {
+        window.localStorage.removeItem(STORAGE_KEY);
       } catch {
         // ignore
       }
