@@ -29,6 +29,7 @@ import {
   hasDebtsOnFile,
 } from './plan-empty-state.js';
 import { hasMonthWrapRollback } from './month-wrap';
+import { getEditingDebtCardId, getEditingSavingsCardId } from './card-inline-edit-state';
 
 const { money, moneyExact } = createMoneyFormatters();
 
@@ -245,6 +246,21 @@ function shouldSkipSavingsEditorRender(opts?: PlanPageRenderOptions): boolean {
 }
 
 /**
+ * While a Goal 2 debt card is open in inline-edit mode, skip generic rerenders
+ * of `#goal2-debts` so typing isn't wiped. Explicit `refreshBalanceEditors`
+ * calls (entering/leaving edit mode, Save) still rebuild the host.
+ */
+function shouldSkipGoal2DebtsCardsRender(opts?: PlanPageRenderOptions): boolean {
+  if (opts && opts.refreshBalanceEditors === true) return false;
+  return getEditingDebtCardId() != null;
+}
+
+function shouldSkipGoal3SavingsCardsRender(opts?: PlanPageRenderOptions): boolean {
+  if (opts && opts.refreshBalanceEditors === true) return false;
+  return getEditingSavingsCardId() != null;
+}
+
+/**
  * Binds PLAN + derived metrics to the DOM. Pass `skipDebtsEditor` / `skipSavingsEditor` while syncing
  * drafts on a timer, or `refreshBalanceEditors` after plan changes that must replace editor tables.
  */
@@ -408,7 +424,9 @@ export function render(opts?: PlanPageRenderOptions): void {
       (savingsAcctN === 1 ? 'account' : 'accounts')
   );
 
-  renderGoal2Debts(PLAN, moneyExact);
+  if (!shouldSkipGoal2DebtsCardsRender(opts)) {
+    renderGoal2Debts(PLAN, moneyExact);
+  }
   renderDashboardDebtArchives(PLAN, moneyExact);
   renderDashboardDeletedBin(PLAN, moneyExact);
   setTextDash('debts-paid-off-lifetime', String(d.debtsPaidOffLifetimeCount ?? 0));
@@ -426,7 +444,9 @@ export function render(opts?: PlanPageRenderOptions): void {
   }
   syncDebtsEditorSortSelect(PLAN);
   syncDebtsProgressSortSelect(PLAN);
-  renderGoal3SavingsAccounts(d, moneyExact);
+  if (!shouldSkipGoal3SavingsCardsRender(opts)) {
+    renderGoal3SavingsAccounts(d, moneyExact);
+  }
   if (!shouldSkipSavingsEditorRender(opts)) {
     renderSavingsEditor(d);
   }

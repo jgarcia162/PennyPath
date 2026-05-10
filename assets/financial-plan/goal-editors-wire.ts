@@ -6,7 +6,13 @@ import type { Debt, SavingsAccount } from '../../types/index.js';
 import { PLAN, PLAN_DEFAULTS } from './plan-data';
 import { applyPlanOverrides, savePlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
-import { formatCurrencyInput, formatMoneyInput, parseMoneyInput } from './utils';
+import { formatCurrencyInput, formatMoneyInput, parseMoneyInput, roundMoney } from './utils';
+import {
+  getEditingDebtCardId,
+  getEditingSavingsCardId,
+  setEditingDebtCardId,
+  setEditingSavingsCardId,
+} from './card-inline-edit-state';
 import {
   readDebtsEditorIntoPlan,
   cloneDebtsSnapshot,
@@ -268,6 +274,10 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   (wireGoal2DebtEditor as any)._ac = ac;
   const signal = ac.signal;
 
+  // Stale inline-edit state from a previous mount would re-render a card in edit mode
+  // before the user has even interacted — drop it on rebind.
+  setEditingDebtCardId(null);
+
   const sortSel = document.getElementById('debts-editor-sort') as HTMLSelectElement | null;
   if (sortSel) {
     sortSel.addEventListener('change', function () {
@@ -421,32 +431,87 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
 
   const goal2Host = document.getElementById('goal2-debts');
   if (goal2Host) {
-    function openDebtsEditorForId(debtId: string): void {
-      // Ensure the editor is on the Active segment so "+ Add debt" works and the row exists.
-      (PLAN as any).debtsEditorLedgerSegment = 'active';
-      render({ refreshBalanceEditors: true });
+    wireMoneyMasks(goal2Host);
 
-      const openBtn = document.getElementById('btn-open-debts-editor') as HTMLButtonElement | null;
-      if (openBtn) openBtn.click();
-
-      function focusRow(): void {
-        const listHost = document.getElementById('debts-editor-list') as HTMLElement | null;
-        if (!listHost) return;
+    function focusEditingDebtCard(debtId: string): void {
+      function run(): void {
+        const host = document.getElementById('goal2-debts');
+        if (!host) return;
         const idEsc =
           typeof CSS !== 'undefined' && CSS.escape
             ? CSS.escape(debtId)
             : debtId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        const row = listHost.querySelector('[data-debt-id="' + idEsc + '"]') as HTMLElement | null;
-        if (!row) return;
-        const input = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
-        if (input && typeof input.focus === 'function') input.focus();
+        const card = host.querySelector(
+          '.goal2-debt--editing[data-debt-id="' + idEsc + '"]'
+        ) as HTMLElement | null;
+        if (!card) return;
+        const input = card.querySelector('input.card-inline-edit-name') as HTMLInputElement | null;
+        if (input && typeof input.focus === 'function') {
+          input.focus();
+          try {
+            input.select();
+          } catch {}
+        }
       }
-
       queueMicrotask(function () {
-        requestAnimationFrame(function () {
-          focusRow();
-        });
+        requestAnimationFrame(run);
       });
+    }
+
+    function enterDebtCardInlineEdit(debtId: string): void {
+      if (getEditingDebtCardId() === String(debtId)) {
+        focusEditingDebtCard(String(debtId));
+        return;
+      }
+      setEditingDebtCardId(String(debtId));
+      render({ refreshBalanceEditors: true });
+      focusEditingDebtCard(String(debtId));
+    }
+
+    function cancelDebtCardInlineEdit(): void {
+      if (getEditingDebtCardId() == null) return;
+      setEditingDebtCardId(null);
+      render({ refreshBalanceEditors: true });
+    }
+
+    function commitDebtCardInlineEdit(): void {
+      const id = getEditingDebtCardId();
+      if (!id) return;
+      const host = document.getElementById('goal2-debts');
+      const idEsc =
+        typeof CSS !== 'undefined' && CSS.escape
+          ? CSS.escape(id)
+          : id.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const card = host
+        ? (host.querySelector('.goal2-debt--editing[data-debt-id="' + idEsc + '"]') as HTMLElement | null)
+        : null;
+      if (!card) {
+        setEditingDebtCardId(null);
+        render({ refreshBalanceEditors: true });
+        return;
+      }
+      const nameIn = card.querySelector('input[data-field="name"]') as HTMLInputElement | null;
+      const balIn = card.querySelector('input[data-field="current"]') as HTMLInputElement | null;
+      const debts = Array.isArray(PLAN.debts) ? (PLAN.debts as Debt[]) : [];
+      const target = debts.find(function (d) {
+        return String(d.id) === id;
+      });
+      if (target) {
+        const newName = nameIn ? String(nameIn.value || '').trim() : '';
+        if (newName) target.name = newName;
+        const parsed = balIn ? parseMoneyInput(balIn.value) : null;
+        if (parsed != null && parsed >= 0) {
+          target.current = roundMoney(parsed);
+        } else if (balIn && String(balIn.value || '').trim() === '') {
+          target.current = 0;
+        }
+      }
+      setEditingDebtCardId(null);
+      void savePlanOverrides();
+      render({ refreshBalanceEditors: true });
+      setSaveNeeds('btn-save-goal2-debts', false);
+      showGoal2Saved();
+      lastSavedDebts = cloneDebtsSnapshot();
     }
 
     goal2Host.addEventListener('click', function (e) {
@@ -469,29 +534,63 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
     goal2Host.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function') return;
+      const action = (t.closest('[data-action]') as HTMLElement | null)?.getAttribute('data-action') || '';
+      if (action === 'inline-save-debt') {
+        e.preventDefault();
+        commitDebtCardInlineEdit();
+        return;
+      }
+      if (action === 'inline-cancel-debt') {
+        e.preventDefault();
+        cancelDebtCardInlineEdit();
+        return;
+      }
+
       const debtEl = t.closest('.goal2-debt') as HTMLElement | null;
       if (!debtEl) return;
 
-      // Ignore clicks on interactive children (details toggles, remove buttons).
+      // Ignore clicks on interactive children (details toggles, remove buttons, inputs).
       if (t.closest('summary, button, a, input, select, textarea, .goal2-remove-payment')) return;
+      // Already editing this card — let focus/typing happen.
+      if (debtEl.classList.contains('goal2-debt--editing')) return;
 
       const debtId = debtEl.getAttribute('data-debt-id');
       if (!debtId) return;
       e.preventDefault();
-      openDebtsEditorForId(String(debtId));
+      enterDebtCardInlineEdit(String(debtId));
     }, { signal });
 
     goal2Host.addEventListener('keydown', function (e) {
       const ke = e as KeyboardEvent;
-      if (ke.key !== 'Enter' && ke.key !== ' ') return;
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function') return;
+
+      if (ke.key === 'Escape' && getEditingDebtCardId() != null) {
+        const card = t.closest('.goal2-debt--editing');
+        if (card) {
+          ke.preventDefault();
+          cancelDebtCardInlineEdit();
+        }
+        return;
+      }
+      if (ke.key === 'Enter' && getEditingDebtCardId() != null) {
+        const card = t.closest('.goal2-debt--editing');
+        const tag = (t.tagName || '').toLowerCase();
+        if (card && (tag === 'input' || tag === 'button')) {
+          ke.preventDefault();
+          commitDebtCardInlineEdit();
+        }
+        return;
+      }
+      if (ke.key !== 'Enter' && ke.key !== ' ') return;
+      if (t.closest('input, textarea, select, button')) return;
       const debtEl = t.closest('.goal2-debt') as HTMLElement | null;
       if (!debtEl) return;
+      if (debtEl.classList.contains('goal2-debt--editing')) return;
       const debtId = debtEl.getAttribute('data-debt-id');
       if (!debtId) return;
       e.preventDefault();
-      openDebtsEditorForId(String(debtId));
+      enterDebtCardInlineEdit(String(debtId));
     }, { signal });
   }
 
@@ -573,6 +672,8 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
   const ac = new AbortController();
   (wireGoal3SavingsEditor as any)._ac = ac;
   const signal = ac.signal;
+
+  setEditingSavingsCardId(null);
 
   let savingsDraftRerenderTimer: number | null = null;
   function scheduleSavingsDraftSyncToPlanAndRender(): void {
@@ -669,26 +770,99 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
 
   const goal3Host = document.getElementById('goal3-savings') as HTMLElement | null;
   if (goal3Host) {
-    function openSavingsEditorForId(sid: string): void {
-      const openBtn = document.getElementById('btn-open-savings-editor') as HTMLButtonElement | null;
-      if (openBtn) openBtn.click();
+    wireMoneyMasks(goal3Host);
 
-      function focusRow(): void {
-        const listHost = document.getElementById('savings-editor-list') as HTMLElement | null;
-        if (!listHost) return;
+    function focusEditingSavingsCard(sid: string): void {
+      function run(): void {
+        const host = document.getElementById('goal3-savings');
+        if (!host) return;
         const idEsc =
-          typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(sid) : sid.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-        const row = listHost.querySelector('[data-savings-id="' + idEsc + '"]') as HTMLElement | null;
-        if (!row) return;
-        const input = row.querySelector('input[data-field="name"]') as HTMLInputElement | null;
-        if (input && typeof input.focus === 'function') input.focus();
+          typeof CSS !== 'undefined' && CSS.escape
+            ? CSS.escape(sid)
+            : sid.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const card = host.querySelector(
+          '.goal3-savings-account--editing[data-savings-id="' + idEsc + '"]'
+        ) as HTMLElement | null;
+        if (!card) return;
+        const input = card.querySelector('input.card-inline-edit-name') as HTMLInputElement | null;
+        if (input && typeof input.focus === 'function') {
+          input.focus();
+          try {
+            input.select();
+          } catch {}
+        }
       }
-
       queueMicrotask(function () {
-        requestAnimationFrame(function () {
-          focusRow();
-        });
+        requestAnimationFrame(run);
       });
+    }
+
+    function enterSavingsCardInlineEdit(sid: string): void {
+      if (getEditingSavingsCardId() === String(sid)) {
+        focusEditingSavingsCard(String(sid));
+        return;
+      }
+      setEditingSavingsCardId(String(sid));
+      render({ refreshBalanceEditors: true });
+      focusEditingSavingsCard(String(sid));
+    }
+
+    function cancelSavingsCardInlineEdit(): void {
+      if (getEditingSavingsCardId() == null) return;
+      setEditingSavingsCardId(null);
+      render({ refreshBalanceEditors: true });
+    }
+
+    function commitSavingsCardInlineEdit(): void {
+      const id = getEditingSavingsCardId();
+      if (!id) return;
+      const host = document.getElementById('goal3-savings');
+      const idEsc =
+        typeof CSS !== 'undefined' && CSS.escape
+          ? CSS.escape(id)
+          : id.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const card = host
+        ? (host.querySelector(
+            '.goal3-savings-account--editing[data-savings-id="' + idEsc + '"]'
+          ) as HTMLElement | null)
+        : null;
+      if (!card) {
+        setEditingSavingsCardId(null);
+        render({ refreshBalanceEditors: true });
+        return;
+      }
+      const nameIn = card.querySelector('input[data-field="name"]') as HTMLInputElement | null;
+      const balIn = card.querySelector('input[data-field="current"]') as HTMLInputElement | null;
+      const apyIn = card.querySelector('input[data-field="apyPct"]') as HTMLInputElement | null;
+      const accs = Array.isArray((PLAN as any).savingsAccounts)
+        ? ((PLAN as any).savingsAccounts as SavingsAccount[])
+        : [];
+      const target = accs.find(function (a) {
+        return String(a.id) === id;
+      });
+      if (target) {
+        const newName = nameIn ? String(nameIn.value || '').trim() : '';
+        if (newName) target.name = newName;
+        const parsedBal = balIn ? parseMoneyInput(balIn.value) : null;
+        if (parsedBal != null) {
+          target.current = roundMoney(parsedBal);
+        } else if (balIn && String(balIn.value || '').trim() === '') {
+          target.current = 0;
+        }
+        const parsedApy = apyIn ? parseMoneyInput(apyIn.value) : null;
+        if (parsedApy != null && parsedApy >= 0) {
+          target.apyPct = roundMoney(parsedApy);
+        } else if (apyIn && String(apyIn.value || '').trim() === '') {
+          target.apyPct = 0;
+        }
+      }
+      setEditingSavingsCardId(null);
+      syncLegacySavingsFromAccounts(PLAN);
+      void savePlanOverrides();
+      render({ refreshBalanceEditors: true });
+      setSaveNeeds('btn-save-goal3-savings', false);
+      showGoal3Saved();
+      lastSavedSavings = cloneSavingsSnapshot();
     }
 
     goal3Host.addEventListener('click', function (e) {
@@ -712,29 +886,62 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
     goal3Host.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function') return;
+      const action = (t.closest('[data-action]') as HTMLElement | null)?.getAttribute('data-action') || '';
+      if (action === 'inline-save-savings') {
+        e.preventDefault();
+        commitSavingsCardInlineEdit();
+        return;
+      }
+      if (action === 'inline-cancel-savings') {
+        e.preventDefault();
+        cancelSavingsCardInlineEdit();
+        return;
+      }
+
       const accountEl = t.closest('.goal3-savings-account') as HTMLElement | null;
       if (!accountEl) return;
 
-      // Ignore clicks on interactive children (details toggles, remove buttons).
+      // Ignore clicks on interactive children (details toggles, remove buttons, inputs).
       if (t.closest('summary, button, a, input, select, textarea, .goal3-remove-deposit')) return;
+      if (accountEl.classList.contains('goal3-savings-account--editing')) return;
 
       const sid = accountEl.getAttribute('data-savings-id');
       if (!sid) return;
       e.preventDefault();
-      openSavingsEditorForId(String(sid));
+      enterSavingsCardInlineEdit(String(sid));
     }, { signal });
 
     goal3Host.addEventListener('keydown', function (e) {
       const ke = e as KeyboardEvent;
-      if (ke.key !== 'Enter' && ke.key !== ' ') return;
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function') return;
+
+      if (ke.key === 'Escape' && getEditingSavingsCardId() != null) {
+        const card = t.closest('.goal3-savings-account--editing');
+        if (card) {
+          ke.preventDefault();
+          cancelSavingsCardInlineEdit();
+        }
+        return;
+      }
+      if (ke.key === 'Enter' && getEditingSavingsCardId() != null) {
+        const card = t.closest('.goal3-savings-account--editing');
+        const tag = (t.tagName || '').toLowerCase();
+        if (card && (tag === 'input' || tag === 'button')) {
+          ke.preventDefault();
+          commitSavingsCardInlineEdit();
+        }
+        return;
+      }
+      if (ke.key !== 'Enter' && ke.key !== ' ') return;
+      if (t.closest('input, textarea, select, button')) return;
       const accountEl = t.closest('.goal3-savings-account') as HTMLElement | null;
       if (!accountEl) return;
+      if (accountEl.classList.contains('goal3-savings-account--editing')) return;
       const sid = accountEl.getAttribute('data-savings-id');
       if (!sid) return;
       e.preventDefault();
-      openSavingsEditorForId(String(sid));
+      enterSavingsCardInlineEdit(String(sid));
     }, { signal });
   }
 
