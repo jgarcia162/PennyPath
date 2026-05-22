@@ -5785,3 +5785,141 @@ body.financial-plan-demo-mode #checkin-form {
   box-shadow: 0 0 0 1px rgba(212, 200, 150, 0.35);
   background: rgba(212, 200, 150, 0.1);
 }
+
+/* ----- Inline edit mode for Goal 2 debt + Goal 3 savings cards ----- */
+.goal2-debt--editing,
+.goal3-savings-account--editing {
+  position: relative;
+  cursor: default;
+  box-shadow: 0 0 0 2px var(--gold), 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+.goal2-debt--editing {
+  background: rgba(90, 122, 106, 0.16);
+  border-color: rgba(90, 122, 106, 0.32);
+}
+.goal3-savings-account--editing {
+  background: rgba(107, 91, 138, 0.16);
+  border-color: rgba(107, 91, 138, 0.32);
+}
+.goal2-debt-head--editing,
+.goal3-savings-head--editing {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+  align-items: stretch;
+}
+.goal3-savings-title-row--editing {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  align-items: center;
+}
+.card-inline-edit-name,
+.card-inline-edit-balance,
+.card-inline-edit-apy {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.95);
+  color: inherit;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+.card-inline-edit-name:focus,
+.card-inline-edit-balance:focus,
+.card-inline-edit-apy:focus {
+  outline: none;
+  border-color: var(--gold);
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.35);
+}
+.goal2-debt--editing .card-inline-edit-name {
+  color: var(--sage);
+}
+.goal3-savings-account--editing .card-inline-edit-name {
+  color: var(--purple);
+  flex: 1;
+}
+.goal3-savings-account--editing .card-inline-edit-balance {
+  flex: 0 1 140px;
+  text-align: right;
+}
+.card-inline-edit-apy-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: #666;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+.card-inline-edit-apy-label {
+  flex-shrink: 0;
+}
+.card-inline-edit-apy {
+  font-size: 12px;
+  width: 100px;
+  text-align: right;
+}
+.card-inline-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.card-inline-edit-cancel,
+.card-inline-edit-save {
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: background 0.12s ease, transform 0.12s ease;
+}
+.card-inline-edit-cancel {
+  background: transparent;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  color: #555;
+}
+.card-inline-edit-cancel:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+.card-inline-edit-save {
+  background: var(--gold);
+  border: 1px solid var(--gold);
+  color: #2a2418;
+}
+.card-inline-edit-save:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+:root[data-theme='dark'] .card-inline-edit-name,
+:root[data-theme='dark'] .card-inline-edit-balance,
+:root[data-theme='dark'] .card-inline-edit-apy {
+  background: rgba(20, 22, 28, 0.85);
+  color: rgba(233, 233, 246, 0.95);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+:root[data-theme='dark'] .card-inline-edit-apy-row {
+  color: rgba(233, 233, 246, 0.55);
+}
+:root[data-theme='dark'] .card-inline-edit-cancel {
+  color: rgba(233, 233, 246, 0.7);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+:root[data-theme='dark'] .card-inline-edit-cancel:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+:root[data-theme='dark'] .goal2-debt--editing {
+  background: rgba(90, 122, 106, 0.22);
+}
+:root[data-theme='dark'] .goal3-savings-account--editing {
+  background: rgba(107, 91, 138, 0.22);
+}

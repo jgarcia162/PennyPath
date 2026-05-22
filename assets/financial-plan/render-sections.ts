@@ -13,6 +13,7 @@ import {
 import { partitionSavingsByLedger } from './savings-ledger';
 import { ensureSavingsGoals, accountContributesToGoal } from './savings-goals';
 import { numOr, formatCurrencyInput, formatMoneyInput } from './utils';
+import { getEditingDebtCardId, getEditingSavingsCardId } from './card-inline-edit-state';
 
 type MoneyFn = (n: number) => string;
 
@@ -121,12 +122,71 @@ export function getDebtsInProgressOrder(plan: Pick<FinancialPlan, 'debts' | 'deb
   return sortDebtListByMode(list, mode);
 }
 
+function buildInlineEditActions(kind: 'debt' | 'savings'): HTMLDivElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'card-inline-edit-actions no-print';
+  const cancel = document.createElement('button');
+  cancel.type = 'button';
+  cancel.className = 'card-inline-edit-cancel';
+  cancel.setAttribute('data-action', 'inline-cancel-' + kind);
+  cancel.textContent = 'Cancel';
+  const save = document.createElement('button');
+  save.type = 'button';
+  save.className = 'card-inline-edit-save';
+  save.setAttribute('data-action', 'inline-save-' + kind);
+  save.textContent = 'Save';
+  wrap.appendChild(cancel);
+  wrap.appendChild(save);
+  return wrap;
+}
+
+function buildEditableDebtCard(debt: Debt): HTMLDivElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'goal2-debt goal2-debt--editing';
+  wrap.setAttribute('data-debt-id', String(debt.id || ''));
+
+  const head = document.createElement('div');
+  head.className = 'goal2-debt-head goal2-debt-head--editing';
+
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.className = 'card-inline-edit-name';
+  nameInput.setAttribute('data-field', 'name');
+  nameInput.setAttribute('aria-label', 'Debt name');
+  nameInput.autocomplete = 'off';
+  nameInput.value = debt.name || '';
+
+  const balanceInput = document.createElement('input');
+  balanceInput.type = 'text';
+  balanceInput.className = 'card-inline-edit-balance';
+  balanceInput.setAttribute('data-field', 'current');
+  balanceInput.setAttribute('data-money', 'currency');
+  balanceInput.setAttribute('inputmode', 'decimal');
+  balanceInput.setAttribute('aria-label', 'Current balance');
+  balanceInput.autocomplete = 'off';
+  balanceInput.placeholder = '$0.00';
+  const cur = numOr(debt.current, 0);
+  balanceInput.value = cur > 0 ? formatCurrencyInput(cur) : '';
+
+  head.appendChild(nameInput);
+  head.appendChild(balanceInput);
+
+  wrap.appendChild(head);
+  wrap.appendChild(buildInlineEditActions('debt'));
+  return wrap;
+}
+
 export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void {
   const host = document.getElementById('goal2-debts') as HTMLElement | null;
   if (!host) return;
   host.innerHTML = '';
   const debts = getDebtsInProgressOrder(plan);
+  const editingDebtId = getEditingDebtCardId();
   debts.forEach(function (debt) {
+    if (editingDebtId && String(debt.id || '') === editingDebtId) {
+      host.appendChild(buildEditableDebtCard(debt));
+      return;
+    }
     const current = Number.isFinite(debt.current) ? debt.current : 0;
     const paid = Number.isFinite(debt.paidOff) ? debt.paidOff : 0;
     const start = Math.max(0, current + paid);
@@ -134,6 +194,9 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
 
     const wrap = document.createElement('div');
     wrap.className = 'goal2-debt';
+    wrap.setAttribute('data-debt-id', String(debt.id || ''));
+    wrap.setAttribute('role', 'button');
+    wrap.tabIndex = 0;
 
     const head = document.createElement('div');
     head.className = 'goal2-debt-head';
@@ -157,11 +220,12 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
     fill.style.width = pct.toFixed(2) + '%';
     track.appendChild(fill);
 
-    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const cutoff = now - 30 * 24 * 60 * 60 * 1000;
     const history = Array.isArray(debt.paymentHistory) ? debt.paymentHistory : [];
     const recent = history.filter(function (p) {
       const ts = new Date(p.at).getTime();
-      return Number.isFinite(ts) && ts >= cutoff;
+      return Number.isFinite(ts) && ts >= cutoff && ts <= now;
     });
     recent.sort(function (a, b) {
       return new Date(b.at).getTime() - new Date(a.at).getTime();
@@ -781,7 +845,7 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   if (nameInput) nameInput.value = acc.name || '';
   const cur = numOr(acc.current, 0);
   const apy = numOr(acc.apyPct, DEFAULT_SAVINGS_APY_PCT);
-  if (curInput) curInput.value = cur > 0 ? formatCurrencyInput(cur) : '';
+  if (curInput) curInput.value = cur !== 0 ? formatCurrencyInput(cur) : '';
   if (apyInput) apyInput.value = apy > 0 ? formatMoneyInput(apy) : '';
 
   return row;
@@ -810,6 +874,67 @@ export function renderSavingsEditor(d: Pick<DerivedPlanMetrics, 'savingsAccounts
   host.appendChild(table);
 }
 
+function buildEditableSavingsCard(acc: SavingsAccount): HTMLDivElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'goal3-savings-account goal3-savings-account--editing';
+  wrap.setAttribute('data-savings-id', String(acc.id || ''));
+
+  const head = document.createElement('div');
+  head.className = 'goal3-savings-head goal3-savings-head--editing';
+
+  const titleRow = document.createElement('div');
+  titleRow.className = 'goal3-savings-title-row goal3-savings-title-row--editing';
+
+  const nameInput = document.createElement('input');
+  nameInput.type = 'text';
+  nameInput.className = 'card-inline-edit-name';
+  nameInput.setAttribute('data-field', 'name');
+  nameInput.setAttribute('aria-label', 'Account name');
+  nameInput.autocomplete = 'off';
+  nameInput.value = acc.name || '';
+
+  const balanceInput = document.createElement('input');
+  balanceInput.type = 'text';
+  balanceInput.className = 'card-inline-edit-balance';
+  balanceInput.setAttribute('data-field', 'current');
+  balanceInput.setAttribute('data-money', 'currency');
+  balanceInput.setAttribute('inputmode', 'decimal');
+  balanceInput.setAttribute('aria-label', 'Balance');
+  balanceInput.autocomplete = 'off';
+  balanceInput.placeholder = '$0.00';
+  const cur = numOr(acc.current, 0);
+  balanceInput.value = cur !== 0 ? formatCurrencyInput(cur) : '';
+
+  titleRow.appendChild(nameInput);
+  titleRow.appendChild(balanceInput);
+
+  const apyRow = document.createElement('label');
+  apyRow.className = 'card-inline-edit-apy-row';
+  const apyLabel = document.createElement('span');
+  apyLabel.className = 'card-inline-edit-apy-label';
+  apyLabel.textContent = 'APY %';
+  const apyInput = document.createElement('input');
+  apyInput.type = 'text';
+  apyInput.className = 'card-inline-edit-apy';
+  apyInput.setAttribute('data-field', 'apyPct');
+  apyInput.setAttribute('data-money', 'rate');
+  apyInput.setAttribute('inputmode', 'decimal');
+  apyInput.setAttribute('aria-label', 'Annual percentage yield');
+  apyInput.autocomplete = 'off';
+  apyInput.placeholder = '0.00';
+  const apy = numOr(acc.apyPct, 0);
+  apyInput.value = apy > 0 ? formatMoneyInput(apy) : '';
+  apyRow.appendChild(apyLabel);
+  apyRow.appendChild(apyInput);
+
+  head.appendChild(titleRow);
+  head.appendChild(apyRow);
+
+  wrap.appendChild(head);
+  wrap.appendChild(buildInlineEditActions('savings'));
+  return wrap;
+}
+
 export function renderGoal3SavingsAccounts(
   d: Pick<DerivedPlanMetrics, 'savingsAccounts' | 'savingsGoalSummaries'>,
   moneyExact: MoneyFn
@@ -818,7 +943,12 @@ export function renderGoal3SavingsAccounts(
   if (!host) return;
   host.innerHTML = '';
   const accs: SavingsAccount[] = (d.savingsAccounts || []) as SavingsAccount[];
+  const editingSavingsId = getEditingSavingsCardId();
   accs.forEach(function (acc) {
+    if (editingSavingsId && String(acc.id || '') === editingSavingsId) {
+      host.appendChild(buildEditableSavingsCard(acc));
+      return;
+    }
     const current = numOr(acc.current, 0);
     const hist = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
     const lifetimeDep = hist.reduce(function (s, p) {
@@ -827,6 +957,9 @@ export function renderGoal3SavingsAccounts(
 
     const wrap = document.createElement('div');
     wrap.className = 'goal3-savings-account';
+    wrap.setAttribute('data-savings-id', String(acc.id || ''));
+    wrap.setAttribute('role', 'button');
+    wrap.tabIndex = 0;
 
     const head = document.createElement('div');
     head.className = 'goal3-savings-head';
@@ -929,10 +1062,11 @@ export function renderGoal3SavingsAccounts(
     goalsDetails.appendChild(goalsSummary);
     goalsDetails.appendChild(goalsAnim);
 
-    const cutoff = Date.now() - 30 * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const cutoff = now - 30 * 24 * 60 * 60 * 1000;
     const recent = hist.filter(function (p) {
       const ts = new Date(p.at).getTime();
-      return Number.isFinite(ts) && ts >= cutoff;
+      return Number.isFinite(ts) && ts >= cutoff && ts <= now;
     });
     recent.sort(function (a, b) {
       return new Date(b.at).getTime() - new Date(a.at).getTime();

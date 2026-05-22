@@ -6,7 +6,13 @@ import type { Debt, SavingsAccount } from '../../types/index.js';
 import { PLAN, PLAN_DEFAULTS } from './plan-data';
 import { applyPlanOverrides, savePlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
-import { formatCurrencyInput, formatMoneyInput, parseMoneyInput } from './utils';
+import { formatCurrencyInput, formatMoneyInput, parseMoneyInput, roundMoney } from './utils';
+import {
+  getEditingDebtCardId,
+  getEditingSavingsCardId,
+  setEditingDebtCardId,
+  setEditingSavingsCardId,
+} from './card-inline-edit-state';
 import {
   readDebtsEditorIntoPlan,
   cloneDebtsSnapshot,
@@ -260,6 +266,18 @@ function showGoal3Unsaved() {
 type RenderFn = (opts?: { skipDebtsEditor?: boolean; skipSavingsEditor?: boolean; refreshBalanceEditors?: boolean }) => void;
 
 export function wireGoal2DebtEditor(render: RenderFn): void {
+  // This module can be initialized multiple times (Next.js client navigation back to /dashboard).
+  // Abort previous listeners so we don't double-bind actions (double add rows, scroll-lock stuck, etc).
+  const prevAc = (wireGoal2DebtEditor as any)._ac as AbortController | undefined;
+  if (prevAc) prevAc.abort();
+  const ac = new AbortController();
+  (wireGoal2DebtEditor as any)._ac = ac;
+  const signal = ac.signal;
+
+  // Stale inline-edit state from a previous mount would re-render a card in edit mode
+  // before the user has even interacted — drop it on rebind.
+  setEditingDebtCardId(null);
+
   const sortSel = document.getElementById('debts-editor-sort') as HTMLSelectElement | null;
   if (sortSel) {
     sortSel.addEventListener('change', function () {
@@ -271,7 +289,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       setSaveNeeds('btn-save-goal2-debts', false);
       const st = document.getElementById('goal2-save-status');
       if (st) st.textContent = '';
-    });
+    }, { signal });
   }
 
   const progressSortSel = document.getElementById('debts-progress-sort') as HTMLSelectElement | null;
@@ -285,7 +303,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       setSaveNeeds('btn-save-goal2-debts', false);
       const st = document.getElementById('goal2-save-status');
       if (st) st.textContent = '';
-    });
+    }, { signal });
   }
 
   let debtDraftRerenderTimer: number | null = null;
@@ -300,10 +318,17 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   const addBtn = document.getElementById('btn-add-debt') as HTMLButtonElement | null;
   if (addBtn) {
     addBtn.addEventListener('click', function () {
+      // Always add debts to the Active ledger segment.
+      // If the editor is currently showing Paid off, switch segments first so
+      // readDebtsEditorIntoPlan() doesn't stamp ledgerStatus=completed onto drafts.
+      if ((PLAN as any).debtsEditorLedgerSegment !== 'active') {
+        (PLAN as any).debtsEditorLedgerSegment = 'active';
+        render({ refreshBalanceEditors: true });
+      }
       addDebtRowDraft(showGoal2Unsaved);
       readDebtsEditorIntoPlan();
       render({ refreshBalanceEditors: true });
-    });
+    }, { signal });
   }
 
   const debtsHost = document.getElementById('debts-editor-list') as HTMLElement | null;
@@ -321,7 +346,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       (PLAN as any).debtsEditorLedgerSegment = seg;
       render({ refreshBalanceEditors: true });
       showGoal2Unsaved();
-    });
+    }, { signal });
   }
   if (debtsHost) {
     const debtsHostEl = debtsHost;
@@ -338,8 +363,8 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if ((t as any).matches && (t as any).matches('input[data-field="payment"]')) return;
       scheduleDebtsDraftSyncToPlanAndRender();
     }
-    debtsHost.addEventListener('input', onDebtRowFieldActivity);
-    debtsHost.addEventListener('change', onDebtRowFieldActivity);
+    debtsHost.addEventListener('input', onDebtRowFieldActivity, { signal });
+    debtsHost.addEventListener('change', onDebtRowFieldActivity, { signal });
     debtsHost.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.getAttribute !== 'function') return;
@@ -366,7 +391,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         lastSavedDebts = cloneDebtsSnapshot();
         return;
       }
-    });
+    }, { signal });
 
     // Hold-to-delete debt rows (2s) then confirm → soft-delete (deleted ledger).
     wireHoldToConfirm(debtsHost, 'button[data-action="remove"]', {
@@ -406,6 +431,89 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
 
   const goal2Host = document.getElementById('goal2-debts');
   if (goal2Host) {
+    wireMoneyMasks(goal2Host);
+
+    function focusEditingDebtCard(debtId: string): void {
+      function run(): void {
+        const host = document.getElementById('goal2-debts');
+        if (!host) return;
+        const idEsc =
+          typeof CSS !== 'undefined' && CSS.escape
+            ? CSS.escape(debtId)
+            : debtId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const card = host.querySelector(
+          '.goal2-debt--editing[data-debt-id="' + idEsc + '"]'
+        ) as HTMLElement | null;
+        if (!card) return;
+        const input = card.querySelector('input.card-inline-edit-name') as HTMLInputElement | null;
+        if (input && typeof input.focus === 'function') {
+          input.focus();
+          try {
+            input.select();
+          } catch {}
+        }
+      }
+      queueMicrotask(function () {
+        requestAnimationFrame(run);
+      });
+    }
+
+    function enterDebtCardInlineEdit(debtId: string): void {
+      if (getEditingDebtCardId() === String(debtId)) {
+        focusEditingDebtCard(String(debtId));
+        return;
+      }
+      setEditingDebtCardId(String(debtId));
+      render({ refreshBalanceEditors: true });
+      focusEditingDebtCard(String(debtId));
+    }
+
+    function cancelDebtCardInlineEdit(): void {
+      if (getEditingDebtCardId() == null) return;
+      setEditingDebtCardId(null);
+      render({ refreshBalanceEditors: true });
+    }
+
+    function commitDebtCardInlineEdit(): void {
+      const id = getEditingDebtCardId();
+      if (!id) return;
+      const host = document.getElementById('goal2-debts');
+      const idEsc =
+        typeof CSS !== 'undefined' && CSS.escape
+          ? CSS.escape(id)
+          : id.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const card = host
+        ? (host.querySelector('.goal2-debt--editing[data-debt-id="' + idEsc + '"]') as HTMLElement | null)
+        : null;
+      if (!card) {
+        setEditingDebtCardId(null);
+        render({ refreshBalanceEditors: true });
+        return;
+      }
+      const nameIn = card.querySelector('input[data-field="name"]') as HTMLInputElement | null;
+      const balIn = card.querySelector('input[data-field="current"]') as HTMLInputElement | null;
+      const debts = Array.isArray(PLAN.debts) ? (PLAN.debts as Debt[]) : [];
+      const target = debts.find(function (d) {
+        return String(d.id) === id;
+      });
+      if (target) {
+        const newName = nameIn ? String(nameIn.value || '').trim() : '';
+        if (newName) target.name = newName;
+        const parsed = balIn ? parseMoneyInput(balIn.value) : null;
+        if (parsed != null && parsed >= 0) {
+          target.current = roundMoney(parsed);
+        } else if (balIn && String(balIn.value || '').trim() === '') {
+          target.current = 0;
+        }
+      }
+      setEditingDebtCardId(null);
+      void savePlanOverrides();
+      render({ refreshBalanceEditors: true });
+      setSaveNeeds('btn-save-goal2-debts', false);
+      showGoal2Saved();
+      lastSavedDebts = cloneDebtsSnapshot();
+    }
+
     goal2Host.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function') return;
@@ -421,7 +529,69 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       });
       void savePlanOverrides();
       lastSavedDebts = cloneDebtsSnapshot();
-    });
+    }, { signal });
+
+    goal2Host.addEventListener('click', function (e) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function') return;
+      const action = (t.closest('[data-action]') as HTMLElement | null)?.getAttribute('data-action') || '';
+      if (action === 'inline-save-debt') {
+        e.preventDefault();
+        commitDebtCardInlineEdit();
+        return;
+      }
+      if (action === 'inline-cancel-debt') {
+        e.preventDefault();
+        cancelDebtCardInlineEdit();
+        return;
+      }
+
+      const debtEl = t.closest('.goal2-debt') as HTMLElement | null;
+      if (!debtEl) return;
+
+      // Ignore clicks on interactive children (details toggles, remove buttons, inputs).
+      if (t.closest('summary, button, a, input, select, textarea, .goal2-remove-payment')) return;
+      // Already editing this card — let focus/typing happen.
+      if (debtEl.classList.contains('goal2-debt--editing')) return;
+
+      const debtId = debtEl.getAttribute('data-debt-id');
+      if (!debtId) return;
+      e.preventDefault();
+      enterDebtCardInlineEdit(String(debtId));
+    }, { signal });
+
+    goal2Host.addEventListener('keydown', function (e) {
+      const ke = e as KeyboardEvent;
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function') return;
+
+      if (ke.key === 'Escape' && getEditingDebtCardId() != null) {
+        const card = t.closest('.goal2-debt--editing');
+        if (card) {
+          ke.preventDefault();
+          cancelDebtCardInlineEdit();
+        }
+        return;
+      }
+      if (ke.key === 'Enter' && getEditingDebtCardId() != null) {
+        const card = t.closest('.goal2-debt--editing');
+        const tag = (t.tagName || '').toLowerCase();
+        if (card && (tag === 'input' || tag === 'button')) {
+          ke.preventDefault();
+          commitDebtCardInlineEdit();
+        }
+        return;
+      }
+      if (ke.key !== 'Enter' && ke.key !== ' ') return;
+      if (t.closest('input, textarea, select, button')) return;
+      const debtEl = t.closest('.goal2-debt') as HTMLElement | null;
+      if (!debtEl) return;
+      if (debtEl.classList.contains('goal2-debt--editing')) return;
+      const debtId = debtEl.getAttribute('data-debt-id');
+      if (!debtId) return;
+      e.preventDefault();
+      enterDebtCardInlineEdit(String(debtId));
+    }, { signal });
   }
 
   const saveBtn = document.getElementById('btn-save-goal2-debts');
@@ -433,7 +603,11 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       setSaveNeeds('btn-save-goal2-debts', false);
       showGoal2Saved();
       lastSavedDebts = cloneDebtsSnapshot();
-    });
+      const dlg = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
+      try {
+        if (dlg && typeof dlg.close === 'function') dlg.close();
+      } catch {}
+    }, { signal });
   }
 
   const undoBtn = document.getElementById('btn-undo-goal2-debts');
@@ -450,29 +624,35 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       (wireGoal2DebtEditor as any)._t = setTimeout(function () {
         if (st) st.textContent = '';
       }, 2200);
-    });
+    }, { signal });
   }
 
   const resetBtn = document.getElementById('btn-reset-goal2-debts');
   if (resetBtn) {
     resetBtn.addEventListener('click', function () {
-      setDebtsDraftFromSnapshot({
-        debts: (PLAN_DEFAULTS.debts || []).map(function (d) {
-          return {
-            id: d.id,
-            name: d.name,
-            current: d.current,
-            paidOff: d.paidOff,
-            aprPct: Number.isFinite((d as any).aprPct) ? Number((d as any).aprPct) : 0,
-            deferredAmount: Number.isFinite((d as any).deferredAmount) ? Number((d as any).deferredAmount) : 0,
-            deferredExpiresOn: typeof (d as any).deferredExpiresOn === 'string' ? (d as any).deferredExpiresOn : '',
-            deferredMonthsRemaining: Number.isFinite((d as any).deferredMonthsRemaining)
-              ? Math.max(0, Math.floor(Number((d as any).deferredMonthsRemaining)))
-              : 0,
-            paymentHistory: [],
-          };
-        }),
-      });
+      // Reset draft should not wipe existing debt rows.
+      // Prefer restoring the last-saved snapshot; fall back to defaults only if we never bootstrapped.
+      if (lastSavedDebts) {
+        setDebtsDraftFromSnapshot(lastSavedDebts);
+      } else {
+        setDebtsDraftFromSnapshot({
+          debts: (PLAN_DEFAULTS.debts || []).map(function (d) {
+            return {
+              id: d.id,
+              name: d.name,
+              current: d.current,
+              paidOff: d.paidOff,
+              aprPct: Number.isFinite((d as any).aprPct) ? Number((d as any).aprPct) : 0,
+              deferredAmount: Number.isFinite((d as any).deferredAmount) ? Number((d as any).deferredAmount) : 0,
+              deferredExpiresOn: typeof (d as any).deferredExpiresOn === 'string' ? (d as any).deferredExpiresOn : '',
+              deferredMonthsRemaining: Number.isFinite((d as any).deferredMonthsRemaining)
+                ? Math.max(0, Math.floor(Number((d as any).deferredMonthsRemaining)))
+                : 0,
+              paymentHistory: [],
+            };
+          }),
+        });
+      }
       showGoal2Unsaved();
       const st = document.getElementById('goal2-save-status');
       if (st) st.textContent = 'Reset draft (click Save to apply)';
@@ -480,13 +660,21 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       (wireGoal2DebtEditor as any)._t2 = setTimeout(function () {
         if (st) st.textContent = '';
       }, 2400);
-    });
+    }, { signal });
   }
 
   setSaveNeeds('btn-save-goal2-debts', false);
 }
 
 export function wireGoal3SavingsEditor(render: RenderFn): void {
+  const prevAc = (wireGoal3SavingsEditor as any)._ac as AbortController | undefined;
+  if (prevAc) prevAc.abort();
+  const ac = new AbortController();
+  (wireGoal3SavingsEditor as any)._ac = ac;
+  const signal = ac.signal;
+
+  setEditingSavingsCardId(null);
+
   let savingsDraftRerenderTimer: number | null = null;
   function scheduleSavingsDraftSyncToPlanAndRender(): void {
     if (savingsDraftRerenderTimer != null) clearTimeout(savingsDraftRerenderTimer);
@@ -512,8 +700,8 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if ((t as any).matches && (t as any).matches('input[data-field="deposit"]')) return;
       scheduleSavingsDraftSyncToPlanAndRender();
     }
-    savingsHost.addEventListener('input', onSavingsFieldActivity);
-    savingsHost.addEventListener('change', onSavingsFieldActivity);
+    savingsHost.addEventListener('input', onSavingsFieldActivity, { signal });
+    savingsHost.addEventListener('change', onSavingsFieldActivity, { signal });
 
     savingsHost.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
@@ -530,7 +718,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         lastSavedSavings = cloneSavingsSnapshot();
         return;
       }
-    });
+    }, { signal });
 
     // Hold-to-delete savings rows (2s) then confirm.
     wireHoldToConfirm(savingsHost, 'button[data-action="remove"]', {
@@ -577,11 +765,106 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
   if (addBtn) {
     addBtn.addEventListener('click', function () {
       addSavingsRowDraft(showGoal3Unsaved);
-    });
+    }, { signal });
   }
 
   const goal3Host = document.getElementById('goal3-savings') as HTMLElement | null;
   if (goal3Host) {
+    wireMoneyMasks(goal3Host);
+
+    function focusEditingSavingsCard(sid: string): void {
+      function run(): void {
+        const host = document.getElementById('goal3-savings');
+        if (!host) return;
+        const idEsc =
+          typeof CSS !== 'undefined' && CSS.escape
+            ? CSS.escape(sid)
+            : sid.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const card = host.querySelector(
+          '.goal3-savings-account--editing[data-savings-id="' + idEsc + '"]'
+        ) as HTMLElement | null;
+        if (!card) return;
+        const input = card.querySelector('input.card-inline-edit-name') as HTMLInputElement | null;
+        if (input && typeof input.focus === 'function') {
+          input.focus();
+          try {
+            input.select();
+          } catch {}
+        }
+      }
+      queueMicrotask(function () {
+        requestAnimationFrame(run);
+      });
+    }
+
+    function enterSavingsCardInlineEdit(sid: string): void {
+      if (getEditingSavingsCardId() === String(sid)) {
+        focusEditingSavingsCard(String(sid));
+        return;
+      }
+      setEditingSavingsCardId(String(sid));
+      render({ refreshBalanceEditors: true });
+      focusEditingSavingsCard(String(sid));
+    }
+
+    function cancelSavingsCardInlineEdit(): void {
+      if (getEditingSavingsCardId() == null) return;
+      setEditingSavingsCardId(null);
+      render({ refreshBalanceEditors: true });
+    }
+
+    function commitSavingsCardInlineEdit(): void {
+      const id = getEditingSavingsCardId();
+      if (!id) return;
+      const host = document.getElementById('goal3-savings');
+      const idEsc =
+        typeof CSS !== 'undefined' && CSS.escape
+          ? CSS.escape(id)
+          : id.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const card = host
+        ? (host.querySelector(
+            '.goal3-savings-account--editing[data-savings-id="' + idEsc + '"]'
+          ) as HTMLElement | null)
+        : null;
+      if (!card) {
+        setEditingSavingsCardId(null);
+        render({ refreshBalanceEditors: true });
+        return;
+      }
+      const nameIn = card.querySelector('input[data-field="name"]') as HTMLInputElement | null;
+      const balIn = card.querySelector('input[data-field="current"]') as HTMLInputElement | null;
+      const apyIn = card.querySelector('input[data-field="apyPct"]') as HTMLInputElement | null;
+      const accs = Array.isArray((PLAN as any).savingsAccounts)
+        ? ((PLAN as any).savingsAccounts as SavingsAccount[])
+        : [];
+      const target = accs.find(function (a) {
+        return String(a.id) === id;
+      });
+      if (target) {
+        const newName = nameIn ? String(nameIn.value || '').trim() : '';
+        if (newName) target.name = newName;
+        const parsedBal = balIn ? parseMoneyInput(balIn.value) : null;
+        if (parsedBal != null) {
+          target.current = roundMoney(parsedBal);
+        } else if (balIn && String(balIn.value || '').trim() === '') {
+          target.current = 0;
+        }
+        const parsedApy = apyIn ? parseMoneyInput(apyIn.value) : null;
+        if (parsedApy != null && parsedApy >= 0) {
+          target.apyPct = roundMoney(parsedApy);
+        } else if (apyIn && String(apyIn.value || '').trim() === '') {
+          target.apyPct = 0;
+        }
+      }
+      setEditingSavingsCardId(null);
+      syncLegacySavingsFromAccounts(PLAN);
+      void savePlanOverrides();
+      render({ refreshBalanceEditors: true });
+      setSaveNeeds('btn-save-goal3-savings', false);
+      showGoal3Saved();
+      lastSavedSavings = cloneSavingsSnapshot();
+    }
+
     goal3Host.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function') return;
@@ -598,7 +881,68 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       syncLegacySavingsFromAccounts(PLAN);
       void savePlanOverrides();
       lastSavedSavings = cloneSavingsSnapshot();
-    });
+    }, { signal });
+
+    goal3Host.addEventListener('click', function (e) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function') return;
+      const action = (t.closest('[data-action]') as HTMLElement | null)?.getAttribute('data-action') || '';
+      if (action === 'inline-save-savings') {
+        e.preventDefault();
+        commitSavingsCardInlineEdit();
+        return;
+      }
+      if (action === 'inline-cancel-savings') {
+        e.preventDefault();
+        cancelSavingsCardInlineEdit();
+        return;
+      }
+
+      const accountEl = t.closest('.goal3-savings-account') as HTMLElement | null;
+      if (!accountEl) return;
+
+      // Ignore clicks on interactive children (details toggles, remove buttons, inputs).
+      if (t.closest('summary, button, a, input, select, textarea, .goal3-remove-deposit')) return;
+      if (accountEl.classList.contains('goal3-savings-account--editing')) return;
+
+      const sid = accountEl.getAttribute('data-savings-id');
+      if (!sid) return;
+      e.preventDefault();
+      enterSavingsCardInlineEdit(String(sid));
+    }, { signal });
+
+    goal3Host.addEventListener('keydown', function (e) {
+      const ke = e as KeyboardEvent;
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function') return;
+
+      if (ke.key === 'Escape' && getEditingSavingsCardId() != null) {
+        const card = t.closest('.goal3-savings-account--editing');
+        if (card) {
+          ke.preventDefault();
+          cancelSavingsCardInlineEdit();
+        }
+        return;
+      }
+      if (ke.key === 'Enter' && getEditingSavingsCardId() != null) {
+        const card = t.closest('.goal3-savings-account--editing');
+        const tag = (t.tagName || '').toLowerCase();
+        if (card && (tag === 'input' || tag === 'button')) {
+          ke.preventDefault();
+          commitSavingsCardInlineEdit();
+        }
+        return;
+      }
+      if (ke.key !== 'Enter' && ke.key !== ' ') return;
+      if (t.closest('input, textarea, select, button')) return;
+      const accountEl = t.closest('.goal3-savings-account') as HTMLElement | null;
+      if (!accountEl) return;
+      if (accountEl.classList.contains('goal3-savings-account--editing')) return;
+      const sid = accountEl.getAttribute('data-savings-id');
+      if (!sid) return;
+      e.preventDefault();
+      enterSavingsCardInlineEdit(String(sid));
+    }, { signal });
   }
 
   const saveBtn = document.getElementById('btn-save-goal3-savings') as HTMLButtonElement | null;
@@ -611,7 +955,11 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       setSaveNeeds('btn-save-goal3-savings', false);
       showGoal3Saved();
       lastSavedSavings = cloneSavingsSnapshot();
-    });
+      const dlg = document.getElementById('goal3-editor-dialog') as HTMLDialogElement | null;
+      try {
+        if (dlg && typeof dlg.close === 'function') dlg.close();
+      } catch {}
+    }, { signal });
   }
 
   const undoBtn = document.getElementById('btn-undo-goal3-savings') as HTMLButtonElement | null;
@@ -629,13 +977,18 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       (wireGoal3SavingsEditor as any)._t = setTimeout(function () {
         if (st) st.textContent = '';
       }, 2200);
-    });
+    }, { signal });
   }
 
   const resetBtn = document.getElementById('btn-reset-goal3-savings');
   if (resetBtn) {
     resetBtn.addEventListener('click', function () {
-      setSavingsDraftFromSnapshot({ savingsAccounts: JSON.parse(JSON.stringify(PLAN_DEFAULTS.savingsAccounts || [])) });
+      // Reset draft should restore the initial snapshot (e.g. trial seed) rather than zeroing balances.
+      if (lastSavedSavings) {
+        setSavingsDraftFromSnapshot(lastSavedSavings);
+      } else {
+        setSavingsDraftFromSnapshot({ savingsAccounts: JSON.parse(JSON.stringify(PLAN_DEFAULTS.savingsAccounts || [])) });
+      }
       showGoal3Unsaved();
       const st = document.getElementById('goal3-save-status');
       if (st) st.textContent = 'Reset draft (click Save to apply)';
@@ -643,7 +996,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       (wireGoal3SavingsEditor as any)._t2 = setTimeout(function () {
         if (st) st.textContent = '';
       }, 2400);
-    });
+    }, { signal });
   }
 
   setSaveNeeds('btn-save-goal3-savings', false);
@@ -700,10 +1053,27 @@ function unlockBodyScrollForGoalDialog() {
 
 /** Centered modal editors (native `<dialog>` + `showModal`). */
 export function wireGoalEditorDialogs(): void {
+  const prevAc = (wireGoalEditorDialogs as any)._ac as AbortController | undefined;
+  if (prevAc) prevAc.abort();
+  const ac = new AbortController();
+  (wireGoalEditorDialogs as any)._ac = ac;
+  const signal = ac.signal;
+
   ['goal2-editor-dialog', 'goal3-editor-dialog'].forEach(function (id) {
     const d = document.getElementById(id) as HTMLDialogElement | null;
     if (d && typeof d.close === 'function') d.close();
   });
+  // If a dialog was opened multiple times due to double-bound listeners, scroll lock can get stuck.
+  // Always reset on rewire.
+  bodyScrollLockDepth = 0;
+  try {
+    document.documentElement.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.top = '';
+    document.body.style.left = '';
+    document.body.style.right = '';
+    document.body.style.width = '';
+  } catch {}
 
   function bindDialog(dialogId: string, btnIds: string | string[]): void {
     const dlg = document.getElementById(dialogId) as HTMLDialogElement | null;
@@ -734,13 +1104,13 @@ export function wireGoalEditorDialogs(): void {
         }
         lockBodyScrollForGoalDialog();
         setExpanded(true);
-      });
+      }, { signal });
     });
 
     dlg.addEventListener('close', function () {
       unlockBodyScrollForGoalDialog();
       setExpanded(false);
-    });
+    }, { signal });
 
     dlg.addEventListener('click', function (e) {
       if (e.target === dlg) {
@@ -753,7 +1123,7 @@ export function wireGoalEditorDialogs(): void {
       if (el && typeof el.closest === 'function' && el.closest('[data-close-goal-dialog]')) {
         dlg.close();
       }
-    });
+    }, { signal });
   }
 
   bindDialog('goal2-editor-dialog', ['btn-toggle-goal2-editor', 'btn-open-debts-editor']);
