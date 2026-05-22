@@ -29,6 +29,7 @@ import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { yyyyMmFromDate } from './monthly-activity';
 import { ID_GOAL_HYSA, ensureSavingsGoals, normalizeSavingsGoalRow } from './savings-goals';
 import { normalizeLedgerStatus } from './debt-ledger';
+import { isTrialSessionActive } from '../../lib/trial/trial-session';
 
 function safeReadLocalPlanPayload(): any | null {
   try {
@@ -124,6 +125,7 @@ function normalizeSavingsAccount(a: unknown): SavingsAccount | null {
   } else {
     apyPct = DEFAULT_SAVINGS_APY_PCT;
   }
+  apyPct = Math.max(0, numOr(apyPct, 0));
   let goalIds: string[] = [];
   if (Array.isArray(o.goalIds) && o.goalIds.length) {
     goalIds = o.goalIds.map(String).filter(Boolean);
@@ -299,7 +301,8 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
         let ledgerStatus = normalizeLedgerStatus(d.ledgerStatus);
         const current = Math.max(0, numOr(d.current, 0));
         const paidOff = Math.max(0, numOr(d.paidOff, 0));
-        if (!d.ledgerStatus && current <= 0 && paidOff > 0) {
+        const hasAnyPayments = Array.isArray(d.paymentHistory) && d.paymentHistory.length > 0;
+        if (!d.ledgerStatus && current <= 0 && (paidOff > 0 || hasAnyPayments)) {
           ledgerStatus = 'completed';
         }
         const row: Debt = {
@@ -389,6 +392,10 @@ export async function applyPlanOverrides(): Promise<void> {
 }
 
 export async function savePlanOverrides(): Promise<void> {
+  // Trial sessions should not persist any edits beyond the current tab lifetime.
+  if (isTrialSessionActive()) {
+    return;
+  }
   if (isFinancialPlanDemoMode()) {
     // If the user is editing, treat it as opting out of demo mode.
     // Persist locally so refreshes don't revert to the mock snapshot.

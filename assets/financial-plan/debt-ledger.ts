@@ -64,7 +64,18 @@ export function concatDebtsLedgerOrder(parts: {
   completed: Debt[];
   deleted: Debt[];
 }): Debt[] {
-  return [...parts.active, ...parts.completed, ...parts.deleted];
+  // Defensive: prevent duplicate ids from showing twice in archives after refresh/navigation.
+  // Prefer the earliest ledger bucket in display order: active → completed → deleted.
+  const out: Debt[] = [];
+  const seen = new Set<string>();
+  [...parts.active, ...parts.completed, ...parts.deleted].forEach(function (d) {
+    const id = String(d && (d as any).id != null ? (d as any).id : '');
+    if (!id) return;
+    if (seen.has(id)) return;
+    seen.add(id);
+    out.push(d);
+  });
+  return out;
 }
 
 export function getDebtsEditorSegment(plan: FinancialPlan): DebtsEditorSegment {

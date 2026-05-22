@@ -24,6 +24,7 @@ export function TrialCloseBeacon() {
       } catch {
         // ignore
       }
+
     };
 
     window.addEventListener('pagehide', onPageHide);

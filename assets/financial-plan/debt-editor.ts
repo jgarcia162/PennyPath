@@ -24,10 +24,10 @@ function stripOptionalLedger(d: Debt): Debt {
   return d;
 }
 
-function parseDebtRowFromDOM(row: Element, rowIdx: number, planDebts: Debt[]): Debt {
+function parseDebtRowFromDOM(row: Element, rowIdx: number, segmentDebts: Debt[], allDebts: Debt[]): Debt {
   let id = row.getAttribute('data-debt-id');
   if (id == null || String(id).trim() === '') {
-    id = planDebts[rowIdx] ? String(planDebts[rowIdx].id) : 'd_' + rowIdx;
+    id = segmentDebts[rowIdx] ? String(segmentDebts[rowIdx].id) : 'd_' + rowIdx;
   } else {
     id = String(id).trim();
   }
@@ -44,10 +44,13 @@ function parseDebtRowFromDOM(row: Element, rowIdx: number, planDebts: Debt[]): D
   const deferredExpiresOn = defDateEl ? String(defDateEl.value || '').trim() : '';
   const payment = payEl ? parseMoneyInput(payEl.value) : null;
 
-  const prev = planDebts.find(function (d: Debt) {
+  const prev = allDebts.find(function (d: Debt) {
     return String(d.id) === String(id);
   });
-  const prevByIndex = !prev && planDebts[rowIdx] ? planDebts[rowIdx] : null;
+  // Only fall back by index within the current visible ledger segment.
+  // The full plan array includes completed/deleted rows, so using it here can cause a brand-new draft row
+  // to "inherit" paidOff/paymentHistory from a hidden row and get promoted to completed immediately.
+  const prevByIndex = !prev && segmentDebts[rowIdx] ? segmentDebts[rowIdx] : null;
   const prevPaidOff =
     prev && Number.isFinite(prev.paidOff)
       ? prev.paidOff
@@ -103,12 +106,13 @@ export function readDebtsEditorIntoPlan(): void {
   const segment = normalizeDebtsEditorSegment(host.dataset.debtsSegment || 'active');
   (PLAN as any).debtsEditorLedgerSegment = segment;
 
-  const planDebts: Debt[] = Array.isArray((PLAN as any).debts) ? ((PLAN as any).debts as Debt[]) : [];
-  const parts = partitionDebtsByLedger(planDebts);
+  const allDebts: Debt[] = Array.isArray((PLAN as any).debts) ? ((PLAN as any).debts as Debt[]) : [];
+  const parts = partitionDebtsByLedger(allDebts);
+  const segmentDebts: Debt[] = segment === 'completed' ? parts.completed : parts.active;
   const rows = host.querySelectorAll('.debt-row');
   const parsed: Debt[] = [];
   rows.forEach(function (row: Element, rowIdx: number) {
-    parsed.push(parseDebtRowFromDOM(row, rowIdx, planDebts));
+    parsed.push(parseDebtRowFromDOM(row, rowIdx, segmentDebts, allDebts));
   });
 
   if (segment === 'active') {
@@ -116,7 +120,7 @@ export function readDebtsEditorIntoPlan(): void {
     const promoted: Debt[] = [];
     let lifetimeBump = 0;
     parsed.forEach(function (d: Debt) {
-      const prev = planDebts.find(function (x: Debt) {
+      const prev = allDebts.find(function (x: Debt) {
         return String(x.id) === String(d.id);
       });
       const prevSt = normalizeLedgerStatus(prev && prev.ledgerStatus);
