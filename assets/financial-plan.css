@@ -2562,7 +2562,7 @@ body.financial-plan-demo-mode #checkin-form {
 .goal-editor-dialog {
   border: none;
   padding: 0;
-  max-width: min(720px, calc(100vw - 32px));
+  max-width: min(1120px, calc(100vw - 24px));
   width: 100%;
   border-radius: 18px;
   background: transparent;
@@ -3911,6 +3911,9 @@ body.financial-plan-demo-mode #checkin-form {
   font-size: 12px;
   padding: 6px 8px;
 }
+.field-inline-action--ledger-no-memo {
+  flex-wrap: nowrap;
+}
 .goal2-remove-ledger-entry,
 .goal2-remove-payment,
 .goal3-remove-ledger-entry,
@@ -4293,7 +4296,7 @@ body.financial-plan-demo-mode #checkin-form {
 .goal-editor-dialog {
   position: fixed;
   inset: 0;
-  width: min(960px, calc(100vw - 24px));
+  width: min(1120px, calc(100vw - 24px));
   height: fit-content;
   max-height: min(92vh, 920px);
   margin: auto;

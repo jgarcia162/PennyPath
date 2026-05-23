@@ -12,7 +12,12 @@ import { defaultLogAtIsoForEdits } from './default-log-at';
 import { concatSavingsLedgerOrder, partitionSavingsByLedger } from './savings-ledger';
 import { isSavingsDepositEntry, normalizeLedgerMemo, savingsLedgerKind } from './ledger-utils';
 
-function parseSavingsRowFromDOM(row: Element, rowIdx: number, planAcc: SavingsAccount[]): SavingsAccount {
+function parseSavingsRowFromDOM(
+  row: Element,
+  rowIdx: number,
+  planAcc: SavingsAccount[],
+  applyPendingLedger: boolean
+): SavingsAccount {
   let id = row.getAttribute('data-savings-id');
   if (id == null || String(id).trim() === '') {
     id = planAcc[rowIdx] ? String(planAcc[rowIdx].id) : 's_' + rowIdx;
@@ -23,7 +28,6 @@ function parseSavingsRowFromDOM(row: Element, rowIdx: number, planAcc: SavingsAc
   const curEl = row.querySelector('input[data-field="current"]') as HTMLInputElement | null;
   const apyEl = row.querySelector('input[data-field="apyPct"]') as HTMLInputElement | null;
   const depEl = row.querySelector('input[data-field="deposit"]') as HTMLInputElement | null;
-  const depMemoEl = row.querySelector('input[data-field="deposit-memo"]') as HTMLInputElement | null;
   const withdrawEl = row.querySelector('input[data-field="withdrawal"]') as HTMLInputElement | null;
   const withdrawMemoEl = row.querySelector('input[data-field="withdrawal-memo"]') as HTMLInputElement | null;
   const name = nameEl ? String(nameEl.value || 'Account').trim() : 'Account';
@@ -55,8 +59,8 @@ function parseSavingsRowFromDOM(row: Element, rowIdx: number, planAcc: SavingsAc
     apyPctVal = DEFAULT_SAVINGS_APY_PCT;
   }
 
-  const hasNewDeposit = deposit !== null && deposit > 0;
-  const hasNewWithdrawal = withdrawal !== null && withdrawal > 0;
+  const hasNewDeposit = applyPendingLedger && deposit !== null && deposit > 0;
+  const hasNewWithdrawal = applyPendingLedger && withdrawal !== null && withdrawal > 0;
   let hist: DepositHistoryItem[] = normalizeDepositHistory(base);
   if (hasNewDeposit) {
     const dep = roundMoney(deposit!);
@@ -67,11 +71,9 @@ function parseSavingsRowFromDOM(row: Element, rowIdx: number, planAcc: SavingsAc
       amount: dep,
       at: defaultLogAtIsoForEdits(),
       kind: 'deposit',
-      memo: depMemoEl ? normalizeLedgerMemo(depMemoEl.value) : '',
     });
     if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
     if (depEl) depEl.value = '';
-    if (depMemoEl) depMemoEl.value = '';
   }
   if (hasNewWithdrawal) {
     const wd = roundMoney(withdrawal!);
@@ -107,7 +109,12 @@ function parseSavingsRowFromDOM(row: Element, rowIdx: number, planAcc: SavingsAc
   };
 }
 
-export function readSavingsEditorIntoPlan(): void {
+export type ReadSavingsEditorOptions = {
+  applyPendingLedger?: boolean;
+};
+
+export function readSavingsEditorIntoPlan(opts?: ReadSavingsEditorOptions): void {
+  const applyPendingLedger = opts?.applyPendingLedger === true;
   const host = document.getElementById('savings-editor-list');
   if (!host) return;
   const planAcc: SavingsAccount[] = Array.isArray((PLAN as any).savingsAccounts)
@@ -117,7 +124,7 @@ export function readSavingsEditorIntoPlan(): void {
   const rows = host.querySelectorAll('.savings-row');
   const parsed: SavingsAccount[] = [];
   rows.forEach(function (row: Element, rowIdx: number) {
-    parsed.push(parseSavingsRowFromDOM(row, rowIdx, planAcc));
+    parsed.push(parseSavingsRowFromDOM(row, rowIdx, planAcc, applyPendingLedger));
   });
   PLAN.savingsAccounts = concatSavingsLedgerOrder({
     active: parsed,

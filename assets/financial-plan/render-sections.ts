@@ -21,8 +21,74 @@ import {
   isSavingsDepositEntry,
   savingsLedgerKind,
 } from './ledger-utils';
+import { getSavingsAccounts } from './savings-accounts';
 
 type MoneyFn = (n: number) => string;
+
+let debtCardOrderIds: string[] | null = null;
+let debtEditorRowOrderIds: string[] | null = null;
+let savingsCardOrderIds: string[] | null = null;
+let savingsEditorRowOrderIds: string[] | null = null;
+
+function orderByIdList<T extends { id: string }>(items: T[], ids: string[] | null): T[] {
+  if (!ids || !ids.length) return items;
+  const byId = new Map<string, T>();
+  items.forEach(function (item) {
+    byId.set(String(item.id), item);
+  });
+  const ordered: T[] = [];
+  ids.forEach(function (id) {
+    const row = byId.get(id);
+    if (row) {
+      ordered.push(row);
+      byId.delete(id);
+    }
+  });
+  byId.forEach(function (row) {
+    ordered.push(row);
+  });
+  return ordered;
+}
+
+function applyFrozenDebtCardOrder(debts: Debt[]): Debt[] {
+  return orderByIdList(debts, debtCardOrderIds);
+}
+
+function applyFrozenDebtEditorRowOrder(debts: Debt[]): Debt[] {
+  return orderByIdList(debts, debtEditorRowOrderIds);
+}
+
+function applyFrozenSavingsCardOrder(accounts: SavingsAccount[]): SavingsAccount[] {
+  return orderByIdList(accounts, savingsCardOrderIds);
+}
+
+function applyFrozenSavingsEditorRowOrder(accounts: SavingsAccount[]): SavingsAccount[] {
+  return orderByIdList(accounts, savingsEditorRowOrderIds);
+}
+
+/** Freeze dashboard card + editor row order while a goal editor dialog is open. */
+export function freezeEditorOrders(plan: FinancialPlan): void {
+  debtCardOrderIds = getDebtsInProgressOrderUnfrozen(plan).map(function (d) {
+    return String(d.id);
+  });
+  debtEditorRowOrderIds = getDebtsInEditorOrderForSegmentUnfrozen(plan).map(function (d) {
+    return String(d.id);
+  });
+  const accs = getSavingsAccounts(plan);
+  savingsCardOrderIds = accs.map(function (a) {
+    return String(a.id);
+  });
+  savingsEditorRowOrderIds = accs.map(function (a) {
+    return String(a.id);
+  });
+}
+
+export function clearEditorOrderFreeze(): void {
+  debtCardOrderIds = null;
+  debtEditorRowOrderIds = null;
+  savingsCardOrderIds = null;
+  savingsEditorRowOrderIds = null;
+}
 
 function closeAllSavingsGoalsDropdowns(except?: Element | null): void {
   document.querySelectorAll('.editor-savings-goals-dd.is-open').forEach(function (el) {
@@ -110,7 +176,7 @@ export function getDebtsInEditorOrder(plan: Pick<FinancialPlan, 'debts' | 'debts
 }
 
 /** Debts shown in the editor for the current ledger segment (dialog tab). */
-export function getDebtsInEditorOrderForSegment(
+export function getDebtsInEditorOrderForSegmentUnfrozen(
   plan: Pick<FinancialPlan, 'debts' | 'debtsEditorSort' | 'debtsEditorLedgerSegment'>
 ): Debt[] {
   const segment = getDebtsEditorSegment(plan as FinancialPlan);
@@ -120,13 +186,46 @@ export function getDebtsInEditorOrderForSegment(
   return sortDebtListByMode(bucket.slice(), mode);
 }
 
+/** Debts shown in the editor for the current ledger segment (dialog tab). */
+export function getDebtsInEditorOrderForSegment(
+  plan: Pick<FinancialPlan, 'debts' | 'debtsEditorSort' | 'debtsEditorLedgerSegment'>
+): Debt[] {
+  return applyFrozenDebtEditorRowOrder(getDebtsInEditorOrderForSegmentUnfrozen(plan));
+}
+
 /**
  * Order for Goal 2 per-debt progress cards (`#goal2-debts`).
  */
-export function getDebtsInProgressOrder(plan: Pick<FinancialPlan, 'debts' | 'debtsProgressSort'>): Debt[] {
+export function getDebtsInProgressOrderUnfrozen(
+  plan: Pick<FinancialPlan, 'debts' | 'debtsProgressSort'>
+): Debt[] {
   const list = partitionDebtsByLedger(Array.isArray(plan.debts) ? (plan.debts as Debt[]) : []).active;
   const mode = normalizeDebtsProgressSort(plan.debtsProgressSort as unknown);
   return sortDebtListByMode(list, mode);
+}
+
+export function getDebtsInProgressOrder(plan: Pick<FinancialPlan, 'debts' | 'debtsProgressSort'>): Debt[] {
+  return applyFrozenDebtCardOrder(getDebtsInProgressOrderUnfrozen(plan));
+}
+
+function captureDebtCardActivityOpen(host: HTMLElement): Map<string, boolean> {
+  const open = new Map<string, boolean>();
+  host.querySelectorAll('.goal2-debt-payments').forEach(function (det) {
+    const card = det.closest('.goal2-debt');
+    const id = card ? card.getAttribute('data-debt-id') : null;
+    if (id && (det as HTMLDetailsElement).open) open.set(String(id), true);
+  });
+  return open;
+}
+
+function captureSavingsCardActivityOpen(host: HTMLElement): Map<string, boolean> {
+  const open = new Map<string, boolean>();
+  host.querySelectorAll('.goal3-savings-deposits').forEach(function (det) {
+    const card = det.closest('.goal3-savings-account');
+    const id = card ? card.getAttribute('data-savings-id') : null;
+    if (id && (det as HTMLDetailsElement).open) open.set(String(id), true);
+  });
+  return open;
 }
 
 function buildInlineEditActions(kind: 'debt' | 'savings'): HTMLDivElement {
@@ -186,6 +285,7 @@ function buildEditableDebtCard(debt: Debt): HTMLDivElement {
 export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void {
   const host = document.getElementById('goal2-debts') as HTMLElement | null;
   if (!host) return;
+  const activityOpen = captureDebtCardActivityOpen(host);
   host.innerHTML = '';
   const debts = getDebtsInProgressOrder(plan);
   const editingDebtId = getEditingDebtCardId();
@@ -282,6 +382,8 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
       details.appendChild(ul);
     }
 
+    if (activityOpen.get(String(debt.id || ''))) details.open = true;
+
     wrap.appendChild(head);
     wrap.appendChild(labels);
     wrap.appendChild(track);
@@ -324,23 +426,33 @@ export function appendDebtsEditorEmptyState(host: HTMLElement, segment?: DebtsEd
 
 function buildLedgerInlineActionHtml(opts: {
   amountField: string;
-  memoField: string;
+  memoField?: string;
   action: string;
   amountPlaceholder: string;
   title: string;
   btnClass?: string;
+  includeMemo?: boolean;
 }): string {
   const btnClass = opts.btnClass || 'btn-icon';
-  return (
-    '<div class="field-inline-action field-inline-action--ledger">' +
+  const wrapClass =
+    'field-inline-action field-inline-action--ledger' +
+    (opts.includeMemo ? '' : ' field-inline-action--ledger-no-memo');
+  let html =
+    '<div class="' +
+    wrapClass +
+    '">' +
     '<input type="text" data-field="' +
     opts.amountField +
     '" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="' +
     opts.amountPlaceholder +
-    '">' +
-    '<input type="text" data-field="' +
-    opts.memoField +
-    '" class="ledger-memo" maxlength="120" autocomplete="off" placeholder="Note">' +
+    '">';
+  if (opts.includeMemo && opts.memoField) {
+    html +=
+      '<input type="text" data-field="' +
+      opts.memoField +
+      '" class="ledger-memo" maxlength="120" autocomplete="off" placeholder="Note">';
+  }
+  html +=
     '<button type="button" class="' +
     btnClass +
     '" data-action="' +
@@ -350,8 +462,8 @@ function buildLedgerInlineActionHtml(opts: {
     '" aria-label="' +
     opts.title +
     '">+</button>' +
-    '</div>'
-  );
+    '</div>';
+  return html;
 }
 
 /** Spreadsheet-style table: one header row, data rows are `<tr class="debt-row">`. */
@@ -365,7 +477,7 @@ export function buildDebtsEditorThead() {
     { t: 'APR %', title: 'Annual percentage rate' },
     { t: 'Def $', title: 'Deferred balance (0% promo)' },
     { t: 'Until', title: 'Deferred rate expires' },
-    { t: 'Pay', title: 'Payment amount + note, then +' },
+    { t: 'Pay', title: 'Payment amount, then +' },
     { t: 'Charge', title: 'Purchase/charge amount + note, then +' },
     { t: '', title: 'Remove row' },
   ];
@@ -428,7 +540,6 @@ export function buildDebtRowTR(debt: Debt, segment: DebtsEditorSegment = 'active
       'editor-table__cell--pay',
       buildLedgerInlineActionHtml({
         amountField: 'payment',
-        memoField: 'payment-memo',
         action: 'quick-payment',
         amountPlaceholder: '$0.00',
         title: 'Log payment now',
@@ -446,6 +557,7 @@ export function buildDebtRowTR(debt: Debt, segment: DebtsEditorSegment = 'active
         amountPlaceholder: '$0.00',
         title: 'Log charge now',
         btnClass: 'btn-icon btn-quick-charge',
+        includeMemo: true,
       })
     )
   );
@@ -736,7 +848,7 @@ export function buildSavingsEditorThead(): HTMLTableSectionElement {
     { t: 'Name', title: '' },
     { t: 'Balance', title: 'Current balance' },
     { t: 'APY %', title: 'Annual percentage yield' },
-    { t: 'Deposit', title: 'Deposit amount + note, then +' },
+    { t: 'Deposit', title: 'Deposit amount, then +' },
     { t: 'Withdraw', title: 'Withdrawal amount + note, then +' },
     { t: 'Goals', title: 'This balance can count toward one or more targets' },
     { t: '', title: 'Remove row' },
@@ -783,7 +895,6 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   tdDep.className = 'editor-table__cell--pay';
   tdDep.innerHTML = buildLedgerInlineActionHtml({
     amountField: 'deposit',
-    memoField: 'deposit-memo',
     action: 'quick-deposit',
     amountPlaceholder: '$0.00',
     title: 'Log deposit now',
@@ -799,6 +910,7 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
     amountPlaceholder: '$0.00',
     title: 'Log withdrawal now',
     btnClass: 'btn-icon btn-quick-withdrawal',
+    includeMemo: true,
   });
 
   const tdGoal = document.createElement('td');
@@ -931,7 +1043,9 @@ export function renderSavingsEditor(d: Pick<DerivedPlanMetrics, 'savingsAccounts
   const host = document.getElementById('savings-editor-list') as HTMLElement | null;
   if (!host) return;
   host.innerHTML = '';
-  const accs: SavingsAccount[] = (d.savingsAccounts || []) as SavingsAccount[];
+  let accs: SavingsAccount[] = applyFrozenSavingsEditorRowOrder(
+    (d.savingsAccounts || []) as SavingsAccount[]
+  );
   ensureSavingsGoals(PLAN);
   const savingsGoals: SavingsGoal[] = ((PLAN as any).savingsGoals || []) as SavingsGoal[];
   if (accs.length === 0) {
@@ -1017,8 +1131,9 @@ export function renderGoal3SavingsAccounts(
 ): void {
   const host = document.getElementById('goal3-savings') as HTMLElement | null;
   if (!host) return;
+  const activityOpen = captureSavingsCardActivityOpen(host);
   host.innerHTML = '';
-  const accs: SavingsAccount[] = (d.savingsAccounts || []) as SavingsAccount[];
+  const accs: SavingsAccount[] = applyFrozenSavingsCardOrder((d.savingsAccounts || []) as SavingsAccount[]);
   const editingSavingsId = getEditingSavingsCardId();
   accs.forEach(function (acc) {
     if (editingSavingsId && String(acc.id || '') === editingSavingsId) {
@@ -1192,6 +1307,8 @@ export function renderGoal3SavingsAccounts(
       });
       details.appendChild(ul);
     }
+
+    if (activityOpen.get(String(acc.id || ''))) details.open = true;
 
     wrap.appendChild(head);
     wrap.appendChild(goalsDetails);

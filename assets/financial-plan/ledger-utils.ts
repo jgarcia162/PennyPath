@@ -57,3 +57,13 @@ export function formatSavingsLedgerSummary(p: DepositHistoryItem, moneyExact: (n
   const memo = normalizeLedgerMemo(p.memo);
   return memo ? label + ' ' + moneyExact(Number(p.amount)) + ' · ' + memo : label + ' ' + moneyExact(Number(p.amount));
 }
+
+/** Ledger amount/memo inputs that must not commit on blur or draft sync. */
+export function isLedgerPendingEditorField(el: Element | null): boolean {
+  if (!el || typeof (el as HTMLElement).matches !== 'function') return false;
+  const node = el as HTMLElement;
+  if (!node.matches('input, textarea, select')) return false;
+  return node.matches(
+    'input[data-field="payment"], input[data-field="charge"], input[data-field="deposit"], input[data-field="withdrawal"], input[data-field="charge-memo"], input[data-field="withdrawal-memo"]'
+  );
+}

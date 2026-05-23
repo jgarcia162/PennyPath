@@ -31,6 +31,8 @@ import {
   setSavingsLedgerStatusById,
   hardRemoveSavingsById,
 } from './savings-editor';
+import { freezeEditorOrders, clearEditorOrderFreeze } from './render-sections';
+import { isLedgerPendingEditorField } from './ledger-utils';
 
 let lastSavedDebts: { debts: Debt[] } | null = null;
 let lastSavedSavings: { savingsAccounts: SavingsAccount[] } | null = null;
@@ -286,7 +288,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   setEditingDebtCardId(null);
 
   async function persistGoal2DebtsFromEditor(): Promise<boolean> {
-    readDebtsEditorIntoPlan();
+    readDebtsEditorIntoPlan({ applyPendingLedger: true });
     return savePlanOverrides();
   }
 
@@ -381,17 +383,8 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if (!row || !debtsHostEl.contains(row)) return;
       if (!(t as any).matches('input, textarea, select')) return;
       showGoal2Unsaved();
-      // Do not sync/render on Pay field while typing: readDebtsEditorIntoPlan() applies
-      // positive payment amounts and clears the input — the debounced input handler would
-      // commit partial amounts (e.g. "5" while typing "50") and make the field "disappear".
-      if (
-        (t as any).matches &&
-        (t as any).matches(
-          'input[data-field="payment"], input[data-field="charge"], input[data-field="payment-memo"], input[data-field="charge-memo"]'
-        )
-      ) {
-        return;
-      }
+      // Do not sync on ledger amount/memo fields (typing or blur); commit only via + or Save.
+      if (isLedgerPendingEditorField(t)) return;
       scheduleDebtsDraftSyncToPlanAndRender();
     }
     debtsHost.addEventListener('input', onDebtRowFieldActivity, { signal });
@@ -723,15 +716,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if (!row || !savingsHostEl.contains(row)) return;
       if (!(t as any).matches('input, textarea, select')) return;
       showGoal3Unsaved();
-      // Same as debt Pay field: readSavingsEditorIntoPlan applies positive deposits and clears the input.
-      if (
-        (t as any).matches &&
-        (t as any).matches(
-          'input[data-field="deposit"], input[data-field="withdrawal"], input[data-field="deposit-memo"], input[data-field="withdrawal-memo"]'
-        )
-      ) {
-        return;
-      }
+      if (isLedgerPendingEditorField(t)) return;
       scheduleSavingsDraftSyncToPlanAndRender();
     }
     savingsHost.addEventListener('input', onSavingsFieldActivity, { signal });
@@ -744,7 +729,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if (action === 'quick-deposit' || action === 'quick-withdrawal') {
         e.preventDefault();
         void (async function () {
-          readSavingsEditorIntoPlan();
+          readSavingsEditorIntoPlan({ applyPendingLedger: true });
           syncLegacySavingsFromAccounts(PLAN);
           const ok = await savePlanOverrides();
           render({ refreshBalanceEditors: true });
@@ -988,7 +973,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
   const saveBtn = document.getElementById('btn-save-goal3-savings') as HTMLButtonElement | null;
   if (saveBtn) {
     saveBtn.addEventListener('click', function () {
-      readSavingsEditorIntoPlan();
+      readSavingsEditorIntoPlan({ applyPendingLedger: true });
       syncLegacySavingsFromAccounts(PLAN);
       void savePlanOverrides();
       render({ refreshBalanceEditors: true });
@@ -1133,6 +1118,7 @@ export function wireGoalEditorDialogs(): void {
 
     btns.forEach(function (btn) {
       btn.addEventListener('click', function () {
+        freezeEditorOrders(PLAN);
         try {
           if (typeof dlg.showModal !== 'function') return;
           dlg.showModal();
@@ -1148,6 +1134,7 @@ export function wireGoalEditorDialogs(): void {
     });
 
     dlg.addEventListener('close', function () {
+      clearEditorOrderFreeze();
       unlockBodyScrollForGoalDialog();
       setExpanded(false);
     }, { signal });

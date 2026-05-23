@@ -63,7 +63,13 @@ function domCurrentLooksLikeStalePrePayment(rawCurrent: number | null, prev: Deb
   return Math.abs(rawCurrent - before) < 0.01;
 }
 
-function parseDebtRowFromDOM(row: Element, rowIdx: number, segmentDebts: Debt[], allDebts: Debt[]): Debt {
+function parseDebtRowFromDOM(
+  row: Element,
+  rowIdx: number,
+  segmentDebts: Debt[],
+  allDebts: Debt[],
+  applyPendingLedger: boolean
+): Debt {
   let id = row.getAttribute('data-debt-id');
   if (id == null || String(id).trim() === '') {
     id = segmentDebts[rowIdx] ? String(segmentDebts[rowIdx].id) : 'd_' + rowIdx;
@@ -76,7 +82,6 @@ function parseDebtRowFromDOM(row: Element, rowIdx: number, segmentDebts: Debt[],
   const defEl = row.querySelector('input[data-field="deferredAmount"]') as HTMLInputElement | null;
   const defDateEl = row.querySelector('input[data-field="deferredExpiresOn"]') as HTMLInputElement | null;
   const payEl = row.querySelector('input[data-field="payment"]') as HTMLInputElement | null;
-  const payMemoEl = row.querySelector('input[data-field="payment-memo"]') as HTMLInputElement | null;
   const chargeEl = row.querySelector('input[data-field="charge"]') as HTMLInputElement | null;
   const chargeMemoEl = row.querySelector('input[data-field="charge-memo"]') as HTMLInputElement | null;
   const name = nameEl ? String(nameEl.value || 'Debt').trim() : 'Debt';
@@ -101,8 +106,8 @@ function parseDebtRowFromDOM(row: Element, rowIdx: number, segmentDebts: Debt[],
       : prevByIndex && Number.isFinite(prevByIndex.paidOff)
         ? prevByIndex.paidOff
         : 0;
-  const hasNewPayment = payment !== null && payment > 0;
-  const hasNewCharge = charge !== null && charge > 0;
+  const hasNewPayment = applyPendingLedger && payment !== null && payment > 0;
+  const hasNewCharge = applyPendingLedger && charge !== null && charge > 0;
   let currentBal: number;
   if (rawCurrent !== null) {
     if (
@@ -141,12 +146,10 @@ function parseDebtRowFromDOM(row: Element, rowIdx: number, segmentDebts: Debt[],
         amount: applied,
         at: defaultLogAtIsoForEdits(),
         kind: 'payment',
-        memo: payMemoEl ? normalizeLedgerMemo(payMemoEl.value) : '',
       });
       if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
     }
     if (payEl) payEl.value = '';
-    if (payMemoEl) payMemoEl.value = '';
   }
   if (hasNewCharge) {
     const applied = roundMoney(charge!);
@@ -182,7 +185,12 @@ function parseDebtRowFromDOM(row: Element, rowIdx: number, segmentDebts: Debt[],
   };
 }
 
-export function readDebtsEditorIntoPlan(): void {
+export type ReadDebtsEditorOptions = {
+  applyPendingLedger?: boolean;
+};
+
+export function readDebtsEditorIntoPlan(opts?: ReadDebtsEditorOptions): void {
+  const applyPendingLedger = opts?.applyPendingLedger === true;
   const host = document.getElementById('debts-editor-list');
   if (!host) return;
   const segment = normalizeDebtsEditorSegment(host.dataset.debtsSegment || 'active');
@@ -194,7 +202,7 @@ export function readDebtsEditorIntoPlan(): void {
   const rows = host.querySelectorAll('.debt-row');
   const parsed: Debt[] = [];
   rows.forEach(function (row: Element, rowIdx: number) {
-    parsed.push(parseDebtRowFromDOM(row, rowIdx, segmentDebts, allDebts));
+    parsed.push(parseDebtRowFromDOM(row, rowIdx, segmentDebts, allDebts, applyPendingLedger));
   });
 
   if (segment === 'active') {
