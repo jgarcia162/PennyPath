@@ -1,15 +1,16 @@
 /**
- * Savings editor DOM ↔ PLAN, snapshots, remove deposit helpers.
+ * Savings editor DOM ↔ PLAN, snapshots, remove deposit/withdrawal helpers.
  */
 
 import type { DepositHistoryItem, FinancialPlan, SavingsAccount, SavingsGoal } from '../../types/index.js';
 import { PLAN, PLAN_DEFAULTS, DEFAULT_SAVINGS_APY_PCT } from './plan-data';
 import { parseMoneyInput, numOr, roundMoney, formatCurrencyInput, formatMoneyInput } from './utils';
 import { appendSavingsEditorEmptyState, buildSavingsEditorThead, buildSavingsRowTR } from './render-sections';
-import { normalizeDepositHistory, newDepositId } from './persistence';
+import { normalizeDepositHistory, newDepositId, newWithdrawalId } from './persistence';
 import { ID_GOAL_HYSA, ensureSavingsGoals, getAccountGoalIds } from './savings-goals';
 import { defaultLogAtIsoForEdits } from './default-log-at';
 import { concatSavingsLedgerOrder, partitionSavingsByLedger } from './savings-ledger';
+import { isSavingsDepositEntry, normalizeLedgerMemo, savingsLedgerKind } from './ledger-utils';
 
 function parseSavingsRowFromDOM(row: Element, rowIdx: number, planAcc: SavingsAccount[]): SavingsAccount {
   let id = row.getAttribute('data-savings-id');
@@ -22,10 +23,14 @@ function parseSavingsRowFromDOM(row: Element, rowIdx: number, planAcc: SavingsAc
   const curEl = row.querySelector('input[data-field="current"]') as HTMLInputElement | null;
   const apyEl = row.querySelector('input[data-field="apyPct"]') as HTMLInputElement | null;
   const depEl = row.querySelector('input[data-field="deposit"]') as HTMLInputElement | null;
+  const depMemoEl = row.querySelector('input[data-field="deposit-memo"]') as HTMLInputElement | null;
+  const withdrawEl = row.querySelector('input[data-field="withdrawal"]') as HTMLInputElement | null;
+  const withdrawMemoEl = row.querySelector('input[data-field="withdrawal-memo"]') as HTMLInputElement | null;
   const name = nameEl ? String(nameEl.value || 'Account').trim() : 'Account';
   const rawCurrent = curEl ? parseMoneyInput(curEl.value) : null;
   const rawApy = apyEl ? parseMoneyInput(apyEl.value) : null;
   const deposit = depEl ? parseMoneyInput(depEl.value) : null;
+  const withdrawal = withdrawEl ? parseMoneyInput(withdrawEl.value) : null;
 
   const prev = planAcc.find(function (a: SavingsAccount) {
     return String(a.id) === String(id);
@@ -50,14 +55,38 @@ function parseSavingsRowFromDOM(row: Element, rowIdx: number, planAcc: SavingsAc
     apyPctVal = DEFAULT_SAVINGS_APY_PCT;
   }
 
+  const hasNewDeposit = deposit !== null && deposit > 0;
+  const hasNewWithdrawal = withdrawal !== null && withdrawal > 0;
   let hist: DepositHistoryItem[] = normalizeDepositHistory(base);
-  if (deposit !== null && deposit > 0) {
-    const dep = roundMoney(deposit);
+  if (hasNewDeposit) {
+    const dep = roundMoney(deposit!);
     currentBal = roundMoney(currentBal + dep);
     hist = hist.slice();
-    hist.push({ id: newDepositId(), amount: dep, at: defaultLogAtIsoForEdits() });
+    hist.push({
+      id: newDepositId(),
+      amount: dep,
+      at: defaultLogAtIsoForEdits(),
+      kind: 'deposit',
+      memo: depMemoEl ? normalizeLedgerMemo(depMemoEl.value) : '',
+    });
     if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
     if (depEl) depEl.value = '';
+    if (depMemoEl) depMemoEl.value = '';
+  }
+  if (hasNewWithdrawal) {
+    const wd = roundMoney(withdrawal!);
+    currentBal = roundMoney(Math.max(0, currentBal - wd));
+    hist = hist.slice();
+    hist.push({
+      id: newWithdrawalId(),
+      amount: wd,
+      at: defaultLogAtIsoForEdits(),
+      kind: 'withdrawal',
+      memo: withdrawMemoEl ? normalizeLedgerMemo(withdrawMemoEl.value) : '',
+    });
+    if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
+    if (withdrawEl) withdrawEl.value = '';
+    if (withdrawMemoEl) withdrawMemoEl.value = '';
   }
 
   const goalIds: string[] = [];
@@ -205,9 +234,9 @@ export function addSavingsRowDraft(showUnsaved: () => void): void {
   showUnsaved();
 }
 
-export function removeSavingsDeposit(
+export function removeSavingsLedgerEntry(
   accountId: string,
-  depositId: string,
+  entryId: string,
   onUnsaved: () => void,
   rerender: () => void
 ): void {
@@ -216,14 +245,29 @@ export function removeSavingsDeposit(
   });
   if (!acc || !Array.isArray(acc.depositHistory)) return;
   const idx = acc.depositHistory.findIndex(function (p: DepositHistoryItem) {
-    return String(p.id) === String(depositId);
+    return String(p.id) === String(entryId);
   });
   if (idx === -1) return;
   const entry = acc.depositHistory[idx];
   const amt = Number(entry.amount);
   if (!Number.isFinite(amt) || amt <= 0) return;
+  const kind = savingsLedgerKind(entry.kind);
   acc.depositHistory.splice(idx, 1);
-  acc.current = roundMoney(Math.max(0, numOr(acc.current, 0) - amt));
+  if (kind === 'withdrawal') {
+    acc.current = roundMoney(numOr(acc.current, 0) + amt);
+  } else {
+    acc.current = roundMoney(Math.max(0, numOr(acc.current, 0) - amt));
+  }
   onUnsaved();
   rerender();
+}
+
+/** @deprecated Use removeSavingsLedgerEntry */
+export function removeSavingsDeposit(
+  accountId: string,
+  depositId: string,
+  onUnsaved: () => void,
+  rerender: () => void
+): void {
+  removeSavingsLedgerEntry(accountId, depositId, onUnsaved, rerender);
 }

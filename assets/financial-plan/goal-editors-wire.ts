@@ -18,7 +18,7 @@ import {
   cloneDebtsSnapshot,
   setDebtsDraftFromSnapshot,
   addDebtRowDraft,
-  removeDebtPayment,
+  removeDebtLedgerEntry,
   setDebtLedgerStatusById,
   hardRemoveDebtById,
 } from './debt-editor';
@@ -27,7 +27,7 @@ import {
   cloneSavingsSnapshot,
   setSavingsDraftFromSnapshot,
   addSavingsRowDraft,
-  removeSavingsDeposit,
+  removeSavingsLedgerEntry,
   setSavingsLedgerStatusById,
   hardRemoveSavingsById,
 } from './savings-editor';
@@ -384,7 +384,14 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       // Do not sync/render on Pay field while typing: readDebtsEditorIntoPlan() applies
       // positive payment amounts and clears the input — the debounced input handler would
       // commit partial amounts (e.g. "5" while typing "50") and make the field "disappear".
-      if ((t as any).matches && (t as any).matches('input[data-field="payment"]')) return;
+      if (
+        (t as any).matches &&
+        (t as any).matches(
+          'input[data-field="payment"], input[data-field="charge"], input[data-field="payment-memo"], input[data-field="charge-memo"]'
+        )
+      ) {
+        return;
+      }
       scheduleDebtsDraftSyncToPlanAndRender();
     }
     debtsHost.addEventListener('input', onDebtRowFieldActivity, { signal });
@@ -404,9 +411,8 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         render({ refreshBalanceEditors: true });
         return;
       }
-      if (action === 'quick-payment') {
+      if (action === 'quick-payment' || action === 'quick-charge') {
         e.preventDefault();
-        // Apply payment(s) from inputs + persist immediately (no bottom Save required).
         void (async function () {
           const ok = await persistGoal2DebtsFromEditor();
           await finishGoal2Persist(ok);
@@ -538,14 +544,14 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
     goal2Host.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function') return;
-      const btn = t.closest('.goal2-remove-payment') as HTMLElement | null;
+      const btn = t.closest('.goal2-remove-ledger-entry, .goal2-remove-payment') as HTMLElement | null;
       if (!btn) return;
       const debtId = btn.getAttribute('data-debt-id');
-      const paymentId = btn.getAttribute('data-payment-id');
-      if (debtId == null || paymentId == null) return;
-      const ok = window.confirm('Remove this payment record?\n\nThis will add the amount back to the debt balance.');
+      const entryId = btn.getAttribute('data-ledger-id') || btn.getAttribute('data-payment-id');
+      if (debtId == null || entryId == null) return;
+      const ok = window.confirm('Remove this activity record?\n\nThe balance will be adjusted.');
       if (!ok) return;
-      removeDebtPayment(debtId, paymentId, showGoal2Unsaved, function () {
+      removeDebtLedgerEntry(debtId, entryId, showGoal2Unsaved, function () {
         render({ refreshBalanceEditors: true });
       });
       void (async function () {
@@ -718,7 +724,14 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if (!(t as any).matches('input, textarea, select')) return;
       showGoal3Unsaved();
       // Same as debt Pay field: readSavingsEditorIntoPlan applies positive deposits and clears the input.
-      if ((t as any).matches && (t as any).matches('input[data-field="deposit"]')) return;
+      if (
+        (t as any).matches &&
+        (t as any).matches(
+          'input[data-field="deposit"], input[data-field="withdrawal"], input[data-field="deposit-memo"], input[data-field="withdrawal-memo"]'
+        )
+      ) {
+        return;
+      }
       scheduleSavingsDraftSyncToPlanAndRender();
     }
     savingsHost.addEventListener('input', onSavingsFieldActivity, { signal });
@@ -728,15 +741,21 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.getAttribute !== 'function') return;
       const action = t.getAttribute('data-action');
-      if (action === 'quick-deposit') {
+      if (action === 'quick-deposit' || action === 'quick-withdrawal') {
         e.preventDefault();
-        readSavingsEditorIntoPlan();
-        syncLegacySavingsFromAccounts(PLAN);
-        void savePlanOverrides();
-        render({ refreshBalanceEditors: true });
-        setSaveNeeds('btn-save-goal3-savings', false);
-        showGoal3Saved();
-        lastSavedSavings = cloneSavingsSnapshot();
+        void (async function () {
+          readSavingsEditorIntoPlan();
+          syncLegacySavingsFromAccounts(PLAN);
+          const ok = await savePlanOverrides();
+          render({ refreshBalanceEditors: true });
+          if (ok) {
+            setSaveNeeds('btn-save-goal3-savings', false);
+            showGoal3Saved();
+            lastSavedSavings = cloneSavingsSnapshot();
+          } else {
+            showGoal3Unsaved();
+          }
+        })();
         return;
       }
     }, { signal });
@@ -889,14 +908,14 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
     goal3Host.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function') return;
-      const btn = t.closest('.goal3-remove-deposit') as HTMLElement | null;
+      const btn = t.closest('.goal3-remove-ledger-entry, .goal3-remove-deposit') as HTMLElement | null;
       if (!btn) return;
       const sid = btn.getAttribute('data-savings-id');
-      const depId = btn.getAttribute('data-deposit-id');
-      if (sid == null || depId == null) return;
-      const ok = window.confirm('Remove this deposit record?\n\nThis will subtract the amount from the account balance.');
+      const entryId = btn.getAttribute('data-ledger-id') || btn.getAttribute('data-deposit-id');
+      if (sid == null || entryId == null) return;
+      const ok = window.confirm('Remove this activity record?\n\nThe balance will be adjusted.');
       if (!ok) return;
-      removeSavingsDeposit(sid, depId, showGoal3Unsaved, function () {
+      removeSavingsLedgerEntry(sid, entryId, showGoal3Unsaved, function () {
         render({ refreshBalanceEditors: true });
       });
       syncLegacySavingsFromAccounts(PLAN);

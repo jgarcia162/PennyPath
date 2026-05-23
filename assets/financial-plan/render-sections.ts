@@ -14,6 +14,13 @@ import { partitionSavingsByLedger } from './savings-ledger';
 import { ensureSavingsGoals, accountContributesToGoal } from './savings-goals';
 import { numOr, formatCurrencyInput, formatMoneyInput } from './utils';
 import { getEditingDebtCardId, getEditingSavingsCardId } from './card-inline-edit-state';
+import {
+  debtLedgerKind,
+  formatDebtLedgerSummary,
+  formatSavingsLedgerSummary,
+  isSavingsDepositEntry,
+  savingsLedgerKind,
+} from './ledger-utils';
 
 type MoneyFn = (n: number) => string;
 
@@ -235,20 +242,22 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
     details.className = 'goal2-debt-payments';
     const summary = document.createElement('summary');
     summary.className = 'goal2-debt-payments-summary';
-    summary.textContent = 'Recent payments (30 days)' + (recent.length ? ' · ' + recent.length : '');
+    summary.textContent = 'Recent activity (30 days)' + (recent.length ? ' · ' + recent.length : '');
     details.appendChild(summary);
 
     if (recent.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'goal2-debt-payments-empty';
-      empty.textContent = 'No payments recorded in the last 30 days.';
+      empty.textContent = 'No activity recorded in the last 30 days.';
       details.appendChild(empty);
     } else {
       const ul = document.createElement('ul');
       ul.className = 'goal2-debt-payments-list';
       recent.forEach(function (p) {
         const li = document.createElement('li');
-        li.className = 'goal2-debt-payment-row';
+        const kind = debtLedgerKind(p.kind);
+        li.className =
+          'goal2-debt-payment-row goal2-debt-ledger-row goal2-debt-ledger-row--' + kind;
         const dateStr = new Date(p.at).toLocaleDateString(undefined, {
           month: 'short',
           day: 'numeric',
@@ -256,13 +265,14 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
         });
         const metaSpan = document.createElement('span');
         metaSpan.className = 'goal2-debt-payment-meta';
-        metaSpan.textContent = moneyExact(Number(p.amount)) + ' · ' + dateStr;
+        metaSpan.textContent = formatDebtLedgerSummary(p, moneyExact) + ' · ' + dateStr;
 
         const rm = document.createElement('button');
         rm.type = 'button';
-        rm.className = 'goal2-remove-payment no-print';
+        rm.className = 'goal2-remove-ledger-entry goal2-remove-payment no-print';
         rm.textContent = 'Remove';
         rm.setAttribute('data-debt-id', String(debt.id));
+        rm.setAttribute('data-ledger-id', String(p.id));
         rm.setAttribute('data-payment-id', String(p.id));
 
         li.appendChild(metaSpan);
@@ -312,6 +322,38 @@ export function appendDebtsEditorEmptyState(host: HTMLElement, segment?: DebtsEd
   host.appendChild(wrap);
 }
 
+function buildLedgerInlineActionHtml(opts: {
+  amountField: string;
+  memoField: string;
+  action: string;
+  amountPlaceholder: string;
+  title: string;
+  btnClass?: string;
+}): string {
+  const btnClass = opts.btnClass || 'btn-icon';
+  return (
+    '<div class="field-inline-action field-inline-action--ledger">' +
+    '<input type="text" data-field="' +
+    opts.amountField +
+    '" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="' +
+    opts.amountPlaceholder +
+    '">' +
+    '<input type="text" data-field="' +
+    opts.memoField +
+    '" class="ledger-memo" maxlength="120" autocomplete="off" placeholder="Note">' +
+    '<button type="button" class="' +
+    btnClass +
+    '" data-action="' +
+    opts.action +
+    '" title="' +
+    opts.title +
+    '" aria-label="' +
+    opts.title +
+    '">+</button>' +
+    '</div>'
+  );
+}
+
 /** Spreadsheet-style table: one header row, data rows are `<tr class="debt-row">`. */
 export function buildDebtsEditorThead() {
   const thead = document.createElement('thead');
@@ -323,7 +365,8 @@ export function buildDebtsEditorThead() {
     { t: 'APR %', title: 'Annual percentage rate' },
     { t: 'Def $', title: 'Deferred balance (0% promo)' },
     { t: 'Until', title: 'Deferred rate expires' },
-    { t: 'Pay', title: 'Payment to log, then +' },
+    { t: 'Pay', title: 'Payment amount + note, then +' },
+    { t: 'Charge', title: 'Purchase/charge amount + note, then +' },
     { t: '', title: 'Remove row' },
   ];
   headers.forEach(function (h) {
@@ -383,10 +426,27 @@ export function buildDebtRowTR(debt: Debt, segment: DebtsEditorSegment = 'active
   row.appendChild(
     tdInput(
       'editor-table__cell--pay',
-      '<div class="field-inline-action">' +
-        '<input type="text" data-field="payment" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="$0.00">' +
-        '<button type="button" class="btn-icon btn-quick-payment" data-action="quick-payment" title="Log payment now" aria-label="Log payment now">+</button>' +
-        '</div>'
+      buildLedgerInlineActionHtml({
+        amountField: 'payment',
+        memoField: 'payment-memo',
+        action: 'quick-payment',
+        amountPlaceholder: '$0.00',
+        title: 'Log payment now',
+        btnClass: 'btn-icon btn-quick-payment',
+      })
+    )
+  );
+  row.appendChild(
+    tdInput(
+      'editor-table__cell--charge',
+      buildLedgerInlineActionHtml({
+        amountField: 'charge',
+        memoField: 'charge-memo',
+        action: 'quick-charge',
+        amountPlaceholder: '$0.00',
+        title: 'Log charge now',
+        btnClass: 'btn-icon btn-quick-charge',
+      })
     )
   );
   const rmTd = document.createElement('td');
@@ -676,7 +736,8 @@ export function buildSavingsEditorThead(): HTMLTableSectionElement {
     { t: 'Name', title: '' },
     { t: 'Balance', title: 'Current balance' },
     { t: 'APY %', title: 'Annual percentage yield' },
-    { t: 'Deposit', title: 'Deposit to log, then +' },
+    { t: 'Deposit', title: 'Deposit amount + note, then +' },
+    { t: 'Withdraw', title: 'Withdrawal amount + note, then +' },
     { t: 'Goals', title: 'This balance can count toward one or more targets' },
     { t: '', title: 'Remove row' },
   ];
@@ -720,11 +781,25 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
 
   const tdDep = document.createElement('td');
   tdDep.className = 'editor-table__cell--pay';
-  tdDep.innerHTML =
-    '<div class="field-inline-action">' +
-    '<input type="text" data-field="deposit" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="$0.00">' +
-    '<button type="button" class="btn-icon btn-quick-deposit" data-action="quick-deposit" title="Log deposit now" aria-label="Log deposit now">+</button>' +
-    '</div>';
+  tdDep.innerHTML = buildLedgerInlineActionHtml({
+    amountField: 'deposit',
+    memoField: 'deposit-memo',
+    action: 'quick-deposit',
+    amountPlaceholder: '$0.00',
+    title: 'Log deposit now',
+    btnClass: 'btn-icon btn-quick-deposit',
+  });
+
+  const tdWithdraw = document.createElement('td');
+  tdWithdraw.className = 'editor-table__cell--withdraw';
+  tdWithdraw.innerHTML = buildLedgerInlineActionHtml({
+    amountField: 'withdrawal',
+    memoField: 'withdrawal-memo',
+    action: 'quick-withdrawal',
+    amountPlaceholder: '$0.00',
+    title: 'Log withdrawal now',
+    btnClass: 'btn-icon btn-quick-withdrawal',
+  });
 
   const tdGoal = document.createElement('td');
   tdGoal.className = 'editor-table__cell--goals';
@@ -836,6 +911,7 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   row.appendChild(tdCur);
   row.appendChild(tdApy);
   row.appendChild(tdDep);
+  row.appendChild(tdWithdraw);
   row.appendChild(tdGoal);
   row.appendChild(rmTd);
 
@@ -952,6 +1028,7 @@ export function renderGoal3SavingsAccounts(
     const current = numOr(acc.current, 0);
     const hist = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
     const lifetimeDep = hist.reduce(function (s, p) {
+      if (!isSavingsDepositEntry(p)) return s;
       return s + numOr(p.amount, 0);
     }, 0);
 
@@ -1076,20 +1153,22 @@ export function renderGoal3SavingsAccounts(
     details.className = 'goal3-savings-deposits';
     const summary = document.createElement('summary');
     summary.className = 'goal3-savings-deposits-summary';
-    summary.textContent = 'Recent deposits (30 days)' + (recent.length ? ' · ' + recent.length : '');
+    summary.textContent = 'Recent activity (30 days)' + (recent.length ? ' · ' + recent.length : '');
     details.appendChild(summary);
 
     if (recent.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'goal3-savings-deposits-empty';
-      empty.textContent = 'No deposits logged in the last 30 days.';
+      empty.textContent = 'No activity logged in the last 30 days.';
       details.appendChild(empty);
     } else {
       const ul = document.createElement('ul');
       ul.className = 'goal3-savings-deposits-list';
       recent.forEach(function (p) {
         const li = document.createElement('li');
-        li.className = 'goal3-savings-deposit-row';
+        const kind = savingsLedgerKind(p.kind);
+        li.className =
+          'goal3-savings-deposit-row goal3-savings-ledger-row goal3-savings-ledger-row--' + kind;
         const dateStr = new Date(p.at).toLocaleDateString(undefined, {
           month: 'short',
           day: 'numeric',
@@ -1097,13 +1176,14 @@ export function renderGoal3SavingsAccounts(
         });
         const metaSpan = document.createElement('span');
         metaSpan.className = 'goal3-savings-deposit-meta';
-        metaSpan.textContent = moneyExact(Number(p.amount)) + ' · ' + dateStr;
+        metaSpan.textContent = formatSavingsLedgerSummary(p, moneyExact) + ' · ' + dateStr;
 
         const rm = document.createElement('button');
         rm.type = 'button';
-        rm.className = 'goal3-remove-deposit no-print';
+        rm.className = 'goal3-remove-ledger-entry goal3-remove-deposit no-print';
         rm.textContent = 'Remove';
         rm.setAttribute('data-savings-id', String(acc.id));
+        rm.setAttribute('data-ledger-id', String(p.id));
         rm.setAttribute('data-deposit-id', String(p.id));
 
         li.appendChild(metaSpan);

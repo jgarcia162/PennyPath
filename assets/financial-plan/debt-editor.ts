@@ -6,8 +6,14 @@ import type { Debt, DebtLedgerStatus, PaymentHistoryItem } from '../../types/ind
 import { PLAN, PLAN_DEFAULTS, DEFAULT_DEBT_APR_PCT } from './plan-data';
 import { parseMoneyInput, numOr, roundMoney, formatCurrencyInput, formatMoneyInput } from './utils';
 import { appendDebtsEditorEmptyState, buildDebtsEditorThead, buildDebtRowTR } from './render-sections';
-import { normalizePaymentHistory, newPaymentId } from './persistence';
+import { normalizePaymentHistory, newChargeId, newPaymentId } from './persistence';
 import { defaultLogAtIsoForEdits } from './default-log-at';
+import {
+  debtLedgerKind,
+  isDebtChargeEntry,
+  isDebtPaymentEntry,
+  normalizeLedgerMemo,
+} from './ledger-utils';
 import {
   concatDebtsLedgerOrder,
   normalizeDebtsEditorSegment,
@@ -30,10 +36,23 @@ function balanceBeforePayments(debt: Debt | null | undefined): number | null {
   const hist = normalizePaymentHistory(debt);
   if (!hist.length) return null;
   const prevCur = numOr(debt.current, 0);
-  const paidFromHist = hist.reduce(function (sum, p) {
-    return sum + numOr(p.amount, 0);
-  }, 0);
-  return roundMoney(prevCur + paidFromHist);
+  let paidFromHist = 0;
+  let chargedFromHist = 0;
+  hist.forEach(function (p) {
+    const amt = numOr(p.amount, 0);
+    if (isDebtPaymentEntry(p)) paidFromHist += amt;
+    else if (isDebtChargeEntry(p)) chargedFromHist += amt;
+  });
+  return roundMoney(prevCur + paidFromHist - chargedFromHist);
+}
+
+/** True when the balance input is below PLAN after charges were logged. */
+function domCurrentLooksStaleAfterCharges(rawCurrent: number | null, prev: Debt | null | undefined): boolean {
+  if (rawCurrent === null || !prev) return false;
+  const hist = normalizePaymentHistory(prev);
+  if (!hist.some(isDebtChargeEntry)) return false;
+  const prevCur = numOr(prev.current, 0);
+  return rawCurrent < prevCur - 0.01;
 }
 
 /** True when the balance input still shows the pre-payment amount while PLAN already has payments. */
@@ -57,12 +76,16 @@ function parseDebtRowFromDOM(row: Element, rowIdx: number, segmentDebts: Debt[],
   const defEl = row.querySelector('input[data-field="deferredAmount"]') as HTMLInputElement | null;
   const defDateEl = row.querySelector('input[data-field="deferredExpiresOn"]') as HTMLInputElement | null;
   const payEl = row.querySelector('input[data-field="payment"]') as HTMLInputElement | null;
+  const payMemoEl = row.querySelector('input[data-field="payment-memo"]') as HTMLInputElement | null;
+  const chargeEl = row.querySelector('input[data-field="charge"]') as HTMLInputElement | null;
+  const chargeMemoEl = row.querySelector('input[data-field="charge-memo"]') as HTMLInputElement | null;
   const name = nameEl ? String(nameEl.value || 'Debt').trim() : 'Debt';
   const rawCurrent = curEl ? parseMoneyInput(curEl.value) : null;
   const aprPct = aprEl ? parseMoneyInput(aprEl.value) : null;
   const deferredAmount = defEl ? parseMoneyInput(defEl.value) : null;
   const deferredExpiresOn = defDateEl ? String(defDateEl.value || '').trim() : '';
   const payment = payEl ? parseMoneyInput(payEl.value) : null;
+  const charge = chargeEl ? parseMoneyInput(chargeEl.value) : null;
 
   const prev = allDebts.find(function (d: Debt) {
     return String(d.id) === String(id);
@@ -79,9 +102,20 @@ function parseDebtRowFromDOM(row: Element, rowIdx: number, segmentDebts: Debt[],
         ? prevByIndex.paidOff
         : 0;
   const hasNewPayment = payment !== null && payment > 0;
+  const hasNewCharge = charge !== null && charge > 0;
   let currentBal: number;
   if (rawCurrent !== null) {
-    if (!hasNewPayment && domCurrentLooksLikeStalePrePayment(rawCurrent, prevSource)) {
+    if (
+      !hasNewPayment &&
+      !hasNewCharge &&
+      domCurrentLooksLikeStalePrePayment(rawCurrent, prevSource)
+    ) {
+      currentBal = numOr(prevSource && prevSource.current, rawCurrent);
+    } else if (
+      !hasNewPayment &&
+      !hasNewCharge &&
+      domCurrentLooksStaleAfterCharges(rawCurrent, prevSource)
+    ) {
       currentBal = numOr(prevSource && prevSource.current, rawCurrent);
     } else {
       currentBal = rawCurrent;
@@ -98,14 +132,36 @@ function parseDebtRowFromDOM(row: Element, rowIdx: number, segmentDebts: Debt[],
   let hist: PaymentHistoryItem[] = normalizePaymentHistory(prevSource);
   if (hasNewPayment) {
     if (currentBal > 0) {
-      const applied = roundMoney(Math.min(payment, currentBal));
+      const applied = roundMoney(Math.min(payment!, currentBal));
       currentBal = roundMoney(Math.max(0, currentBal - applied));
       paidOffVal = roundMoney(Math.max(0, prevPaidOff + applied));
       hist = hist.slice();
-      hist.push({ id: newPaymentId(), amount: applied, at: defaultLogAtIsoForEdits() });
+      hist.push({
+        id: newPaymentId(),
+        amount: applied,
+        at: defaultLogAtIsoForEdits(),
+        kind: 'payment',
+        memo: payMemoEl ? normalizeLedgerMemo(payMemoEl.value) : '',
+      });
       if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
     }
     if (payEl) payEl.value = '';
+    if (payMemoEl) payMemoEl.value = '';
+  }
+  if (hasNewCharge) {
+    const applied = roundMoney(charge!);
+    currentBal = roundMoney(currentBal + applied);
+    hist = hist.slice();
+    hist.push({
+      id: newChargeId(),
+      amount: applied,
+      at: defaultLogAtIsoForEdits(),
+      kind: 'charge',
+      memo: chargeMemoEl ? normalizeLedgerMemo(chargeMemoEl.value) : '',
+    });
+    if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
+    if (chargeEl) chargeEl.value = '';
+    if (chargeMemoEl) chargeMemoEl.value = '';
   }
 
   return {
@@ -313,9 +369,9 @@ export function addDebtRowDraft(showUnsaved: () => void): void {
   showUnsaved();
 }
 
-export function removeDebtPayment(
+export function removeDebtLedgerEntry(
   debtId: string,
-  paymentId: string,
+  entryId: string,
   onUnsaved: () => void,
   rerender: () => void
 ): void {
@@ -324,15 +380,30 @@ export function removeDebtPayment(
   });
   if (!debt || !Array.isArray(debt.paymentHistory)) return;
   const idx = debt.paymentHistory.findIndex(function (p: PaymentHistoryItem) {
-    return String(p.id) === String(paymentId);
+    return String(p.id) === String(entryId);
   });
   if (idx === -1) return;
   const entry = debt.paymentHistory[idx];
   const amt = Number(entry.amount);
   if (!Number.isFinite(amt) || amt <= 0) return;
+  const kind = debtLedgerKind(entry.kind);
   debt.paymentHistory.splice(idx, 1);
-  debt.current = roundMoney(numOr(debt.current, 0) + amt);
-  debt.paidOff = roundMoney(Math.max(0, numOr(debt.paidOff, 0) - amt));
+  if (kind === 'charge') {
+    debt.current = roundMoney(Math.max(0, numOr(debt.current, 0) - amt));
+  } else {
+    debt.current = roundMoney(numOr(debt.current, 0) + amt);
+    debt.paidOff = roundMoney(Math.max(0, numOr(debt.paidOff, 0) - amt));
+  }
   onUnsaved();
   rerender();
+}
+
+/** @deprecated Use removeDebtLedgerEntry */
+export function removeDebtPayment(
+  debtId: string,
+  paymentId: string,
+  onUnsaved: () => void,
+  rerender: () => void
+): void {
+  removeDebtLedgerEntry(debtId, paymentId, onUnsaved, rerender);
 }

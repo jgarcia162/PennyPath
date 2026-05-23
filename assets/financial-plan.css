@@ -3895,7 +3895,25 @@ body.financial-plan-demo-mode #checkin-form {
   flex-wrap: wrap;
 }
 .goal2-debt-payment-meta { color: #444; }
+.goal2-debt-ledger-row--payment .goal2-debt-payment-meta { color: #2d6a4f; }
+.goal2-debt-ledger-row--charge .goal2-debt-payment-meta { color: #b45309; }
+.goal3-savings-ledger-row--deposit .goal3-savings-deposit-meta { color: #2d6a4f; }
+.goal3-savings-ledger-row--withdrawal .goal3-savings-deposit-meta { color: #b45309; }
+.field-inline-action--ledger {
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  align-items: center;
+}
+.field-inline-action--ledger input.ledger-memo {
+  flex: 1 1 72px;
+  min-width: 56px;
+  max-width: 120px;
+  font-size: 12px;
+  padding: 6px 8px;
+}
+.goal2-remove-ledger-entry,
 .goal2-remove-payment,
+.goal3-remove-ledger-entry,
 .goal3-remove-deposit {
   font-family: inherit;
   font-size: 11px;
@@ -3907,7 +3925,9 @@ body.financial-plan-demo-mode #checkin-form {
   color: var(--red);
   cursor: pointer;
 }
+.goal2-remove-ledger-entry:hover,
 .goal2-remove-payment:hover,
+.goal3-remove-ledger-entry:hover,
 .goal3-remove-deposit:hover { background: rgba(184,92,92,0.2); }
 :root[data-theme="dark"] .goal2-debt-payments { color: rgba(255,255,255,0.72); }
 :root[data-theme="dark"] .goal2-debt-payments-empty { color: rgba(255,255,255,0.45); }
