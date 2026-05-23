@@ -11,7 +11,10 @@
     "build": "next build",
     "start": "next start",
     "research-server": "node server/market-research.mjs",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "mcp:install": "npm install --prefix packages/pennypath-mcp",
+    "mcp:build": "npm run build --prefix packages/pennypath-mcp",
+    "agent:token": "node scripts/create-agent-token.mjs"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.2.4",

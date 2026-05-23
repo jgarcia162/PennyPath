@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "pennypath": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/ABSOLUTE/PATH/TO/PennyPath/packages/pennypath-mcp/dist/index.js"],
+      "env": {
+        "PENNYPATH_AGENT_TOKEN": "pp_agent_REPLACE_ME",
+        "PENNYPATH_API_BASE_URL": "http://localhost:3000"
+      }
+    }
+  }
+}

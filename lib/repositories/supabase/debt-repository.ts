@@ -35,10 +35,7 @@ function mapDebtRow(row: DebtRow, payments: PaymentRow[]): Debt {
 }
 
 function toDebtInsert(userId: string, debt: Debt): DebtInsert {
-  const ls = debt.ledgerStatus;
-  const ledger_status =
-    ls === 'completed' || ls === 'deleted' || ls === 'active' ? ls : 'active';
-  return {
+  const row: DebtInsert = {
     user_id: userId,
     id: debt.id,
     name: debt.name,
@@ -48,8 +45,12 @@ function toDebtInsert(userId: string, debt: Debt): DebtInsert {
     deferred_amount: debt.deferredAmount,
     deferred_expires_on: debt.deferredExpiresOn || '',
     deferred_months_remaining: debt.deferredMonthsRemaining,
-    ledger_status,
   };
+  const ls = debt.ledgerStatus;
+  if (ls === 'completed' || ls === 'deleted' || ls === 'active') {
+    (row as DebtInsert & { ledger_status?: string }).ledger_status = ls;
+  }
+  return row;
 }
 
 export class SupabaseDebtRepository implements DebtRepository {
@@ -124,6 +125,48 @@ export class SupabaseDebtRepository implements DebtRepository {
     };
     const { error } = await this.supabase.from('payment_history').upsert(row, { onConflict: 'user_id,id' });
     if (error) throw error;
+  }
+
+  async syncPayments(
+    debtId: string,
+    payments: { id: string; amount: number; at: string }[]
+  ): Promise<void> {
+    const { data: userData, error: userErr } = await this.supabase.auth.getUser();
+    if (userErr) throw userErr;
+    const userId = requireUserId(userData?.user?.id);
+    const debtKey = String(debtId);
+
+    const { data: existing, error: listErr } = await this.supabase
+      .from('payment_history')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('debt_id', debtKey);
+    if (listErr) throw listErr;
+
+    const nextIds = new Set(
+      payments.map((p) => String(p.id)).filter((id) => id.length > 0)
+    );
+    const staleIds = (existing || [])
+      .map((row) => String(row.id))
+      .filter((id) => id.length > 0 && !nextIds.has(id));
+
+    if (staleIds.length) {
+      const { error: delErr } = await this.supabase
+        .from('payment_history')
+        .delete()
+        .eq('user_id', userId)
+        .eq('debt_id', debtKey)
+        .in('id', staleIds);
+      if (delErr) throw delErr;
+    }
+
+    for (const payment of payments) {
+      const id = String(payment.id || '').trim();
+      if (!id) continue;
+      const amount = Number(payment.amount);
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      await this.addPayment(debtKey, { id, amount, at: String(payment.at) });
+    }
   }
 }
 

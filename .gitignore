@@ -1,6 +1,12 @@
 .env
+.claude/settings.json
+.cursor/mcp.json
+.mcp.json
 .DS_Store
 node_modules/
+packages/pennypath-mcp/node_modules/
+packages/pennypath-mcp/dist/
+.claude/settings.local.json
 .next/
 dist/
 

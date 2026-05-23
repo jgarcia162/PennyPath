@@ -4,7 +4,7 @@
 
 import type { Debt, SavingsAccount } from '../../types/index.js';
 import { PLAN, PLAN_DEFAULTS } from './plan-data';
-import { applyPlanOverrides, savePlanOverrides } from './persistence';
+import { applyPlanOverrides, getLastPlanSaveError, savePlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { formatCurrencyInput, formatMoneyInput, parseMoneyInput, roundMoney } from './utils';
 import {
@@ -232,11 +232,18 @@ function setSaveNeeds(saveBtnId: string, needsSave: boolean): void {
 function showGoal2Saved() {
   const st = document.getElementById('goal2-save-status');
   if (!st) return;
-  st.textContent = 'Saved in this browser';
+  st.textContent = 'Saved';
   clearTimeout((showGoal2Saved as any)._t);
   (showGoal2Saved as any)._t = setTimeout(function () {
     if (st) st.textContent = '';
   }, 1800);
+}
+
+function showGoal2SaveFailed() {
+  const st = document.getElementById('goal2-save-status');
+  if (!st) return;
+  const detail = getLastPlanSaveError();
+  st.textContent = detail ? 'Save failed: ' + detail : 'Save failed — try again';
 }
 
 function showGoal3Saved() {
@@ -277,6 +284,23 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   // Stale inline-edit state from a previous mount would re-render a card in edit mode
   // before the user has even interacted — drop it on rebind.
   setEditingDebtCardId(null);
+
+  async function persistGoal2DebtsFromEditor(): Promise<boolean> {
+    readDebtsEditorIntoPlan();
+    return savePlanOverrides();
+  }
+
+  async function finishGoal2Persist(ok: boolean): Promise<void> {
+    render({ refreshBalanceEditors: true });
+    if (ok) {
+      setSaveNeeds('btn-save-goal2-debts', false);
+      showGoal2Saved();
+      lastSavedDebts = cloneDebtsSnapshot();
+    } else {
+      showGoal2SaveFailed();
+      showGoal2Unsaved();
+    }
+  }
 
   const sortSel = document.getElementById('debts-editor-sort') as HTMLSelectElement | null;
   if (sortSel) {
@@ -383,12 +407,10 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if (action === 'quick-payment') {
         e.preventDefault();
         // Apply payment(s) from inputs + persist immediately (no bottom Save required).
-        readDebtsEditorIntoPlan();
-        void savePlanOverrides();
-        render({ refreshBalanceEditors: true });
-        setSaveNeeds('btn-save-goal2-debts', false);
-        showGoal2Saved();
-        lastSavedDebts = cloneDebtsSnapshot();
+        void (async function () {
+          const ok = await persistGoal2DebtsFromEditor();
+          await finishGoal2Persist(ok);
+        })();
         return;
       }
     }, { signal });
@@ -507,11 +529,10 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         }
       }
       setEditingDebtCardId(null);
-      void savePlanOverrides();
-      render({ refreshBalanceEditors: true });
-      setSaveNeeds('btn-save-goal2-debts', false);
-      showGoal2Saved();
-      lastSavedDebts = cloneDebtsSnapshot();
+      void (async function () {
+        const ok = await savePlanOverrides();
+        await finishGoal2Persist(ok);
+      })();
     }
 
     goal2Host.addEventListener('click', function (e) {
@@ -527,8 +548,10 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       removeDebtPayment(debtId, paymentId, showGoal2Unsaved, function () {
         render({ refreshBalanceEditors: true });
       });
-      void savePlanOverrides();
-      lastSavedDebts = cloneDebtsSnapshot();
+      void (async function () {
+        const ok = await persistGoal2DebtsFromEditor();
+        await finishGoal2Persist(ok);
+      })();
     }, { signal });
 
     goal2Host.addEventListener('click', function (e) {
@@ -597,16 +620,14 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   const saveBtn = document.getElementById('btn-save-goal2-debts');
   if (saveBtn) {
     saveBtn.addEventListener('click', function () {
-      readDebtsEditorIntoPlan();
-      void savePlanOverrides();
-      render({ refreshBalanceEditors: true });
-      setSaveNeeds('btn-save-goal2-debts', false);
-      showGoal2Saved();
-      lastSavedDebts = cloneDebtsSnapshot();
-      const dlg = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
-      try {
-        if (dlg && typeof dlg.close === 'function') dlg.close();
-      } catch {}
+      void (async function () {
+        const ok = await persistGoal2DebtsFromEditor();
+        await finishGoal2Persist(ok);
+        const dlg = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
+        try {
+          if (dlg && typeof dlg.close === 'function') dlg.close();
+        } catch {}
+      })();
     }, { signal });
   }
 
