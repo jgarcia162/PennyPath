@@ -35,10 +35,7 @@ function mapDebtRow(row: DebtRow, payments: PaymentRow[]): Debt {
 }
 
 function toDebtInsert(userId: string, debt: Debt): DebtInsert {
-  const ls = debt.ledgerStatus;
-  const ledger_status =
-    ls === 'completed' || ls === 'deleted' || ls === 'active' ? ls : 'active';
-  return {
+  const row: DebtInsert = {
     user_id: userId,
     id: debt.id,
     name: debt.name,
@@ -48,8 +45,12 @@ function toDebtInsert(userId: string, debt: Debt): DebtInsert {
     deferred_amount: debt.deferredAmount,
     deferred_expires_on: debt.deferredExpiresOn || '',
     deferred_months_remaining: debt.deferredMonthsRemaining,
-    ledger_status,
   };
+  const ls = debt.ledgerStatus;
+  if (ls === 'completed' || ls === 'deleted' || ls === 'active') {
+    (row as DebtInsert & { ledger_status?: string }).ledger_status = ls;
+  }
+  return row;
 }
 
 export class SupabaseDebtRepository implements DebtRepository {

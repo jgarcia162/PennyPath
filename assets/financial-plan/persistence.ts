@@ -24,12 +24,79 @@ import {
   STORAGE_KEY,
 } from './plan-data';
 import { getRepositories } from '../../lib/repositories';
+import type { Repositories } from '../../lib/repositories/types';
 import { numOr } from './utils';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { yyyyMmFromDate } from './monthly-activity';
 import { ID_GOAL_HYSA, ensureSavingsGoals, normalizeSavingsGoalRow } from './savings-goals';
 import { normalizeLedgerStatus } from './debt-ledger';
 import { isTrialSessionActive } from '../../lib/trial/trial-session';
+
+let lastPlanSaveError: string | null = null;
+
+export function getLastPlanSaveError(): string | null {
+  return lastPlanSaveError;
+}
+
+function notePlanSaveError(err: unknown): void {
+  const msg =
+    err && typeof err === 'object' && 'message' in err && typeof (err as { message: unknown }).message === 'string'
+      ? String((err as { message: string }).message)
+      : err != null
+        ? String(err)
+        : 'Unknown error';
+  lastPlanSaveError = msg;
+}
+
+function clearPlanSaveError(): void {
+  lastPlanSaveError = null;
+}
+
+async function persistDebtsToSupabase(repos: Repositories): Promise<void> {
+  const existingDebts = await repos.debtRepository.list();
+  const nextDebtIds = new Set((PLAN as any).debts ? (PLAN as any).debts.map((d: any) => String(d.id)) : []);
+  await Promise.all(
+    (existingDebts || [])
+      .filter((d) => d && !nextDebtIds.has(String(d.id)))
+      .map((d) => repos.debtRepository.remove(String(d.id)))
+  );
+  const debts = Array.isArray((PLAN as any).debts) ? (PLAN as any).debts : [];
+  for (const debt of debts) {
+    await repos.debtRepository.update(debt);
+    const ph = Array.isArray(debt.paymentHistory) ? debt.paymentHistory : [];
+    await repos.debtRepository.syncPayments(
+      String(debt.id),
+      ph.map(function (p: { id: string; amount: number; at: string }) {
+        return { id: String(p.id), amount: Number(p.amount), at: String(p.at) };
+      })
+    );
+  }
+}
+
+async function persistSavingsToSupabase(repos: Repositories): Promise<void> {
+  const existingAccounts = await repos.savingsAccountRepository.list();
+  const nextAccIds = new Set(
+    (PLAN as any).savingsAccounts ? (PLAN as any).savingsAccounts.map((a: any) => String(a.id)) : []
+  );
+  await Promise.all(
+    (existingAccounts || [])
+      .filter((a) => a && !nextAccIds.has(String(a.id)))
+      .map((a) => repos.savingsAccountRepository.remove(String(a.id)))
+  );
+  const accounts = Array.isArray((PLAN as any).savingsAccounts) ? (PLAN as any).savingsAccounts : [];
+  for (const acc of accounts) {
+    await repos.savingsAccountRepository.update(acc);
+    const dh = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
+    for (const d of dh) {
+      await repos.savingsAccountRepository.addDeposit(String(acc.id), {
+        id: String(d.id),
+        amount: Number(d.amount),
+        at: String(d.at),
+      });
+    }
+  }
+  await repos.savingsGoalRepository.save(Array.isArray((PLAN as any).savingsGoals) ? (PLAN as any).savingsGoals : []);
+}
 
 function safeReadLocalPlanPayload(): any | null {
   try {
@@ -405,59 +472,41 @@ export async function savePlanOverrides(): Promise<boolean> {
     } catch {}
     return true;
   }
+  clearPlanSaveError();
   try {
     const repos = getRepositories();
+    let debtsOk = false;
 
-    // Save scalar / config fields.
-    await repos.planConfigRepository.save(PLAN as any);
-
-    // Debts: remove missing, upsert current, upsert payment history.
-    const existingDebts = await repos.debtRepository.list();
-    const nextDebtIds = new Set((PLAN as any).debts ? (PLAN as any).debts.map((d: any) => String(d.id)) : []);
-    await Promise.all(
-      (existingDebts || [])
-        .filter((d) => d && !nextDebtIds.has(String(d.id)))
-        .map((d) => repos.debtRepository.remove(String(d.id)))
-    );
-    const debts = Array.isArray((PLAN as any).debts) ? (PLAN as any).debts : [];
-    for (const debt of debts) {
-      await repos.debtRepository.update(debt);
-      const ph = Array.isArray(debt.paymentHistory) ? debt.paymentHistory : [];
-      await repos.debtRepository.syncPayments(
-        String(debt.id),
-        ph.map(function (p: { id: string; amount: number; at: string }) {
-          return { id: String(p.id), amount: Number(p.amount), at: String(p.at) };
-        })
-      );
+    // Debts + payment_history first (matches agent API; not blocked by plan config errors).
+    try {
+      await persistDebtsToSupabase(repos);
+      debtsOk = true;
+    } catch (e) {
+      notePlanSaveError(e);
+      // eslint-disable-next-line no-console
+      console.warn('[PennyPath] persistDebtsToSupabase failed', e);
     }
 
-    // Savings accounts: remove missing, upsert current, upsert deposit history.
-    const existingAccounts = await repos.savingsAccountRepository.list();
-    const nextAccIds = new Set(
-      (PLAN as any).savingsAccounts ? (PLAN as any).savingsAccounts.map((a: any) => String(a.id)) : []
-    );
-    await Promise.all(
-      (existingAccounts || [])
-        .filter((a) => a && !nextAccIds.has(String(a.id)))
-        .map((a) => repos.savingsAccountRepository.remove(String(a.id)))
-    );
-    const accounts = Array.isArray((PLAN as any).savingsAccounts) ? (PLAN as any).savingsAccounts : [];
-    for (const acc of accounts) {
-      await repos.savingsAccountRepository.update(acc);
-      const dh = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
-      for (const d of dh) {
-        await repos.savingsAccountRepository.addDeposit(String(acc.id), { id: String(d.id), amount: Number(d.amount), at: String(d.at) });
-      }
+    try {
+      await repos.planConfigRepository.save(PLAN as any);
+    } catch (e) {
+      notePlanSaveError(e);
+      // eslint-disable-next-line no-console
+      console.warn('[PennyPath] planConfigRepository.save failed', e);
     }
 
-    // Goals: replace list.
-    await repos.savingsGoalRepository.save(Array.isArray((PLAN as any).savingsGoals) ? (PLAN as any).savingsGoals : []);
+    try {
+      await persistSavingsToSupabase(repos);
+    } catch (e) {
+      notePlanSaveError(e);
+      // eslint-disable-next-line no-console
+      console.warn('[PennyPath] persistSavingsToSupabase failed', e);
+    }
 
-    // Also write a local cache for offline/failed-load resilience.
     safeWriteLocalPlanPayload(PLAN as any);
-    return true;
+    return debtsOk;
   } catch (e) {
-    // If Supabase save fails, still persist locally so refresh doesn't lose work.
+    notePlanSaveError(e);
     safeWriteLocalPlanPayload(PLAN as any);
     // eslint-disable-next-line no-console
     console.warn('[PennyPath] savePlanOverrides failed; saved to localStorage fallback', e);

@@ -24,6 +24,26 @@ function stripOptionalLedger(d: Debt): Debt {
   return d;
 }
 
+/** Balance before recorded payments (current + sum of payment history). */
+function balanceBeforePayments(debt: Debt | null | undefined): number | null {
+  if (!debt) return null;
+  const hist = normalizePaymentHistory(debt);
+  if (!hist.length) return null;
+  const prevCur = numOr(debt.current, 0);
+  const paidFromHist = hist.reduce(function (sum, p) {
+    return sum + numOr(p.amount, 0);
+  }, 0);
+  return roundMoney(prevCur + paidFromHist);
+}
+
+/** True when the balance input still shows the pre-payment amount while PLAN already has payments. */
+function domCurrentLooksLikeStalePrePayment(rawCurrent: number | null, prev: Debt | null | undefined): boolean {
+  if (rawCurrent === null || !prev) return false;
+  const before = balanceBeforePayments(prev);
+  if (before === null) return false;
+  return Math.abs(rawCurrent - before) < 0.01;
+}
+
 function parseDebtRowFromDOM(row: Element, rowIdx: number, segmentDebts: Debt[], allDebts: Debt[]): Debt {
   let id = row.getAttribute('data-debt-id');
   if (id == null || String(id).trim() === '') {
@@ -51,15 +71,21 @@ function parseDebtRowFromDOM(row: Element, rowIdx: number, segmentDebts: Debt[],
   // The full plan array includes completed/deleted rows, so using it here can cause a brand-new draft row
   // to "inherit" paidOff/paymentHistory from a hidden row and get promoted to completed immediately.
   const prevByIndex = !prev && segmentDebts[rowIdx] ? segmentDebts[rowIdx] : null;
+  const prevSource = prev || prevByIndex;
   const prevPaidOff =
     prev && Number.isFinite(prev.paidOff)
       ? prev.paidOff
       : prevByIndex && Number.isFinite(prevByIndex.paidOff)
         ? prevByIndex.paidOff
         : 0;
+  const hasNewPayment = payment !== null && payment > 0;
   let currentBal: number;
   if (rawCurrent !== null) {
-    currentBal = rawCurrent;
+    if (!hasNewPayment && domCurrentLooksLikeStalePrePayment(rawCurrent, prevSource)) {
+      currentBal = numOr(prevSource && prevSource.current, rawCurrent);
+    } else {
+      currentBal = rawCurrent;
+    }
   } else if (prev && Number.isFinite(Number(prev.current))) {
     currentBal = Number(prev.current);
   } else if (prevByIndex && Number.isFinite(Number(prevByIndex.current))) {
@@ -69,8 +95,8 @@ function parseDebtRowFromDOM(row: Element, rowIdx: number, segmentDebts: Debt[],
   }
 
   let paidOffVal = prevPaidOff;
-  let hist: PaymentHistoryItem[] = normalizePaymentHistory(prev || prevByIndex);
-  if (payment !== null && payment > 0) {
+  let hist: PaymentHistoryItem[] = normalizePaymentHistory(prevSource);
+  if (hasNewPayment) {
     if (currentBal > 0) {
       const applied = roundMoney(Math.min(payment, currentBal));
       currentBal = roundMoney(Math.max(0, currentBal - applied));
