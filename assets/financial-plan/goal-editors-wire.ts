@@ -4,7 +4,7 @@
 
 import type { Debt, SavingsAccount } from '../../types/index.js';
 import { PLAN, PLAN_DEFAULTS } from './plan-data';
-import { applyPlanOverrides, savePlanOverrides } from './persistence';
+import { applyPlanOverrides, getLastPlanSaveError, savePlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { formatCurrencyInput, formatMoneyInput, parseMoneyInput, roundMoney } from './utils';
 import {
@@ -242,7 +242,8 @@ function showGoal2Saved() {
 function showGoal2SaveFailed() {
   const st = document.getElementById('goal2-save-status');
   if (!st) return;
-  st.textContent = 'Save failed — try again';
+  const detail = getLastPlanSaveError();
+  st.textContent = detail ? 'Save failed: ' + detail : 'Save failed — try again';
 }
 
 function showGoal3Saved() {
