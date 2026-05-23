@@ -20,6 +20,11 @@ export interface DebtRepository {
   update(debt: Debt): Promise<void>;
   remove(id: string): Promise<void>;
   addPayment(debtId: string, payment: { id: string; amount: number; at: string }): Promise<void>;
+  /** Replace payment rows for one debt to match the in-memory ledger. */
+  syncPayments(
+    debtId: string,
+    payments: { id: string; amount: number; at: string }[]
+  ): Promise<void>;
 }
 
 export interface SavingsAccountRepository {

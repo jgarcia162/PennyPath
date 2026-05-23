@@ -391,10 +391,10 @@ export async function applyPlanOverrides(): Promise<void> {
   }
 }
 
-export async function savePlanOverrides(): Promise<void> {
+export async function savePlanOverrides(): Promise<boolean> {
   // Trial sessions should not persist any edits beyond the current tab lifetime.
   if (isTrialSessionActive()) {
-    return;
+    return true;
   }
   if (isFinancialPlanDemoMode()) {
     // If the user is editing, treat it as opting out of demo mode.
@@ -403,7 +403,7 @@ export async function savePlanOverrides(): Promise<void> {
     try {
       localStorage.setItem(DEMO_MODE_STORAGE_KEY, '0');
     } catch {}
-    return;
+    return true;
   }
   try {
     const repos = getRepositories();
@@ -423,9 +423,12 @@ export async function savePlanOverrides(): Promise<void> {
     for (const debt of debts) {
       await repos.debtRepository.update(debt);
       const ph = Array.isArray(debt.paymentHistory) ? debt.paymentHistory : [];
-      for (const p of ph) {
-        await repos.debtRepository.addPayment(String(debt.id), { id: String(p.id), amount: Number(p.amount), at: String(p.at) });
-      }
+      await repos.debtRepository.syncPayments(
+        String(debt.id),
+        ph.map(function (p: { id: string; amount: number; at: string }) {
+          return { id: String(p.id), amount: Number(p.amount), at: String(p.at) };
+        })
+      );
     }
 
     // Savings accounts: remove missing, upsert current, upsert deposit history.
@@ -452,11 +455,13 @@ export async function savePlanOverrides(): Promise<void> {
 
     // Also write a local cache for offline/failed-load resilience.
     safeWriteLocalPlanPayload(PLAN as any);
+    return true;
   } catch (e) {
     // If Supabase save fails, still persist locally so refresh doesn't lose work.
     safeWriteLocalPlanPayload(PLAN as any);
     // eslint-disable-next-line no-console
     console.warn('[PennyPath] savePlanOverrides failed; saved to localStorage fallback', e);
+    return false;
   }
 }
 

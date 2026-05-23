@@ -125,5 +125,47 @@ export class SupabaseDebtRepository implements DebtRepository {
     const { error } = await this.supabase.from('payment_history').upsert(row, { onConflict: 'user_id,id' });
     if (error) throw error;
   }
+
+  async syncPayments(
+    debtId: string,
+    payments: { id: string; amount: number; at: string }[]
+  ): Promise<void> {
+    const { data: userData, error: userErr } = await this.supabase.auth.getUser();
+    if (userErr) throw userErr;
+    const userId = requireUserId(userData?.user?.id);
+    const debtKey = String(debtId);
+
+    const { data: existing, error: listErr } = await this.supabase
+      .from('payment_history')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('debt_id', debtKey);
+    if (listErr) throw listErr;
+
+    const nextIds = new Set(
+      payments.map((p) => String(p.id)).filter((id) => id.length > 0)
+    );
+    const staleIds = (existing || [])
+      .map((row) => String(row.id))
+      .filter((id) => id.length > 0 && !nextIds.has(id));
+
+    if (staleIds.length) {
+      const { error: delErr } = await this.supabase
+        .from('payment_history')
+        .delete()
+        .eq('user_id', userId)
+        .eq('debt_id', debtKey)
+        .in('id', staleIds);
+      if (delErr) throw delErr;
+    }
+
+    for (const payment of payments) {
+      const id = String(payment.id || '').trim();
+      if (!id) continue;
+      const amount = Number(payment.amount);
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      await this.addPayment(debtKey, { id, amount, at: String(payment.at) });
+    }
+  }
 }
 
