@@ -29,7 +29,14 @@ function mapDebtRow(row: DebtRow, payments: PaymentRow[]): Debt {
     deferredMonthsRemaining: row.deferred_months_remaining,
     ...(ledgerStatus ? { ledgerStatus } : {}),
     paymentHistory: payments.map(function (p) {
-      return { id: p.id, amount: p.amount, at: p.at };
+      const kind = p.kind === 'charge' ? ('charge' as const) : ('payment' as const);
+      return {
+        id: p.id,
+        amount: p.amount,
+        at: p.at,
+        kind,
+        memo: typeof p.memo === 'string' ? p.memo : '',
+      };
     }),
   };
 }
@@ -111,7 +118,10 @@ export class SupabaseDebtRepository implements DebtRepository {
     if (error) throw error;
   }
 
-  async addPayment(debtId: string, payment: { id: string; amount: number; at: string }): Promise<void> {
+  async addPayment(
+    debtId: string,
+    payment: { id: string; amount: number; at: string; kind?: 'payment' | 'charge'; memo?: string }
+  ): Promise<void> {
     const { data: userData, error: userErr } = await this.supabase.auth.getUser();
     if (userErr) throw userErr;
     const userId = requireUserId(userData?.user?.id);
@@ -122,6 +132,8 @@ export class SupabaseDebtRepository implements DebtRepository {
       id: payment.id,
       amount: payment.amount,
       at: payment.at,
+      kind: payment.kind === 'charge' ? 'charge' : 'payment',
+      memo: typeof payment.memo === 'string' ? payment.memo : '',
     };
     const { error } = await this.supabase.from('payment_history').upsert(row, { onConflict: 'user_id,id' });
     if (error) throw error;
@@ -129,7 +141,7 @@ export class SupabaseDebtRepository implements DebtRepository {
 
   async syncPayments(
     debtId: string,
-    payments: { id: string; amount: number; at: string }[]
+    payments: { id: string; amount: number; at: string; kind?: 'payment' | 'charge'; memo?: string }[]
   ): Promise<void> {
     const { data: userData, error: userErr } = await this.supabase.auth.getUser();
     if (userErr) throw userErr;
@@ -165,7 +177,13 @@ export class SupabaseDebtRepository implements DebtRepository {
       if (!id) continue;
       const amount = Number(payment.amount);
       if (!Number.isFinite(amount) || amount <= 0) continue;
-      await this.addPayment(debtKey, { id, amount, at: String(payment.at) });
+      await this.addPayment(debtKey, {
+        id,
+        amount,
+        at: String(payment.at),
+        kind: payment.kind === 'charge' ? 'charge' : 'payment',
+        memo: typeof payment.memo === 'string' ? payment.memo : '',
+      });
     }
   }
 }

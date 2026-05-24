@@ -19,11 +19,14 @@ export interface DebtRepository {
   add(debt: Debt): Promise<void>;
   update(debt: Debt): Promise<void>;
   remove(id: string): Promise<void>;
-  addPayment(debtId: string, payment: { id: string; amount: number; at: string }): Promise<void>;
+  addPayment(
+    debtId: string,
+    payment: { id: string; amount: number; at: string; kind?: 'payment' | 'charge'; memo?: string }
+  ): Promise<void>;
   /** Replace payment rows for one debt to match the in-memory ledger. */
   syncPayments(
     debtId: string,
-    payments: { id: string; amount: number; at: string }[]
+    payments: { id: string; amount: number; at: string; kind?: 'payment' | 'charge'; memo?: string }[]
   ): Promise<void>;
 }
 
@@ -32,7 +35,15 @@ export interface SavingsAccountRepository {
   add(account: SavingsAccount): Promise<void>;
   update(account: SavingsAccount): Promise<void>;
   remove(id: string): Promise<void>;
-  addDeposit(accountId: string, deposit: { id: string; amount: number; at: string }): Promise<void>;
+  addDeposit(
+    accountId: string,
+    deposit: { id: string; amount: number; at: string; kind?: 'deposit' | 'withdrawal'; memo?: string }
+  ): Promise<void>;
+  /** Replace deposit rows for one account to match the in-memory ledger. */
+  syncDeposits(
+    accountId: string,
+    deposits: { id: string; amount: number; at: string; kind?: 'deposit' | 'withdrawal'; memo?: string }[]
+  ): Promise<void>;
 }
 
 export interface SavingsGoalRepository {

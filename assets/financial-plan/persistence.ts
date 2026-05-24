@@ -30,6 +30,7 @@ import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { yyyyMmFromDate } from './monthly-activity';
 import { ID_GOAL_HYSA, ensureSavingsGoals, normalizeSavingsGoalRow } from './savings-goals';
 import { normalizeLedgerStatus } from './debt-ledger';
+import { debtLedgerKind, normalizeLedgerMemo, savingsLedgerKind } from './ledger-utils';
 import { isTrialSessionActive } from '../../lib/trial/trial-session';
 
 let lastPlanSaveError: string | null = null;
@@ -66,8 +67,14 @@ async function persistDebtsToSupabase(repos: Repositories): Promise<void> {
     const ph = Array.isArray(debt.paymentHistory) ? debt.paymentHistory : [];
     await repos.debtRepository.syncPayments(
       String(debt.id),
-      ph.map(function (p: { id: string; amount: number; at: string }) {
-        return { id: String(p.id), amount: Number(p.amount), at: String(p.at) };
+      ph.map(function (p: PaymentHistoryItem) {
+        return {
+          id: String(p.id),
+          amount: Number(p.amount),
+          at: String(p.at),
+          kind: debtLedgerKind(p.kind),
+          memo: normalizeLedgerMemo(p.memo),
+        };
       })
     );
   }
@@ -87,13 +94,18 @@ async function persistSavingsToSupabase(repos: Repositories): Promise<void> {
   for (const acc of accounts) {
     await repos.savingsAccountRepository.update(acc);
     const dh = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
-    for (const d of dh) {
-      await repos.savingsAccountRepository.addDeposit(String(acc.id), {
-        id: String(d.id),
-        amount: Number(d.amount),
-        at: String(d.at),
-      });
-    }
+    await repos.savingsAccountRepository.syncDeposits(
+      String(acc.id),
+      dh.map(function (d: DepositHistoryItem) {
+        return {
+          id: String(d.id),
+          amount: Number(d.amount),
+          at: String(d.at),
+          kind: savingsLedgerKind(d.kind),
+          memo: normalizeLedgerMemo(d.memo),
+        };
+      })
+    );
   }
   await repos.savingsGoalRepository.save(Array.isArray((PLAN as any).savingsGoals) ? (PLAN as any).savingsGoals : []);
 }
@@ -156,12 +168,22 @@ export function normalizePaymentHistory(d: unknown): PaymentHistoryItem[] {
     })
     .map(function (p: any) {
       const amt = Math.max(0, Number(p.amount));
-      return { id: String(p.id || ''), amount: amt, at: String(p.at) };
+      return {
+        id: String(p.id || ''),
+        amount: amt,
+        at: String(p.at),
+        kind: debtLedgerKind(p.kind),
+        memo: normalizeLedgerMemo(p.memo),
+      };
     });
 }
 
 export function newPaymentId(): string {
   return 'ph_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+export function newChargeId(): string {
+  return 'ch_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
 
 export function normalizeDepositHistory(acc: unknown): DepositHistoryItem[] {
@@ -172,12 +194,23 @@ export function normalizeDepositHistory(acc: unknown): DepositHistoryItem[] {
       return p && typeof p === 'object' && Number.isFinite(Number(p.amount)) && typeof p.at === 'string';
     })
     .map(function (p: any) {
-      return { id: String(p.id || ''), amount: Number(p.amount), at: String(p.at) };
+      const amt = Math.max(0, Number(p.amount));
+      return {
+        id: String(p.id || ''),
+        amount: amt,
+        at: String(p.at),
+        kind: savingsLedgerKind(p.kind),
+        memo: normalizeLedgerMemo(p.memo),
+      };
     });
 }
 
 export function newDepositId(): string {
   return 'dep_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+}
+
+export function newWithdrawalId(): string {
+  return 'wd_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
 
 function normalizeSavingsAccount(a: unknown): SavingsAccount | null {
@@ -368,7 +401,10 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
         let ledgerStatus = normalizeLedgerStatus(d.ledgerStatus);
         const current = Math.max(0, numOr(d.current, 0));
         const paidOff = Math.max(0, numOr(d.paidOff, 0));
-        const hasAnyPayments = Array.isArray(d.paymentHistory) && d.paymentHistory.length > 0;
+        const histNorm = normalizePaymentHistory(d);
+        const hasAnyPayments = histNorm.some(function (p) {
+          return debtLedgerKind(p.kind) === 'payment';
+        });
         if (!d.ledgerStatus && current <= 0 && (paidOff > 0 || hasAnyPayments)) {
           ledgerStatus = 'completed';
         }

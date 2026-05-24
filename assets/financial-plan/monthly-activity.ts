@@ -8,6 +8,7 @@
 import type { CheckInEntry, Debt, FinancialPlan, MoneyLedgerItem, SavingsAccount, YyyyMm } from '../../types/index.js';
 import { numOr } from './utils';
 import { getSavingsAccounts } from './savings-accounts';
+import { isDebtPaymentEntry, isSavingsDepositEntry } from './ledger-utils';
 
 /** @param iso */
 export function isoInLocalYyyyMm(iso: string, yyyyMm: string): boolean {
@@ -161,6 +162,7 @@ export function summarizeMonth(plan: FinancialPlan, yyyyMm: string, checkins: un
     let total = 0;
     hist.forEach(function (p: any) {
       if (!p || typeof p.at !== 'string') return;
+      if (!isDebtPaymentEntry(p)) return;
       if (!isoInLocalYyyyMm(p.at, yyyyMm)) return;
       const amt = numOr(p.amount, 0);
       total += amt;
@@ -184,6 +186,7 @@ export function summarizeMonth(plan: FinancialPlan, yyyyMm: string, checkins: un
     let total = 0;
     hist.forEach(function (p: any) {
       if (!p || typeof p.at !== 'string') return;
+      if (!isSavingsDepositEntry(p)) return;
       if (!isoInLocalYyyyMm(p.at, yyyyMm)) return;
       const amt = numOr(p.amount, 0);
       total += amt;

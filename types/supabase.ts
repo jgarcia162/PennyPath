@@ -177,6 +177,8 @@ export type Database = {
           amount: number
           at: string
           id: string
+          kind: string
+          memo: string
           user_id: string
         }
         Insert: {
@@ -184,6 +186,8 @@ export type Database = {
           amount: number
           at: string
           id: string
+          kind?: string
+          memo?: string
           user_id: string
         }
         Update: {
@@ -191,6 +195,8 @@ export type Database = {
           amount?: number
           at?: string
           id?: string
+          kind?: string
+          memo?: string
           user_id?: string
         }
         Relationships: []
@@ -309,6 +315,8 @@ export type Database = {
           at: string
           debt_id: string
           id: string
+          kind: string
+          memo: string
           user_id: string
         }
         Insert: {
@@ -316,6 +324,8 @@ export type Database = {
           at: string
           debt_id: string
           id: string
+          kind?: string
+          memo?: string
           user_id: string
         }
         Update: {
@@ -323,6 +333,8 @@ export type Database = {
           at?: string
           debt_id?: string
           id?: string
+          kind?: string
+          memo?: string
           user_id?: string
         }
         Relationships: []

@@ -14,8 +14,94 @@ import { partitionSavingsByLedger } from './savings-ledger';
 import { ensureSavingsGoals, accountContributesToGoal } from './savings-goals';
 import { numOr, formatCurrencyInput, formatMoneyInput } from './utils';
 import { getEditingDebtCardId, getEditingSavingsCardId } from './card-inline-edit-state';
+import {
+  debtLedgerKind,
+  formatDebtLedgerSummary,
+  formatSavingsLedgerSummary,
+  isSavingsDepositEntry,
+  savingsLedgerKind,
+} from './ledger-utils';
+import { getSavingsAccounts } from './savings-accounts';
+import { appendDebtLedgerCellToRow, appendDebtLedgerHeaderCell } from './debt-ledger-editor-cells';
+import { appendSavingsLedgerCellToRow, appendSavingsLedgerHeaderCell } from './savings-ledger-editor-cells';
+import {
+  clearDebtLedgerActivityInputs,
+  clearDebtLedgerDraftStore,
+  clearSavingsLedgerActivityInputs,
+  clearSavingsLedgerDraftStore,
+  listDebtLedgerDrafts,
+  listSavingsLedgerDrafts,
+  restoreDebtLedgerDrafts,
+  restoreSavingsLedgerDrafts,
+} from './ledger-editor-draft';
+import { applyGoal2SaveButtonState, applyGoal3SaveButtonState } from './editor-ledger-save-guard';
 
 type MoneyFn = (n: number) => string;
+
+let debtCardOrderIds: string[] | null = null;
+let debtEditorRowOrderIds: string[] | null = null;
+let savingsCardOrderIds: string[] | null = null;
+let savingsEditorRowOrderIds: string[] | null = null;
+
+function orderByIdList<T extends { id: string }>(items: T[], ids: string[] | null): T[] {
+  if (!ids || !ids.length) return items;
+  const byId = new Map<string, T>();
+  items.forEach(function (item) {
+    byId.set(String(item.id), item);
+  });
+  const ordered: T[] = [];
+  ids.forEach(function (id) {
+    const row = byId.get(id);
+    if (row) {
+      ordered.push(row);
+      byId.delete(id);
+    }
+  });
+  byId.forEach(function (row) {
+    ordered.push(row);
+  });
+  return ordered;
+}
+
+function applyFrozenDebtCardOrder(debts: Debt[]): Debt[] {
+  return orderByIdList(debts, debtCardOrderIds);
+}
+
+function applyFrozenDebtEditorRowOrder(debts: Debt[]): Debt[] {
+  return orderByIdList(debts, debtEditorRowOrderIds);
+}
+
+function applyFrozenSavingsCardOrder(accounts: SavingsAccount[]): SavingsAccount[] {
+  return orderByIdList(accounts, savingsCardOrderIds);
+}
+
+function applyFrozenSavingsEditorRowOrder(accounts: SavingsAccount[]): SavingsAccount[] {
+  return orderByIdList(accounts, savingsEditorRowOrderIds);
+}
+
+/** Freeze dashboard card + editor row order while a goal editor dialog is open. */
+export function freezeEditorOrders(plan: FinancialPlan): void {
+  debtCardOrderIds = getDebtsInProgressOrderUnfrozen(plan).map(function (d) {
+    return String(d.id);
+  });
+  debtEditorRowOrderIds = getDebtsInEditorOrderForSegmentUnfrozen(plan).map(function (d) {
+    return String(d.id);
+  });
+  const accs = getSavingsAccounts(plan);
+  savingsCardOrderIds = accs.map(function (a) {
+    return String(a.id);
+  });
+  savingsEditorRowOrderIds = accs.map(function (a) {
+    return String(a.id);
+  });
+}
+
+export function clearEditorOrderFreeze(): void {
+  debtCardOrderIds = null;
+  debtEditorRowOrderIds = null;
+  savingsCardOrderIds = null;
+  savingsEditorRowOrderIds = null;
+}
 
 function closeAllSavingsGoalsDropdowns(except?: Element | null): void {
   document.querySelectorAll('.editor-savings-goals-dd.is-open').forEach(function (el) {
@@ -103,7 +189,7 @@ export function getDebtsInEditorOrder(plan: Pick<FinancialPlan, 'debts' | 'debts
 }
 
 /** Debts shown in the editor for the current ledger segment (dialog tab). */
-export function getDebtsInEditorOrderForSegment(
+export function getDebtsInEditorOrderForSegmentUnfrozen(
   plan: Pick<FinancialPlan, 'debts' | 'debtsEditorSort' | 'debtsEditorLedgerSegment'>
 ): Debt[] {
   const segment = getDebtsEditorSegment(plan as FinancialPlan);
@@ -113,13 +199,46 @@ export function getDebtsInEditorOrderForSegment(
   return sortDebtListByMode(bucket.slice(), mode);
 }
 
+/** Debts shown in the editor for the current ledger segment (dialog tab). */
+export function getDebtsInEditorOrderForSegment(
+  plan: Pick<FinancialPlan, 'debts' | 'debtsEditorSort' | 'debtsEditorLedgerSegment'>
+): Debt[] {
+  return applyFrozenDebtEditorRowOrder(getDebtsInEditorOrderForSegmentUnfrozen(plan));
+}
+
 /**
  * Order for Goal 2 per-debt progress cards (`#goal2-debts`).
  */
-export function getDebtsInProgressOrder(plan: Pick<FinancialPlan, 'debts' | 'debtsProgressSort'>): Debt[] {
+export function getDebtsInProgressOrderUnfrozen(
+  plan: Pick<FinancialPlan, 'debts' | 'debtsProgressSort'>
+): Debt[] {
   const list = partitionDebtsByLedger(Array.isArray(plan.debts) ? (plan.debts as Debt[]) : []).active;
   const mode = normalizeDebtsProgressSort(plan.debtsProgressSort as unknown);
   return sortDebtListByMode(list, mode);
+}
+
+export function getDebtsInProgressOrder(plan: Pick<FinancialPlan, 'debts' | 'debtsProgressSort'>): Debt[] {
+  return applyFrozenDebtCardOrder(getDebtsInProgressOrderUnfrozen(plan));
+}
+
+function captureDebtCardActivityOpen(host: HTMLElement): Map<string, boolean> {
+  const open = new Map<string, boolean>();
+  host.querySelectorAll('.goal2-debt-payments').forEach(function (det) {
+    const card = det.closest('.goal2-debt');
+    const id = card ? card.getAttribute('data-debt-id') : null;
+    if (id && (det as HTMLDetailsElement).open) open.set(String(id), true);
+  });
+  return open;
+}
+
+function captureSavingsCardActivityOpen(host: HTMLElement): Map<string, boolean> {
+  const open = new Map<string, boolean>();
+  host.querySelectorAll('.goal3-savings-deposits').forEach(function (det) {
+    const card = det.closest('.goal3-savings-account');
+    const id = card ? card.getAttribute('data-savings-id') : null;
+    if (id && (det as HTMLDetailsElement).open) open.set(String(id), true);
+  });
+  return open;
 }
 
 function buildInlineEditActions(kind: 'debt' | 'savings'): HTMLDivElement {
@@ -179,6 +298,7 @@ function buildEditableDebtCard(debt: Debt): HTMLDivElement {
 export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void {
   const host = document.getElementById('goal2-debts') as HTMLElement | null;
   if (!host) return;
+  const activityOpen = captureDebtCardActivityOpen(host);
   host.innerHTML = '';
   const debts = getDebtsInProgressOrder(plan);
   const editingDebtId = getEditingDebtCardId();
@@ -235,20 +355,22 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
     details.className = 'goal2-debt-payments';
     const summary = document.createElement('summary');
     summary.className = 'goal2-debt-payments-summary';
-    summary.textContent = 'Recent payments (30 days)' + (recent.length ? ' · ' + recent.length : '');
+    summary.textContent = 'Recent activity (30 days)' + (recent.length ? ' · ' + recent.length : '');
     details.appendChild(summary);
 
     if (recent.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'goal2-debt-payments-empty';
-      empty.textContent = 'No payments recorded in the last 30 days.';
+      empty.textContent = 'No activity recorded in the last 30 days.';
       details.appendChild(empty);
     } else {
       const ul = document.createElement('ul');
       ul.className = 'goal2-debt-payments-list';
       recent.forEach(function (p) {
         const li = document.createElement('li');
-        li.className = 'goal2-debt-payment-row';
+        const kind = debtLedgerKind(p.kind);
+        li.className =
+          'goal2-debt-payment-row goal2-debt-ledger-row goal2-debt-ledger-row--' + kind;
         const dateStr = new Date(p.at).toLocaleDateString(undefined, {
           month: 'short',
           day: 'numeric',
@@ -256,13 +378,14 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
         });
         const metaSpan = document.createElement('span');
         metaSpan.className = 'goal2-debt-payment-meta';
-        metaSpan.textContent = moneyExact(Number(p.amount)) + ' · ' + dateStr;
+        metaSpan.textContent = formatDebtLedgerSummary(p, moneyExact) + ' · ' + dateStr;
 
         const rm = document.createElement('button');
         rm.type = 'button';
-        rm.className = 'goal2-remove-payment no-print';
+        rm.className = 'goal2-remove-ledger-entry goal2-remove-payment no-print';
         rm.textContent = 'Remove';
         rm.setAttribute('data-debt-id', String(debt.id));
+        rm.setAttribute('data-ledger-id', String(p.id));
         rm.setAttribute('data-payment-id', String(p.id));
 
         li.appendChild(metaSpan);
@@ -271,6 +394,8 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
       });
       details.appendChild(ul);
     }
+
+    if (activityOpen.get(String(debt.id || ''))) details.open = true;
 
     wrap.appendChild(head);
     wrap.appendChild(labels);
@@ -312,6 +437,48 @@ export function appendDebtsEditorEmptyState(host: HTMLElement, segment?: DebtsEd
   host.appendChild(wrap);
 }
 
+function buildLedgerInlineActionHtml(opts: {
+  amountField: string;
+  memoField?: string;
+  action: string;
+  amountPlaceholder: string;
+  title: string;
+  btnClass?: string;
+  includeMemo?: boolean;
+}): string {
+  const btnClass = opts.btnClass || 'btn-icon';
+  const wrapClass =
+    'field-inline-action field-inline-action--ledger' +
+    (opts.includeMemo ? '' : ' field-inline-action--ledger-no-memo');
+  let html =
+    '<div class="' +
+    wrapClass +
+    '">' +
+    '<input type="text" data-field="' +
+    opts.amountField +
+    '" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="' +
+    opts.amountPlaceholder +
+    '">';
+  if (opts.includeMemo && opts.memoField) {
+    html +=
+      '<input type="text" data-field="' +
+      opts.memoField +
+      '" class="ledger-memo" maxlength="120" autocomplete="off" placeholder="Note">';
+  }
+  html +=
+    '<button type="button" class="' +
+    btnClass +
+    '" data-action="' +
+    opts.action +
+    '" title="' +
+    opts.title +
+    '" aria-label="' +
+    opts.title +
+    '">+</button>' +
+    '</div>';
+  return html;
+}
+
 /** Spreadsheet-style table: one header row, data rows are `<tr class="debt-row">`. */
 export function buildDebtsEditorThead() {
   const thead = document.createElement('thead');
@@ -323,20 +490,20 @@ export function buildDebtsEditorThead() {
     { t: 'APR %', title: 'Annual percentage rate' },
     { t: 'Def $', title: 'Deferred balance (0% promo)' },
     { t: 'Until', title: 'Deferred rate expires' },
-    { t: 'Pay', title: 'Payment to log, then +' },
-    { t: '', title: 'Remove row' },
   ];
   headers.forEach(function (h) {
     const th = document.createElement('th');
     th.scope = 'col';
     th.textContent = h.t;
     if (h.title) th.title = h.title;
-    if (!h.t) {
-      th.className = 'editor-table__th--action';
-      th.setAttribute('aria-label', 'Remove');
-    }
     tr.appendChild(th);
   });
+  appendDebtLedgerHeaderCell(tr);
+  const thRm = document.createElement('th');
+  thRm.scope = 'col';
+  thRm.className = 'editor-table__th--action';
+  thRm.setAttribute('aria-label', 'Remove');
+  tr.appendChild(thRm);
   thead.appendChild(tr);
   return thead;
 }
@@ -380,15 +547,7 @@ export function buildDebtRowTR(debt: Debt, segment: DebtsEditorSegment = 'active
   row.appendChild(
     tdInput('', '<input type="date" data-field="deferredExpiresOn" autocomplete="off" value="">')
   );
-  row.appendChild(
-    tdInput(
-      'editor-table__cell--pay',
-      '<div class="field-inline-action">' +
-        '<input type="text" data-field="payment" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="$0.00">' +
-        '<button type="button" class="btn-icon btn-quick-payment" data-action="quick-payment" title="Log payment now" aria-label="Log payment now">+</button>' +
-        '</div>'
-    )
-  );
+  appendDebtLedgerCellToRow(row);
   const rmTd = document.createElement('td');
   rmTd.className = 'editor-table__cell--actions editor-table__cell--debt-actions';
   if (segment === 'completed') {
@@ -494,9 +653,14 @@ export function syncDebtsEditorLedgerTabs(plan: FinancialPlan): void {
   });
 }
 
-export function renderDebtsEditor(plan: FinancialPlan): void {
+export type EditorRenderOptions = {
+  preserveLedgerActivityDrafts?: boolean;
+};
+
+export function renderDebtsEditor(plan: FinancialPlan, editorOpts?: EditorRenderOptions): void {
   const host = document.getElementById('debts-editor-list') as HTMLElement | null;
   if (!host) return;
+  const preserveDrafts = editorOpts?.preserveLedgerActivityDrafts !== false;
   const prevSegAttr = host.getAttribute('data-debts-segment');
   const segment = getDebtsEditorSegment(plan);
   const sameLedgerSegment =
@@ -504,6 +668,7 @@ export function renderDebtsEditor(plan: FinancialPlan): void {
     prevSegAttr === '' ||
     normalizeDebtsEditorSegment(prevSegAttr) === segment;
   const focusSnap = sameLedgerSegment ? captureDebtsEditorFocus(host) : null;
+  if (!preserveDrafts) clearDebtLedgerDraftStore();
 
   host.dataset.debtsSegment = segment;
   host.innerHTML = '';
@@ -526,7 +691,13 @@ export function renderDebtsEditor(plan: FinancialPlan): void {
   const addBtn = document.getElementById('btn-add-debt') as HTMLButtonElement | null;
   if (addBtn) addBtn.disabled = segment !== 'active';
 
+  if (preserveDrafts) {
+    restoreDebtLedgerDrafts(host, listDebtLedgerDrafts());
+  } else {
+    clearDebtLedgerActivityInputs(host);
+  }
   if (focusSnap) restoreDebtsEditorFocus(host, focusSnap);
+  applyGoal2SaveButtonState();
 }
 
 /** Dashboard: paid-off debts summary (`#dash-debts-completed-list`). */
@@ -676,21 +847,25 @@ export function buildSavingsEditorThead(): HTMLTableSectionElement {
     { t: 'Name', title: '' },
     { t: 'Balance', title: 'Current balance' },
     { t: 'APY %', title: 'Annual percentage yield' },
-    { t: 'Deposit', title: 'Deposit to log, then +' },
-    { t: 'Goals', title: 'This balance can count toward one or more targets' },
-    { t: '', title: 'Remove row' },
   ];
   headers.forEach(function (h) {
     const th = document.createElement('th');
     th.scope = 'col';
     th.textContent = h.t;
     if (h.title) th.title = h.title;
-    if (!h.t) {
-      th.className = 'editor-table__th--action';
-      th.setAttribute('aria-label', 'Remove');
-    }
     tr.appendChild(th);
   });
+  appendSavingsLedgerHeaderCell(tr);
+  const thGoals = document.createElement('th');
+  thGoals.scope = 'col';
+  thGoals.textContent = 'Goals';
+  thGoals.title = 'This balance can count toward one or more targets';
+  tr.appendChild(thGoals);
+  const thRm = document.createElement('th');
+  thRm.scope = 'col';
+  thRm.className = 'editor-table__th--action';
+  thRm.setAttribute('aria-label', 'Remove');
+  tr.appendChild(thRm);
   thead.appendChild(tr);
   return thead;
 }
@@ -717,14 +892,6 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   const tdApy = document.createElement('td');
   tdApy.innerHTML =
     '<input type="text" data-field="apyPct" data-money="rate" inputmode="decimal" autocomplete="off" placeholder="0.00" value="">';
-
-  const tdDep = document.createElement('td');
-  tdDep.className = 'editor-table__cell--pay';
-  tdDep.innerHTML =
-    '<div class="field-inline-action">' +
-    '<input type="text" data-field="deposit" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="$0.00">' +
-    '<button type="button" class="btn-icon btn-quick-deposit" data-action="quick-deposit" title="Log deposit now" aria-label="Log deposit now">+</button>' +
-    '</div>';
 
   const tdGoal = document.createElement('td');
   tdGoal.className = 'editor-table__cell--goals';
@@ -835,7 +1002,7 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   row.appendChild(tdName);
   row.appendChild(tdCur);
   row.appendChild(tdApy);
-  row.appendChild(tdDep);
+  appendSavingsLedgerCellToRow(row);
   row.appendChild(tdGoal);
   row.appendChild(rmTd);
 
@@ -851,15 +1018,23 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   return row;
 }
 
-export function renderSavingsEditor(d: Pick<DerivedPlanMetrics, 'savingsAccounts'>): void {
+export function renderSavingsEditor(
+  d: Pick<DerivedPlanMetrics, 'savingsAccounts'>,
+  editorOpts?: EditorRenderOptions
+): void {
   const host = document.getElementById('savings-editor-list') as HTMLElement | null;
   if (!host) return;
+  const preserveDrafts = editorOpts?.preserveLedgerActivityDrafts !== false;
+  if (!preserveDrafts) clearSavingsLedgerDraftStore();
   host.innerHTML = '';
-  const accs: SavingsAccount[] = (d.savingsAccounts || []) as SavingsAccount[];
+  let accs: SavingsAccount[] = applyFrozenSavingsEditorRowOrder(
+    (d.savingsAccounts || []) as SavingsAccount[]
+  );
   ensureSavingsGoals(PLAN);
   const savingsGoals: SavingsGoal[] = ((PLAN as any).savingsGoals || []) as SavingsGoal[];
   if (accs.length === 0) {
     appendSavingsEditorEmptyState(host);
+    applyGoal3SaveButtonState();
     return;
   }
   const table = document.createElement('table');
@@ -872,6 +1047,12 @@ export function renderSavingsEditor(d: Pick<DerivedPlanMetrics, 'savingsAccounts
   });
   table.appendChild(tbody);
   host.appendChild(table);
+  if (preserveDrafts) {
+    restoreSavingsLedgerDrafts(host, listSavingsLedgerDrafts());
+  } else {
+    clearSavingsLedgerActivityInputs(host);
+  }
+  applyGoal3SaveButtonState();
 }
 
 function buildEditableSavingsCard(acc: SavingsAccount): HTMLDivElement {
@@ -941,8 +1122,9 @@ export function renderGoal3SavingsAccounts(
 ): void {
   const host = document.getElementById('goal3-savings') as HTMLElement | null;
   if (!host) return;
+  const activityOpen = captureSavingsCardActivityOpen(host);
   host.innerHTML = '';
-  const accs: SavingsAccount[] = (d.savingsAccounts || []) as SavingsAccount[];
+  const accs: SavingsAccount[] = applyFrozenSavingsCardOrder((d.savingsAccounts || []) as SavingsAccount[]);
   const editingSavingsId = getEditingSavingsCardId();
   accs.forEach(function (acc) {
     if (editingSavingsId && String(acc.id || '') === editingSavingsId) {
@@ -952,6 +1134,7 @@ export function renderGoal3SavingsAccounts(
     const current = numOr(acc.current, 0);
     const hist = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
     const lifetimeDep = hist.reduce(function (s, p) {
+      if (!isSavingsDepositEntry(p)) return s;
       return s + numOr(p.amount, 0);
     }, 0);
 
@@ -1076,20 +1259,22 @@ export function renderGoal3SavingsAccounts(
     details.className = 'goal3-savings-deposits';
     const summary = document.createElement('summary');
     summary.className = 'goal3-savings-deposits-summary';
-    summary.textContent = 'Recent deposits (30 days)' + (recent.length ? ' · ' + recent.length : '');
+    summary.textContent = 'Recent activity (30 days)' + (recent.length ? ' · ' + recent.length : '');
     details.appendChild(summary);
 
     if (recent.length === 0) {
       const empty = document.createElement('div');
       empty.className = 'goal3-savings-deposits-empty';
-      empty.textContent = 'No deposits logged in the last 30 days.';
+      empty.textContent = 'No activity logged in the last 30 days.';
       details.appendChild(empty);
     } else {
       const ul = document.createElement('ul');
       ul.className = 'goal3-savings-deposits-list';
       recent.forEach(function (p) {
         const li = document.createElement('li');
-        li.className = 'goal3-savings-deposit-row';
+        const kind = savingsLedgerKind(p.kind);
+        li.className =
+          'goal3-savings-deposit-row goal3-savings-ledger-row goal3-savings-ledger-row--' + kind;
         const dateStr = new Date(p.at).toLocaleDateString(undefined, {
           month: 'short',
           day: 'numeric',
@@ -1097,13 +1282,14 @@ export function renderGoal3SavingsAccounts(
         });
         const metaSpan = document.createElement('span');
         metaSpan.className = 'goal3-savings-deposit-meta';
-        metaSpan.textContent = moneyExact(Number(p.amount)) + ' · ' + dateStr;
+        metaSpan.textContent = formatSavingsLedgerSummary(p, moneyExact) + ' · ' + dateStr;
 
         const rm = document.createElement('button');
         rm.type = 'button';
-        rm.className = 'goal3-remove-deposit no-print';
+        rm.className = 'goal3-remove-ledger-entry goal3-remove-deposit no-print';
         rm.textContent = 'Remove';
         rm.setAttribute('data-savings-id', String(acc.id));
+        rm.setAttribute('data-ledger-id', String(p.id));
         rm.setAttribute('data-deposit-id', String(p.id));
 
         li.appendChild(metaSpan);
@@ -1112,6 +1298,8 @@ export function renderGoal3SavingsAccounts(
       });
       details.appendChild(ul);
     }
+
+    if (activityOpen.get(String(acc.id || ''))) details.open = true;
 
     wrap.appendChild(head);
     wrap.appendChild(goalsDetails);
