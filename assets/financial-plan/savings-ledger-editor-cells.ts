@@ -10,7 +10,7 @@ export function buildSavingsLedgerUnifiedCellHtml(): string {
     '<input type="text" data-field="withdrawal" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="Withdraw" title="Withdrawal amount">' +
     '<input type="text" data-field="withdrawal-memo" class="ledger-memo" maxlength="120" autocomplete="off" placeholder="Note" title="Withdrawal note">' +
     '</div>' +
-    '<button type="button" class="btn-icon btn-quick-savings-ledger-entry" data-action="quick-savings-ledger-entry" title="Add deposit or withdrawal (withdrawal wins if both filled)" aria-label="Add deposit or withdrawal">Add</button>' +
+    '<button type="button" class="btn-icon btn-quick-savings-ledger-entry" data-action="quick-savings-ledger-entry" title="Add deposit or withdrawal" aria-label="Add deposit or withdrawal">Add</button>' +
     '</div>'
   );
 }

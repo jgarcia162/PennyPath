@@ -81,11 +81,12 @@ function parseSavingsRowFromDOM(
   function applyWithdrawal(): void {
     if (!hasNewWithdrawal) return;
     const wd = roundMoney(withdrawal!);
+    const applied = roundMoney(Math.min(wd, currentBal));
     currentBal = roundMoney(Math.max(0, currentBal - wd));
     hist = hist.slice();
     hist.push({
       id: newWithdrawalId(),
-      amount: wd,
+      amount: applied,
       at: defaultLogAtIsoForEdits(),
       kind: 'withdrawal',
       memo: withdrawMemoEl ? normalizeLedgerMemo(withdrawMemoEl.value) : '',

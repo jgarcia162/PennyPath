@@ -1034,6 +1034,7 @@ export function renderSavingsEditor(
   const savingsGoals: SavingsGoal[] = ((PLAN as any).savingsGoals || []) as SavingsGoal[];
   if (accs.length === 0) {
     appendSavingsEditorEmptyState(host);
+    applyGoal3SaveButtonState();
     return;
   }
   const table = document.createElement('table');

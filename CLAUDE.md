@@ -34,7 +34,7 @@ The project runs in two distinct modes:
 
 `main.ts` is the entry point. Script load order in the HTML matters:
 
-```
+```text
 theme-service.ts → site-settings.ts → payoff-projection.js (module) → checkin-service.ts → badges.ts → main.ts
 ```
 

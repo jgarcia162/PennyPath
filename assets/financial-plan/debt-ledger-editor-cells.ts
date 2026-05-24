@@ -10,7 +10,7 @@ export function buildDebtLedgerUnifiedCellHtml(): string {
     '<input type="text" data-field="charge" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="Charge" title="Charge amount">' +
     '<input type="text" data-field="charge-memo" class="ledger-memo" maxlength="120" autocomplete="off" placeholder="Note" title="Charge note">' +
     '</div>' +
-    '<button type="button" class="btn-icon btn-quick-ledger-entry" data-action="quick-ledger-entry" title="Add payment or charge (charge wins if both filled)" aria-label="Add payment or charge">Add</button>' +
+    '<button type="button" class="btn-icon btn-quick-ledger-entry" data-action="quick-ledger-entry" title="Add payment or charge" aria-label="Add payment or charge">Add</button>' +
     '</div>'
   );
 }

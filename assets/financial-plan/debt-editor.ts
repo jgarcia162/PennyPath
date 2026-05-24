@@ -413,6 +413,9 @@ export function removeDebtLedgerEntry(
   } else {
     debt.current = roundMoney(numOr(debt.current, 0) + amt);
     debt.paidOff = roundMoney(Math.max(0, numOr(debt.paidOff, 0) - amt));
+    if (debt.ledgerStatus === 'completed' && numOr(debt.current, 0) > 0) {
+      debt.ledgerStatus = 'active';
+    }
   }
   onUnsaved();
   rerender();
