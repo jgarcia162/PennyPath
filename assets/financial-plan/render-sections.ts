@@ -22,6 +22,19 @@ import {
   savingsLedgerKind,
 } from './ledger-utils';
 import { getSavingsAccounts } from './savings-accounts';
+import { appendDebtLedgerCellToRow, appendDebtLedgerHeaderCell } from './debt-ledger-editor-cells';
+import { appendSavingsLedgerCellToRow, appendSavingsLedgerHeaderCell } from './savings-ledger-editor-cells';
+import {
+  clearDebtLedgerActivityInputs,
+  clearDebtLedgerDraftStore,
+  clearSavingsLedgerActivityInputs,
+  clearSavingsLedgerDraftStore,
+  listDebtLedgerDrafts,
+  listSavingsLedgerDrafts,
+  restoreDebtLedgerDrafts,
+  restoreSavingsLedgerDrafts,
+} from './ledger-editor-draft';
+import { applyGoal2SaveButtonState, applyGoal3SaveButtonState } from './editor-ledger-save-guard';
 
 type MoneyFn = (n: number) => string;
 
@@ -477,21 +490,20 @@ export function buildDebtsEditorThead() {
     { t: 'APR %', title: 'Annual percentage rate' },
     { t: 'Def $', title: 'Deferred balance (0% promo)' },
     { t: 'Until', title: 'Deferred rate expires' },
-    { t: 'Pay', title: 'Payment amount, then +' },
-    { t: 'Charge', title: 'Purchase/charge amount + note, then +' },
-    { t: '', title: 'Remove row' },
   ];
   headers.forEach(function (h) {
     const th = document.createElement('th');
     th.scope = 'col';
     th.textContent = h.t;
     if (h.title) th.title = h.title;
-    if (!h.t) {
-      th.className = 'editor-table__th--action';
-      th.setAttribute('aria-label', 'Remove');
-    }
     tr.appendChild(th);
   });
+  appendDebtLedgerHeaderCell(tr);
+  const thRm = document.createElement('th');
+  thRm.scope = 'col';
+  thRm.className = 'editor-table__th--action';
+  thRm.setAttribute('aria-label', 'Remove');
+  tr.appendChild(thRm);
   thead.appendChild(tr);
   return thead;
 }
@@ -535,32 +547,7 @@ export function buildDebtRowTR(debt: Debt, segment: DebtsEditorSegment = 'active
   row.appendChild(
     tdInput('', '<input type="date" data-field="deferredExpiresOn" autocomplete="off" value="">')
   );
-  row.appendChild(
-    tdInput(
-      'editor-table__cell--pay',
-      buildLedgerInlineActionHtml({
-        amountField: 'payment',
-        action: 'quick-payment',
-        amountPlaceholder: '$0.00',
-        title: 'Log payment now',
-        btnClass: 'btn-icon btn-quick-payment',
-      })
-    )
-  );
-  row.appendChild(
-    tdInput(
-      'editor-table__cell--charge',
-      buildLedgerInlineActionHtml({
-        amountField: 'charge',
-        memoField: 'charge-memo',
-        action: 'quick-charge',
-        amountPlaceholder: '$0.00',
-        title: 'Log charge now',
-        btnClass: 'btn-icon btn-quick-charge',
-        includeMemo: true,
-      })
-    )
-  );
+  appendDebtLedgerCellToRow(row);
   const rmTd = document.createElement('td');
   rmTd.className = 'editor-table__cell--actions editor-table__cell--debt-actions';
   if (segment === 'completed') {
@@ -666,9 +653,14 @@ export function syncDebtsEditorLedgerTabs(plan: FinancialPlan): void {
   });
 }
 
-export function renderDebtsEditor(plan: FinancialPlan): void {
+export type EditorRenderOptions = {
+  preserveLedgerActivityDrafts?: boolean;
+};
+
+export function renderDebtsEditor(plan: FinancialPlan, editorOpts?: EditorRenderOptions): void {
   const host = document.getElementById('debts-editor-list') as HTMLElement | null;
   if (!host) return;
+  const preserveDrafts = editorOpts?.preserveLedgerActivityDrafts !== false;
   const prevSegAttr = host.getAttribute('data-debts-segment');
   const segment = getDebtsEditorSegment(plan);
   const sameLedgerSegment =
@@ -676,6 +668,7 @@ export function renderDebtsEditor(plan: FinancialPlan): void {
     prevSegAttr === '' ||
     normalizeDebtsEditorSegment(prevSegAttr) === segment;
   const focusSnap = sameLedgerSegment ? captureDebtsEditorFocus(host) : null;
+  if (!preserveDrafts) clearDebtLedgerDraftStore();
 
   host.dataset.debtsSegment = segment;
   host.innerHTML = '';
@@ -698,7 +691,13 @@ export function renderDebtsEditor(plan: FinancialPlan): void {
   const addBtn = document.getElementById('btn-add-debt') as HTMLButtonElement | null;
   if (addBtn) addBtn.disabled = segment !== 'active';
 
+  if (preserveDrafts) {
+    restoreDebtLedgerDrafts(host, listDebtLedgerDrafts());
+  } else {
+    clearDebtLedgerActivityInputs(host);
+  }
   if (focusSnap) restoreDebtsEditorFocus(host, focusSnap);
+  applyGoal2SaveButtonState();
 }
 
 /** Dashboard: paid-off debts summary (`#dash-debts-completed-list`). */
@@ -848,22 +847,25 @@ export function buildSavingsEditorThead(): HTMLTableSectionElement {
     { t: 'Name', title: '' },
     { t: 'Balance', title: 'Current balance' },
     { t: 'APY %', title: 'Annual percentage yield' },
-    { t: 'Deposit', title: 'Deposit amount, then +' },
-    { t: 'Withdraw', title: 'Withdrawal amount + note, then +' },
-    { t: 'Goals', title: 'This balance can count toward one or more targets' },
-    { t: '', title: 'Remove row' },
   ];
   headers.forEach(function (h) {
     const th = document.createElement('th');
     th.scope = 'col';
     th.textContent = h.t;
     if (h.title) th.title = h.title;
-    if (!h.t) {
-      th.className = 'editor-table__th--action';
-      th.setAttribute('aria-label', 'Remove');
-    }
     tr.appendChild(th);
   });
+  appendSavingsLedgerHeaderCell(tr);
+  const thGoals = document.createElement('th');
+  thGoals.scope = 'col';
+  thGoals.textContent = 'Goals';
+  thGoals.title = 'This balance can count toward one or more targets';
+  tr.appendChild(thGoals);
+  const thRm = document.createElement('th');
+  thRm.scope = 'col';
+  thRm.className = 'editor-table__th--action';
+  thRm.setAttribute('aria-label', 'Remove');
+  tr.appendChild(thRm);
   thead.appendChild(tr);
   return thead;
 }
@@ -890,28 +892,6 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   const tdApy = document.createElement('td');
   tdApy.innerHTML =
     '<input type="text" data-field="apyPct" data-money="rate" inputmode="decimal" autocomplete="off" placeholder="0.00" value="">';
-
-  const tdDep = document.createElement('td');
-  tdDep.className = 'editor-table__cell--pay';
-  tdDep.innerHTML = buildLedgerInlineActionHtml({
-    amountField: 'deposit',
-    action: 'quick-deposit',
-    amountPlaceholder: '$0.00',
-    title: 'Log deposit now',
-    btnClass: 'btn-icon btn-quick-deposit',
-  });
-
-  const tdWithdraw = document.createElement('td');
-  tdWithdraw.className = 'editor-table__cell--withdraw';
-  tdWithdraw.innerHTML = buildLedgerInlineActionHtml({
-    amountField: 'withdrawal',
-    memoField: 'withdrawal-memo',
-    action: 'quick-withdrawal',
-    amountPlaceholder: '$0.00',
-    title: 'Log withdrawal now',
-    btnClass: 'btn-icon btn-quick-withdrawal',
-    includeMemo: true,
-  });
 
   const tdGoal = document.createElement('td');
   tdGoal.className = 'editor-table__cell--goals';
@@ -1022,8 +1002,7 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   row.appendChild(tdName);
   row.appendChild(tdCur);
   row.appendChild(tdApy);
-  row.appendChild(tdDep);
-  row.appendChild(tdWithdraw);
+  appendSavingsLedgerCellToRow(row);
   row.appendChild(tdGoal);
   row.appendChild(rmTd);
 
@@ -1039,9 +1018,14 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   return row;
 }
 
-export function renderSavingsEditor(d: Pick<DerivedPlanMetrics, 'savingsAccounts'>): void {
+export function renderSavingsEditor(
+  d: Pick<DerivedPlanMetrics, 'savingsAccounts'>,
+  editorOpts?: EditorRenderOptions
+): void {
   const host = document.getElementById('savings-editor-list') as HTMLElement | null;
   if (!host) return;
+  const preserveDrafts = editorOpts?.preserveLedgerActivityDrafts !== false;
+  if (!preserveDrafts) clearSavingsLedgerDraftStore();
   host.innerHTML = '';
   let accs: SavingsAccount[] = applyFrozenSavingsEditorRowOrder(
     (d.savingsAccounts || []) as SavingsAccount[]
@@ -1062,6 +1046,12 @@ export function renderSavingsEditor(d: Pick<DerivedPlanMetrics, 'savingsAccounts
   });
   table.appendChild(tbody);
   host.appendChild(table);
+  if (preserveDrafts) {
+    restoreSavingsLedgerDrafts(host, listSavingsLedgerDrafts());
+  } else {
+    clearSavingsLedgerActivityInputs(host);
+  }
+  applyGoal3SaveButtonState();
 }
 
 function buildEditableSavingsCard(acc: SavingsAccount): HTMLDivElement {

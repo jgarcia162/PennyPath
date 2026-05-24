@@ -18,18 +18,22 @@ create index if not exists agent_api_tokens_token_hash_idx on public.agent_api_t
 alter table public.agent_api_tokens enable row level security;
 
 -- Users manage their own tokens via the dashboard (future); service role used by Agent API lookup.
+drop policy if exists "Users can read own agent tokens" on public.agent_api_tokens;
 create policy "Users can read own agent tokens"
   on public.agent_api_tokens for select
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert own agent tokens" on public.agent_api_tokens;
 create policy "Users can insert own agent tokens"
   on public.agent_api_tokens for insert
   with check (auth.uid() = user_id);
 
+drop policy if exists "Users can update own agent tokens" on public.agent_api_tokens;
 create policy "Users can update own agent tokens"
   on public.agent_api_tokens for update
   using (auth.uid() = user_id);
 
+drop policy if exists "Users can delete own agent tokens" on public.agent_api_tokens;
 create policy "Users can delete own agent tokens"
   on public.agent_api_tokens for delete
   using (auth.uid() = user_id);

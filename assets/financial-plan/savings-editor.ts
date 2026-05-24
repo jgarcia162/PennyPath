@@ -62,7 +62,9 @@ function parseSavingsRowFromDOM(
   const hasNewDeposit = applyPendingLedger && deposit !== null && deposit > 0;
   const hasNewWithdrawal = applyPendingLedger && withdrawal !== null && withdrawal > 0;
   let hist: DepositHistoryItem[] = normalizeDepositHistory(base);
-  if (hasNewDeposit) {
+
+  function applyDeposit(): void {
+    if (!hasNewDeposit) return;
     const dep = roundMoney(deposit!);
     currentBal = roundMoney(currentBal + dep);
     hist = hist.slice();
@@ -75,7 +77,9 @@ function parseSavingsRowFromDOM(
     if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
     if (depEl) depEl.value = '';
   }
-  if (hasNewWithdrawal) {
+
+  function applyWithdrawal(): void {
+    if (!hasNewWithdrawal) return;
     const wd = roundMoney(withdrawal!);
     currentBal = roundMoney(Math.max(0, currentBal - wd));
     hist = hist.slice();
@@ -89,6 +93,14 @@ function parseSavingsRowFromDOM(
     if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
     if (withdrawEl) withdrawEl.value = '';
     if (withdrawMemoEl) withdrawMemoEl.value = '';
+  }
+
+  if (hasNewWithdrawal && hasNewDeposit) {
+    /* both filled — do not apply (Add/Save should be disabled) */
+  } else if (hasNewWithdrawal) {
+    applyWithdrawal();
+  } else if (hasNewDeposit) {
+    applyDeposit();
   }
 
   const goalIds: string[] = [];

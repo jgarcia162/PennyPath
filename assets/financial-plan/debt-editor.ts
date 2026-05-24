@@ -135,7 +135,8 @@ function parseDebtRowFromDOM(
 
   let paidOffVal = prevPaidOff;
   let hist: PaymentHistoryItem[] = normalizePaymentHistory(prevSource);
-  if (hasNewPayment) {
+  function applyPayment(): void {
+    if (!hasNewPayment) return;
     if (currentBal > 0) {
       const applied = roundMoney(Math.min(payment!, currentBal));
       currentBal = roundMoney(Math.max(0, currentBal - applied));
@@ -151,7 +152,9 @@ function parseDebtRowFromDOM(
     }
     if (payEl) payEl.value = '';
   }
-  if (hasNewCharge) {
+
+  function applyCharge(): void {
+    if (!hasNewCharge) return;
     const applied = roundMoney(charge!);
     currentBal = roundMoney(currentBal + applied);
     hist = hist.slice();
@@ -165,6 +168,15 @@ function parseDebtRowFromDOM(
     if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
     if (chargeEl) chargeEl.value = '';
     if (chargeMemoEl) chargeMemoEl.value = '';
+  }
+
+  // Activity column: at most one pending entry per Add/Save.
+  if (hasNewCharge && hasNewPayment) {
+    /* both filled — do not apply (Add/Save should be disabled) */
+  } else if (hasNewCharge) {
+    applyCharge();
+  } else if (hasNewPayment) {
+    applyPayment();
   }
 
   return {

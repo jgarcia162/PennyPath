@@ -33,6 +33,22 @@ import {
 } from './savings-editor';
 import { freezeEditorOrders, clearEditorOrderFreeze } from './render-sections';
 import { isLedgerPendingEditorField } from './ledger-utils';
+import {
+  applyGoal2SaveButtonState,
+  applyGoal3SaveButtonState,
+  debtsEditorHasConflictingLedgerInputs,
+  findDebtRowWithDualLedgerAmounts,
+  findSavingsRowWithDualLedgerAmounts,
+  savingsEditorHasConflictingLedgerInputs,
+} from './editor-ledger-save-guard';
+import {
+  clearDebtLedgerActivityInputs,
+  clearDebtLedgerDraftStore,
+  clearSavingsLedgerActivityInputs,
+  clearSavingsLedgerDraftStore,
+  syncDebtLedgerDraftFromRow,
+  syncSavingsLedgerDraftFromRow,
+} from './ledger-editor-draft';
 
 let lastSavedDebts: { debts: Debt[] } | null = null;
 let lastSavedSavings: { savingsAccounts: SavingsAccount[] } | null = null;
@@ -228,7 +244,9 @@ function wireHoldToConfirm(
 function setSaveNeeds(saveBtnId: string, needsSave: boolean): void {
   const saveBtn = document.getElementById(saveBtnId) as HTMLButtonElement | null;
   if (!saveBtn) return;
-  saveBtn.disabled = !needsSave;
+  saveBtn.dataset.needsSave = needsSave ? '1' : '0';
+  if (saveBtnId === 'btn-save-goal2-debts') applyGoal2SaveButtonState();
+  else if (saveBtnId === 'btn-save-goal3-savings') applyGoal3SaveButtonState();
 }
 
 function showGoal2Saved() {
@@ -272,7 +290,12 @@ function showGoal3Unsaved() {
   setSaveNeeds('btn-save-goal3-savings', true);
 }
 
-type RenderFn = (opts?: { skipDebtsEditor?: boolean; skipSavingsEditor?: boolean; refreshBalanceEditors?: boolean }) => void;
+type RenderFn = (opts?: {
+  skipDebtsEditor?: boolean;
+  skipSavingsEditor?: boolean;
+  refreshBalanceEditors?: boolean;
+  preserveLedgerActivityDrafts?: boolean;
+}) => void;
 
 export function wireGoal2DebtEditor(render: RenderFn): void {
   // This module can be initialized multiple times (Next.js client navigation back to /dashboard).
@@ -287,13 +310,20 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   // before the user has even interacted — drop it on rebind.
   setEditingDebtCardId(null);
 
-  async function persistGoal2DebtsFromEditor(): Promise<boolean> {
-    readDebtsEditorIntoPlan({ applyPendingLedger: true });
+  async function saveGoal2DebtsFromEditor(opts?: { applyPendingLedger?: boolean }): Promise<boolean> {
+    readDebtsEditorIntoPlan({ applyPendingLedger: opts?.applyPendingLedger === true });
     return savePlanOverrides();
   }
 
-  async function finishGoal2Persist(ok: boolean): Promise<void> {
-    render({ refreshBalanceEditors: true });
+  async function finishGoal2Persist(
+    ok: boolean,
+    opts?: { preserveLedgerActivityDrafts?: boolean }
+  ): Promise<void> {
+    render({
+      refreshBalanceEditors: true,
+      preserveLedgerActivityDrafts: opts?.preserveLedgerActivityDrafts !== false,
+    });
+    applyGoal2SaveButtonState();
     if (ok) {
       setSaveNeeds('btn-save-goal2-debts', false);
       showGoal2Saved();
@@ -382,17 +412,22 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       const row = t.closest('.debt-row');
       if (!row || !debtsHostEl.contains(row)) return;
       if (!(t as any).matches('input, textarea, select')) return;
+      // Activity fields: never draft-sync or mark Save; commit only via Add (not Save).
+      if (isLedgerPendingEditorField(t)) {
+        syncDebtLedgerDraftFromRow(row);
+        applyGoal2SaveButtonState();
+        return;
+      }
       showGoal2Unsaved();
-      // Do not sync on ledger amount/memo fields (typing or blur); commit only via + or Save.
-      if (isLedgerPendingEditorField(t)) return;
       scheduleDebtsDraftSyncToPlanAndRender();
     }
     debtsHost.addEventListener('input', onDebtRowFieldActivity, { signal });
     debtsHost.addEventListener('change', onDebtRowFieldActivity, { signal });
     debtsHost.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
-      if (!t || typeof t.getAttribute !== 'function') return;
-      const action = t.getAttribute('data-action');
+      if (!t || typeof t.closest !== 'function') return;
+      const actionEl = t.closest('[data-action]') as HTMLElement | null;
+      const action = actionEl ? actionEl.getAttribute('data-action') : null;
       if (action === 'restore-active') {
         e.preventDefault();
         const row = t.closest('.debt-row');
@@ -404,11 +439,25 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         render({ refreshBalanceEditors: true });
         return;
       }
-      if (action === 'quick-payment' || action === 'quick-charge') {
+      if (action === 'quick-ledger-entry') {
         e.preventDefault();
+        if (debtsEditorHasConflictingLedgerInputs() || findDebtRowWithDualLedgerAmounts()) {
+          window.alert(
+            'Enter only a payment or a charge amount (not both), then tap Add again.'
+          );
+          applyGoal2SaveButtonState();
+          return;
+        }
         void (async function () {
-          const ok = await persistGoal2DebtsFromEditor();
-          await finishGoal2Persist(ok);
+          if (debtDraftRerenderTimer != null) {
+            clearTimeout(debtDraftRerenderTimer);
+            debtDraftRerenderTimer = null;
+          }
+          readDebtsEditorIntoPlan({ applyPendingLedger: true });
+          clearDebtLedgerDraftStore();
+          clearDebtLedgerActivityInputs(debtsHostEl);
+          const ok = await savePlanOverrides();
+          await finishGoal2Persist(ok, { preserveLedgerActivityDrafts: false });
         })();
         return;
       }
@@ -548,7 +597,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         render({ refreshBalanceEditors: true });
       });
       void (async function () {
-        const ok = await persistGoal2DebtsFromEditor();
+        const ok = await saveGoal2DebtsFromEditor();
         await finishGoal2Persist(ok);
       })();
     }, { signal });
@@ -619,8 +668,9 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   const saveBtn = document.getElementById('btn-save-goal2-debts');
   if (saveBtn) {
     saveBtn.addEventListener('click', function () {
+      if (debtsEditorHasConflictingLedgerInputs()) return;
       void (async function () {
-        const ok = await persistGoal2DebtsFromEditor();
+        const ok = await saveGoal2DebtsFromEditor();
         await finishGoal2Persist(ok);
         const dlg = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
         try {
@@ -684,6 +734,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   }
 
   setSaveNeeds('btn-save-goal2-debts', false);
+  applyGoal2SaveButtonState();
 }
 
 export function wireGoal3SavingsEditor(render: RenderFn): void {
@@ -695,7 +746,31 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
 
   setEditingSavingsCardId(null);
 
+  async function finishGoal3Persist(
+    ok: boolean,
+    opts?: { preserveLedgerActivityDrafts?: boolean }
+  ): Promise<void> {
+    render({
+      refreshBalanceEditors: true,
+      preserveLedgerActivityDrafts: opts?.preserveLedgerActivityDrafts !== false,
+    });
+    applyGoal3SaveButtonState();
+    if (ok) {
+      setSaveNeeds('btn-save-goal3-savings', false);
+      showGoal3Saved();
+      lastSavedSavings = cloneSavingsSnapshot();
+    } else {
+      showGoal3Unsaved();
+    }
+  }
+
   let savingsDraftRerenderTimer: number | null = null;
+  function cancelSavingsDraftSyncTimer(): void {
+    if (savingsDraftRerenderTimer != null) {
+      clearTimeout(savingsDraftRerenderTimer);
+      savingsDraftRerenderTimer = null;
+    }
+  }
   function scheduleSavingsDraftSyncToPlanAndRender(): void {
     if (savingsDraftRerenderTimer != null) clearTimeout(savingsDraftRerenderTimer);
     savingsDraftRerenderTimer = window.setTimeout(function () {
@@ -715,8 +790,12 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       const row = t.closest('.savings-row');
       if (!row || !savingsHostEl.contains(row)) return;
       if (!(t as any).matches('input, textarea, select')) return;
+      if (isLedgerPendingEditorField(t)) {
+        syncSavingsLedgerDraftFromRow(row);
+        applyGoal3SaveButtonState();
+        return;
+      }
       showGoal3Unsaved();
-      if (isLedgerPendingEditorField(t)) return;
       scheduleSavingsDraftSyncToPlanAndRender();
     }
     savingsHost.addEventListener('input', onSavingsFieldActivity, { signal });
@@ -724,22 +803,26 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
 
     savingsHost.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
-      if (!t || typeof t.getAttribute !== 'function') return;
-      const action = t.getAttribute('data-action');
-      if (action === 'quick-deposit' || action === 'quick-withdrawal') {
+      if (!t || typeof t.closest !== 'function') return;
+      const actionEl = t.closest('[data-action]') as HTMLElement | null;
+      const action = actionEl ? actionEl.getAttribute('data-action') : null;
+      if (action === 'quick-savings-ledger-entry') {
         e.preventDefault();
+        if (savingsEditorHasConflictingLedgerInputs() || findSavingsRowWithDualLedgerAmounts()) {
+          window.alert(
+            'Enter only a deposit or a withdrawal amount (not both), then tap Add again.'
+          );
+          applyGoal3SaveButtonState();
+          return;
+        }
         void (async function () {
+          cancelSavingsDraftSyncTimer();
           readSavingsEditorIntoPlan({ applyPendingLedger: true });
+          clearSavingsLedgerDraftStore();
+          clearSavingsLedgerActivityInputs(savingsHostEl);
           syncLegacySavingsFromAccounts(PLAN);
           const ok = await savePlanOverrides();
-          render({ refreshBalanceEditors: true });
-          if (ok) {
-            setSaveNeeds('btn-save-goal3-savings', false);
-            showGoal3Saved();
-            lastSavedSavings = cloneSavingsSnapshot();
-          } else {
-            showGoal3Unsaved();
-          }
+          await finishGoal3Persist(ok, { preserveLedgerActivityDrafts: false });
         })();
         return;
       }
@@ -973,7 +1056,8 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
   const saveBtn = document.getElementById('btn-save-goal3-savings') as HTMLButtonElement | null;
   if (saveBtn) {
     saveBtn.addEventListener('click', function () {
-      readSavingsEditorIntoPlan({ applyPendingLedger: true });
+      if (savingsEditorHasConflictingLedgerInputs()) return;
+      readSavingsEditorIntoPlan();
       syncLegacySavingsFromAccounts(PLAN);
       void savePlanOverrides();
       render({ refreshBalanceEditors: true });
@@ -1025,6 +1109,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
   }
 
   setSaveNeeds('btn-save-goal3-savings', false);
+  applyGoal3SaveButtonState();
 }
 
 /** Body scroll lock while a goal editor dialog is open (wheel/touch on backdrop). */
