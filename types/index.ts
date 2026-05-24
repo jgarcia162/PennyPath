@@ -18,6 +18,12 @@ export type YyyyMm = `${number}-${number}`;
 
 // --------- Shared ledger history ----------
 
+/** Debt ledger row: payment (pay down) or charge (purchase on credit). */
+export type DebtLedgerEntryKind = 'payment' | 'charge';
+
+/** Savings ledger row: deposit (add) or withdrawal (spend). */
+export type SavingsLedgerEntryKind = 'deposit' | 'withdrawal';
+
 export interface MoneyLedgerItem {
   /** Stable client-generated id (e.g. `ph_...`, `dep_...`). */
   id: string;
@@ -25,10 +31,19 @@ export interface MoneyLedgerItem {
   amount: number;
   /** ISO timestamp. */
   at: IsoDateTimeString;
+  /** Optional short note (merchant, category, etc.). */
+  memo?: string;
 }
 
-export type PaymentHistoryItem = MoneyLedgerItem;
-export type DepositHistoryItem = MoneyLedgerItem;
+export interface PaymentHistoryItem extends MoneyLedgerItem {
+  /** Defaults to `payment` when omitted. */
+  kind?: DebtLedgerEntryKind;
+}
+
+export interface DepositHistoryItem extends MoneyLedgerItem {
+  /** Defaults to `deposit` when omitted. */
+  kind?: SavingsLedgerEntryKind;
+}
 
 // --------- Financial Plan models ----------
 

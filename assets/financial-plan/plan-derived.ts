@@ -16,6 +16,7 @@ import {
 import { projectPayoffTimeline, projectDebtPayoffYm } from './payoff-projection.js';
 import { isoInLocalYyyyMm, monthLabel, yyyyMmFromDate } from './monthly-activity';
 import { activeDebtsOnly } from './debt-ledger';
+import { isDebtPaymentEntry } from './ledger-utils';
 
 /** Working month for monthly debt progress (`YYYY-MM`). Falls back to the real calendar month. */
 export function getWorkingMonthYm(plan: FinancialPlan): YyyyMm {
@@ -44,6 +45,7 @@ export function sumPaymentsInYyyyMm(plan: FinancialPlan, yyyyMm: string): number
     const hist = Array.isArray(d.paymentHistory) ? d.paymentHistory : [];
     hist.forEach(function (p: any) {
       if (!p || typeof p.at !== 'string') return;
+      if (!isDebtPaymentEntry(p)) return;
       if (isoInLocalYyyyMm(p.at, ym)) sum += numOr(p.amount, 0);
     });
   });

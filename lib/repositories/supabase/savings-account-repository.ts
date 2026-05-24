@@ -31,7 +31,14 @@ function mapAccountRow(row: AccountRow, deposits: DepositRow[]): SavingsAccount 
     countTowardsGoal: !!row.count_towards_goal,
     ...(ledgerStatus ? { ledgerStatus } : {}),
     depositHistory: deposits.map(function (d) {
-      return { id: d.id, amount: d.amount, at: d.at };
+      const kind = d.kind === 'withdrawal' ? ('withdrawal' as const) : ('deposit' as const);
+      return {
+        id: d.id,
+        amount: d.amount,
+        at: d.at,
+        kind,
+        memo: typeof d.memo === 'string' ? d.memo : '',
+      };
     }),
   };
 }
@@ -110,7 +117,10 @@ export class SupabaseSavingsAccountRepository implements SavingsAccountRepositor
     if (error) throw error;
   }
 
-  async addDeposit(accountId: string, deposit: { id: string; amount: number; at: string }): Promise<void> {
+  async addDeposit(
+    accountId: string,
+    deposit: { id: string; amount: number; at: string; kind?: 'deposit' | 'withdrawal'; memo?: string }
+  ): Promise<void> {
     const { data: userData, error: userErr } = await this.supabase.auth.getUser();
     if (userErr) throw userErr;
     const userId = requireUserId(userData?.user?.id);
@@ -121,9 +131,59 @@ export class SupabaseSavingsAccountRepository implements SavingsAccountRepositor
       id: deposit.id,
       amount: deposit.amount,
       at: deposit.at,
+      kind: deposit.kind === 'withdrawal' ? 'withdrawal' : 'deposit',
+      memo: typeof deposit.memo === 'string' ? deposit.memo : '',
     };
     const { error } = await this.supabase.from('deposit_history').upsert(row, { onConflict: 'user_id,id' });
     if (error) throw error;
+  }
+
+  async syncDeposits(
+    accountId: string,
+    deposits: { id: string; amount: number; at: string; kind?: 'deposit' | 'withdrawal'; memo?: string }[]
+  ): Promise<void> {
+    const { data: userData, error: userErr } = await this.supabase.auth.getUser();
+    if (userErr) throw userErr;
+    const userId = requireUserId(userData?.user?.id);
+    const accountKey = String(accountId);
+
+    const { data: existing, error: listErr } = await this.supabase
+      .from('deposit_history')
+      .select('id')
+      .eq('user_id', userId)
+      .eq('account_id', accountKey);
+    if (listErr) throw listErr;
+
+    const nextIds = new Set(
+      deposits.map((d) => String(d.id)).filter((id) => id.length > 0)
+    );
+    const staleIds = (existing || [])
+      .map((row) => String(row.id))
+      .filter((id) => id.length > 0 && !nextIds.has(id));
+
+    if (staleIds.length) {
+      const { error: delErr } = await this.supabase
+        .from('deposit_history')
+        .delete()
+        .eq('user_id', userId)
+        .eq('account_id', accountKey)
+        .in('id', staleIds);
+      if (delErr) throw delErr;
+    }
+
+    for (const deposit of deposits) {
+      const id = String(deposit.id || '').trim();
+      if (!id) continue;
+      const amount = Number(deposit.amount);
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      await this.addDeposit(accountKey, {
+        id,
+        amount,
+        at: String(deposit.at),
+        kind: deposit.kind === 'withdrawal' ? 'withdrawal' : 'deposit',
+        memo: typeof deposit.memo === 'string' ? deposit.memo : '',
+      });
+    }
   }
 }
 

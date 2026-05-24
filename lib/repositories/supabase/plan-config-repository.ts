@@ -28,10 +28,28 @@ function asLabels(v: unknown): PlanLabels {
   return v as PlanLabels;
 }
 
+/** Fallback in `labels` when migration 006 has not been applied yet. */
+const LABEL_DEBTS_PAID_OFF_LIFETIME = 'debtsPaidOffLifetimeCount';
+
+function normalizeLifetimeCount(raw: unknown): number | undefined {
+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return undefined;
+  return Math.max(0, Math.floor(raw));
+}
+
+function lifetimeCountFromPlan(plan: FinancialPlan): number {
+  const raw = (plan as { debtsPaidOffLifetimeCount?: number }).debtsPaidOffLifetimeCount;
+  return normalizeLifetimeCount(raw) ?? 0;
+}
+
+function isMissingColumnError(error: { code?: string; message?: string } | null, column: string): boolean {
+  return error?.code === 'PGRST204' && String(error.message || '').includes(column);
+}
+
 function mapRowToPlanConfig(row: FinancialPlansRow): Partial<FinancialPlan> {
   const rawLabels = (row.labels || {}) as {
     budgetCategories?: unknown;
     debtsEditorLedgerSegment?: unknown;
+    debtsPaidOffLifetimeCount?: unknown;
   };
   const segRaw = rawLabels.debtsEditorLedgerSegment;
   const seg = typeof segRaw === 'string' ? segRaw : '';
@@ -39,9 +57,7 @@ function mapRowToPlanConfig(row: FinancialPlansRow): Partial<FinancialPlan> {
     seg === 'completed' ? 'completed' : seg === 'active' || seg === 'deleted' ? 'active' : undefined;
   const lifetimeRaw = (row as { debts_paid_off_lifetime_count?: number }).debts_paid_off_lifetime_count;
   const debtsPaidOffLifetimeCount =
-    typeof lifetimeRaw === 'number' && Number.isFinite(lifetimeRaw)
-      ? Math.max(0, Math.floor(lifetimeRaw))
-      : undefined;
+    normalizeLifetimeCount(lifetimeRaw) ?? normalizeLifetimeCount(rawLabels.debtsPaidOffLifetimeCount);
   return {
     monthlyTakeHome: row.monthly_take_home,
     paycheckAmount: row.paycheck_amount,
@@ -131,15 +147,7 @@ function mapPlanToInsert(userId: string, plan: FinancialPlan): FinancialPlansIns
         : {}),
     } as any,
 
-    debts_paid_off_lifetime_count: Math.max(
-      0,
-      Math.floor(
-        typeof (plan as any).debtsPaidOffLifetimeCount === 'number' &&
-          Number.isFinite((plan as any).debtsPaidOffLifetimeCount)
-          ? (plan as any).debtsPaidOffLifetimeCount
-          : 0
-      )
-    ),
+    debts_paid_off_lifetime_count: lifetimeCountFromPlan(plan),
 
     debts_editor_sort: plan.debtsEditorSort,
     debts_progress_sort: plan.debtsProgressSort,
@@ -174,7 +182,26 @@ export class SupabasePlanConfigRepository implements PlanConfigRepository {
 
     const row = mapPlanToInsert(userId, plan);
     const { error } = await this.supabase.from('financial_plans').upsert(row, { onConflict: 'user_id' });
-    if (error) throw error;
+    if (!error) return;
+
+    if (isMissingColumnError(error, 'debts_paid_off_lifetime_count')) {
+      const lifetime = row.debts_paid_off_lifetime_count ?? 0;
+      const { debts_paid_off_lifetime_count: _drop, ...withoutLifetimeCol } = row;
+      const labels = {
+        ...((withoutLifetimeCol.labels as Record<string, unknown>) || {}),
+        [LABEL_DEBTS_PAID_OFF_LIFETIME]: lifetime,
+      };
+      const { error: retryErr } = await this.supabase
+        .from('financial_plans')
+        .upsert({ ...withoutLifetimeCol, labels } as FinancialPlansInsert, { onConflict: 'user_id' });
+      if (retryErr) throw retryErr;
+      console.warn(
+        '[PennyPath] financial_plans.debts_paid_off_lifetime_count missing — stored count in labels. Run supabase/migrations/006_debt_ledger_status.sql'
+      );
+      return;
+    }
+
+    throw error;
   }
 }
 
