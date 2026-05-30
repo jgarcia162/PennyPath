@@ -32,6 +32,7 @@ import {
   hardRemoveSavingsById,
 } from './savings-editor';
 import { freezeEditorOrders, clearEditorOrderFreeze } from './render-sections';
+import type { PlanPageRenderOptions } from './render-page';
 import { isLedgerPendingEditorField } from './ledger-utils';
 import {
   applyGoal2SaveButtonState,
@@ -290,12 +291,7 @@ function showGoal3Unsaved() {
   setSaveNeeds('btn-save-goal3-savings', true);
 }
 
-type RenderFn = (opts?: {
-  skipDebtsEditor?: boolean;
-  skipSavingsEditor?: boolean;
-  refreshBalanceEditors?: boolean;
-  preserveLedgerActivityDrafts?: boolean;
-}) => void;
+type RenderFn = (opts?: PlanPageRenderOptions) => void;
 
 export function wireGoal2DebtEditor(render: RenderFn): void {
   // This module can be initialized multiple times (Next.js client navigation back to /dashboard).
@@ -457,6 +453,8 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
           clearDebtLedgerDraftStore();
           clearDebtLedgerActivityInputs(debtsHostEl);
           const ok = await savePlanOverrides();
+          clearDebtLedgerDraftStore();
+          clearDebtLedgerActivityInputs(debtsHostEl);
           await finishGoal2Persist(ok, { preserveLedgerActivityDrafts: false });
         })();
         return;
@@ -822,6 +820,8 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
           clearSavingsLedgerActivityInputs(savingsHostEl);
           syncLegacySavingsFromAccounts(PLAN);
           const ok = await savePlanOverrides();
+          clearSavingsLedgerDraftStore();
+          clearSavingsLedgerActivityInputs(savingsHostEl);
           await finishGoal3Persist(ok, { preserveLedgerActivityDrafts: false });
         })();
         return;

@@ -223,6 +223,11 @@ export type PlanPageRenderOptions = {
    * wiping DOM before focus lands on an input.
    */
   refreshBalanceEditors?: boolean;
+  /**
+   * When false, Activity column inputs (amounts + notes) are cleared after editor re-render.
+   * Used after Add commits a ledger row so memo fields do not restore from the draft store.
+   */
+  preserveLedgerActivityDrafts?: boolean;
 };
 
 function shouldSkipDebtsEditorRender(opts?: PlanPageRenderOptions): boolean {
@@ -430,8 +435,11 @@ export function render(opts?: PlanPageRenderOptions): void {
   renderDashboardDebtArchives(PLAN, moneyExact);
   renderDashboardDeletedBin(PLAN, moneyExact);
   setTextDash('debts-paid-off-lifetime', String(d.debtsPaidOffLifetimeCount ?? 0));
+  const editorOpts = {
+    preserveLedgerActivityDrafts: opts?.preserveLedgerActivityDrafts,
+  };
   if (!shouldSkipDebtsEditorRender(opts)) {
-    renderDebtsEditor(PLAN);
+    renderDebtsEditor(PLAN, editorOpts);
   } else {
     const g2 = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
     if (g2 && g2.open) {
@@ -448,7 +456,7 @@ export function render(opts?: PlanPageRenderOptions): void {
     renderGoal3SavingsAccounts(d, moneyExact);
   }
   if (!shouldSkipSavingsEditorRender(opts)) {
-    renderSavingsEditor(d);
+    renderSavingsEditor(d, editorOpts);
   }
 
   renderSavingsGoalsTargetEditor();
