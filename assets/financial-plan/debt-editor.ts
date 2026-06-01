@@ -259,6 +259,52 @@ export function readDebtsEditorIntoPlan(opts?: ReadDebtsEditorOptions): void {
   }
 }
 
+export type MergeDebtFromCardOptions = {
+  applyPendingLedger?: boolean;
+};
+
+/** Merge inline Goal 2 card fields (+ optional Activity) into PLAN with paid-off promotion. */
+export function mergeDebtFromCardElement(card: Element, opts?: MergeDebtFromCardOptions): boolean {
+  const debtId = card.getAttribute('data-debt-id');
+  if (debtId == null || String(debtId).trim() === '') return false;
+  const applyPendingLedger = opts?.applyPendingLedger === true;
+  const allDebts: Debt[] = Array.isArray((PLAN as any).debts) ? ((PLAN as any).debts as Debt[]) : [];
+  const parts = partitionDebtsByLedger(allDebts);
+  const activeIdx = parts.active.findIndex(function (d: Debt) {
+    return String(d.id) === String(debtId);
+  });
+  if (activeIdx < 0) return false;
+  const parsed = parseDebtRowFromDOM(card, activeIdx, parts.active, allDebts, applyPendingLedger);
+  const prev = allDebts.find(function (x: Debt) {
+    return String(x.id) === String(debtId);
+  });
+  const prevSt = normalizeLedgerStatus(prev && prev.ledgerStatus);
+  const cur = numOr(parsed.current, 0);
+  const paid = numOr(parsed.paidOff, 0);
+  const nextActive = parts.active.filter(function (d: Debt) {
+    return String(d.id) !== String(debtId);
+  });
+  const promoted: Debt[] = [];
+  let lifetimeBump = 0;
+  if (cur <= 0 && paid > 0) {
+    promoted.push({ ...parsed, ledgerStatus: 'completed' });
+    if (prevSt === 'active') lifetimeBump += 1;
+  } else {
+    nextActive.push(stripOptionalLedger(parsed));
+  }
+  if (lifetimeBump > 0) {
+    const prevLife = numOr((PLAN as any).debtsPaidOffLifetimeCount, 0);
+    (PLAN as any).debtsPaidOffLifetimeCount = prevLife + lifetimeBump;
+  }
+  const mergedCompleted = dedupeDebtIdsLastWins([...parts.completed, ...promoted]);
+  PLAN.debts = concatDebtsLedgerOrder({
+    active: nextActive,
+    completed: mergedCompleted,
+    deleted: parts.deleted,
+  });
+  return true;
+}
+
 function dedupeDebtIdsLastWins(list: Debt[]): Debt[] {
   const byId = new Map<string, Debt>();
   list.forEach(function (d: Debt) {

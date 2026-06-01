@@ -5922,6 +5922,12 @@ body.financial-plan-demo-mode #checkin-form {
   width: 100px;
   text-align: right;
 }
+.card-inline-edit-ledger {
+  margin-bottom: 12px;
+}
+.card-inline-edit-ledger .ledger-unified {
+  width: 100%;
+}
 .card-inline-edit-actions {
   display: flex;
   justify-content: flex-end;

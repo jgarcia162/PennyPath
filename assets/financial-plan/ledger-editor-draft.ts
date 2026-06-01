@@ -117,15 +117,18 @@ export function clearDebtLedgerDraftStore(): void {
   _debtStore.clear();
 }
 
+function clearDebtLedgerInputsInRoot(root: Element): void {
+  const pay = root.querySelector('input[data-field="payment"]') as HTMLInputElement | null;
+  const charge = root.querySelector('input[data-field="charge"]') as HTMLInputElement | null;
+  const memo = root.querySelector('input[data-field="charge-memo"]') as HTMLInputElement | null;
+  if (pay) pay.value = '';
+  if (charge) charge.value = '';
+  if (memo) memo.value = '';
+}
+
 export function clearDebtLedgerActivityInputs(host: HTMLElement): void {
-  host.querySelectorAll('.debt-row').forEach(function (row) {
-    const pay = row.querySelector('input[data-field="payment"]') as HTMLInputElement | null;
-    const charge = row.querySelector('input[data-field="charge"]') as HTMLInputElement | null;
-    const memo = row.querySelector('input[data-field="charge-memo"]') as HTMLInputElement | null;
-    if (pay) pay.value = '';
-    if (charge) charge.value = '';
-    if (memo) memo.value = '';
-  });
+  host.querySelectorAll('.debt-row').forEach(clearDebtLedgerInputsInRoot);
+  host.querySelectorAll('.goal2-debt--editing').forEach(clearDebtLedgerInputsInRoot);
 }
 
 export function syncSavingsLedgerDraftFromRow(row: Element): void {
@@ -150,13 +153,16 @@ export function clearSavingsLedgerDraftStore(): void {
   _savingsStore.clear();
 }
 
+function clearSavingsLedgerInputsInRoot(root: Element): void {
+  const dep = root.querySelector('input[data-field="deposit"]') as HTMLInputElement | null;
+  const wd = root.querySelector('input[data-field="withdrawal"]') as HTMLInputElement | null;
+  const memo = root.querySelector('input[data-field="withdrawal-memo"]') as HTMLInputElement | null;
+  if (dep) dep.value = '';
+  if (wd) wd.value = '';
+  if (memo) memo.value = '';
+}
+
 export function clearSavingsLedgerActivityInputs(host: HTMLElement): void {
-  host.querySelectorAll('.savings-row').forEach(function (row) {
-    const dep = row.querySelector('input[data-field="deposit"]') as HTMLInputElement | null;
-    const wd = row.querySelector('input[data-field="withdrawal"]') as HTMLInputElement | null;
-    const memo = row.querySelector('input[data-field="withdrawal-memo"]') as HTMLInputElement | null;
-    if (dep) dep.value = '';
-    if (wd) wd.value = '';
-    if (memo) memo.value = '';
-  });
+  host.querySelectorAll('.savings-row').forEach(clearSavingsLedgerInputsInRoot);
+  host.querySelectorAll('.goal3-savings-account--editing').forEach(clearSavingsLedgerInputsInRoot);
 }

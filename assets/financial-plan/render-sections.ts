@@ -22,8 +22,16 @@ import {
   savingsLedgerKind,
 } from './ledger-utils';
 import { getSavingsAccounts } from './savings-accounts';
-import { appendDebtLedgerCellToRow, appendDebtLedgerHeaderCell } from './debt-ledger-editor-cells';
-import { appendSavingsLedgerCellToRow, appendSavingsLedgerHeaderCell } from './savings-ledger-editor-cells';
+import {
+  appendDebtLedgerCellToRow,
+  appendDebtLedgerHeaderCell,
+  buildDebtLedgerUnifiedCellHtml,
+} from './debt-ledger-editor-cells';
+import {
+  appendSavingsLedgerCellToRow,
+  appendSavingsLedgerHeaderCell,
+  buildSavingsLedgerUnifiedCellHtml,
+} from './savings-ledger-editor-cells';
 import {
   clearDebtLedgerActivityInputs,
   clearDebtLedgerDraftStore,
@@ -290,7 +298,12 @@ function buildEditableDebtCard(debt: Debt): HTMLDivElement {
   head.appendChild(nameInput);
   head.appendChild(balanceInput);
 
+  const ledger = document.createElement('div');
+  ledger.className = 'card-inline-edit-ledger';
+  ledger.innerHTML = buildDebtLedgerUnifiedCellHtml();
+
   wrap.appendChild(head);
+  wrap.appendChild(ledger);
   wrap.appendChild(buildInlineEditActions('debt'));
   return wrap;
 }
@@ -1111,7 +1124,12 @@ function buildEditableSavingsCard(acc: SavingsAccount): HTMLDivElement {
   head.appendChild(titleRow);
   head.appendChild(apyRow);
 
+  const ledger = document.createElement('div');
+  ledger.className = 'card-inline-edit-ledger';
+  ledger.innerHTML = buildSavingsLedgerUnifiedCellHtml();
+
   wrap.appendChild(head);
+  wrap.appendChild(ledger);
   wrap.appendChild(buildInlineEditActions('savings'));
   return wrap;
 }
