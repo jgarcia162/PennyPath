@@ -8,7 +8,8 @@ import { parseMoneyInput, numOr, roundMoney, formatCurrencyInput, formatMoneyInp
 import { appendSavingsEditorEmptyState, buildSavingsEditorThead, buildSavingsRowTR } from './render-sections';
 import { normalizeDepositHistory, newDepositId, newWithdrawalId } from './persistence';
 import { ID_GOAL_HYSA, ensureSavingsGoals, getAccountGoalIds } from './savings-goals';
-import { defaultLogAtIsoForEdits } from './default-log-at';
+import { defaultLogAtIsoForDashboardCardEdits, defaultLogAtIsoForEdits } from './default-log-at';
+import type { IsoDateTimeString } from '../../types/index.js';
 import { concatSavingsLedgerOrder, partitionSavingsByLedger } from './savings-ledger';
 import { isSavingsDepositEntry, normalizeLedgerMemo, savingsLedgerKind } from './ledger-utils';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
@@ -17,8 +18,10 @@ function parseSavingsRowFromDOM(
   row: Element,
   rowIdx: number,
   planAcc: SavingsAccount[],
-  applyPendingLedger: boolean
+  applyPendingLedger: boolean,
+  logAtIso?: IsoDateTimeString
 ): SavingsAccount {
+  const logAt = logAtIso ?? defaultLogAtIsoForEdits();
   let id = row.getAttribute('data-savings-id');
   if (id == null || String(id).trim() === '') {
     id = planAcc[rowIdx] ? String(planAcc[rowIdx].id) : 's_' + rowIdx;
@@ -72,7 +75,7 @@ function parseSavingsRowFromDOM(
     hist.push({
       id: newDepositId(),
       amount: dep,
-      at: defaultLogAtIsoForEdits(),
+      at: logAt,
       kind: 'deposit',
     });
     if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
@@ -88,7 +91,7 @@ function parseSavingsRowFromDOM(
     hist.push({
       id: newWithdrawalId(),
       amount: applied,
-      at: defaultLogAtIsoForEdits(),
+      at: logAt,
       kind: 'withdrawal',
       memo: withdrawMemoEl ? normalizeLedgerMemo(withdrawMemoEl.value) : '',
     });
@@ -143,7 +146,13 @@ export function mergeSavingsFromCardElement(card: Element, opts?: MergeSavingsFr
     return String(a.id) === String(savingsId);
   });
   if (rowIdx < 0) return false;
-  const parsed = parseSavingsRowFromDOM(card, rowIdx, planAcc, applyPendingLedger);
+  const parsed = parseSavingsRowFromDOM(
+    card,
+    rowIdx,
+    planAcc,
+    applyPendingLedger,
+    defaultLogAtIsoForDashboardCardEdits()
+  );
   const next = planAcc.slice();
   next[rowIdx] = parsed;
   (PLAN as any).savingsAccounts = next;

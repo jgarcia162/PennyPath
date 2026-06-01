@@ -5,8 +5,11 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Debt } from '../../types/index.js';
 import { PLAN } from './plan-data';
+import { defaultLogAtIsoForDashboardCardEdits } from './default-log-at';
 import { mergeDebtFromCardElement } from './debt-editor';
 import { mergeSavingsFromCardElement } from './savings-editor';
+import { yyyyMmFromDate } from './monthly-activity';
+import { RECENT_CARD_ACTIVITY_LIMIT, recentCardActivityEntries } from './render-sections';
 import { buildDebtLedgerUnifiedCellHtml } from './debt-ledger-editor-cells';
 import { buildSavingsLedgerUnifiedCellHtml } from './savings-ledger-editor-cells';
 import { debtLedgerKind, savingsLedgerKind } from './ledger-utils';
@@ -52,6 +55,14 @@ function mountSavingsInlineCard(): HTMLElement {
   return card;
 }
 
+describe('defaultLogAtIsoForDashboardCardEdits', () => {
+  it('uses the current calendar day', () => {
+    const at = defaultLogAtIsoForDashboardCardEdits();
+    const todayYm = yyyyMmFromDate(new Date());
+    expect(yyyyMmFromDate(new Date(at))).toBe(todayYm);
+  });
+});
+
 describe('mergeDebtFromCardElement', () => {
   beforeEach(() => {
     document.body.innerHTML = '';
@@ -79,6 +90,18 @@ describe('mergeDebtFromCardElement', () => {
     (PLAN as any).debts = [{ ...TEST_DEBT, ledgerStatus: 'completed' }];
     const card = mountDebtInlineCard();
     expect(mergeDebtFromCardElement(card, { applyPendingLedger: true })).toBe(false);
+  });
+});
+
+describe('recentCardActivityEntries', () => {
+  it('returns newest items first and caps at RECENT_CARD_ACTIVITY_LIMIT', () => {
+    const items = Array.from({ length: 12 }, function (_, i) {
+      return { at: '2026-01-' + String(i + 1).padStart(2, '0') + 'T12:00:00Z', id: String(i) };
+    });
+    const recent = recentCardActivityEntries(items);
+    expect(recent).toHaveLength(RECENT_CARD_ACTIVITY_LIMIT);
+    expect(recent[0].id).toBe('11');
+    expect(recent[9].id).toBe('2');
   });
 });
 

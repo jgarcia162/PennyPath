@@ -2,7 +2,15 @@
  * Goal 2 per-debt UI + debts list inside the balance editor (DOM builders).
  */
 
-import type { Debt, DerivedPlanMetrics, FinancialPlan, SavingsAccount, SavingsGoal } from '../../types/index.js';
+import type {
+  Debt,
+  DepositHistoryItem,
+  DerivedPlanMetrics,
+  FinancialPlan,
+  PaymentHistoryItem,
+  SavingsAccount,
+  SavingsGoal,
+} from '../../types/index.js';
 import { DEFAULT_DEBT_APR_PCT, DEFAULT_SAVINGS_APY_PCT, PLAN } from './plan-data';
 import {
   getDebtsEditorSegment,
@@ -33,6 +41,8 @@ import {
   buildSavingsLedgerUnifiedCellHtml,
 } from './savings-ledger-editor-cells';
 import {
+  captureDebtLedgerDrafts,
+  captureSavingsLedgerDrafts,
   clearDebtLedgerActivityInputs,
   clearDebtLedgerDraftStore,
   clearSavingsLedgerActivityInputs,
@@ -249,6 +259,129 @@ function captureSavingsCardActivityOpen(host: HTMLElement): Map<string, boolean>
   return open;
 }
 
+/** Max ledger rows shown under “Recent activity” on dashboard cards. */
+export const RECENT_CARD_ACTIVITY_LIMIT = 10;
+
+export function recentCardActivityEntries<T extends { at: string }>(items: T[]): T[] {
+  const list = Array.isArray(items) ? items.slice() : [];
+  list.sort(function (a, b) {
+    return new Date(b.at).getTime() - new Date(a.at).getTime();
+  });
+  return list.slice(0, RECENT_CARD_ACTIVITY_LIMIT);
+}
+
+function buildDebtRecentActivityDetails(
+  debt: Debt,
+  moneyExact: MoneyFn,
+  activityOpen: Map<string, boolean>
+): HTMLDetailsElement {
+  const history = Array.isArray(debt.paymentHistory) ? debt.paymentHistory : [];
+  const recent = recentCardActivityEntries(history);
+
+  const details = document.createElement('details');
+  details.className = 'goal2-debt-payments';
+  const summary = document.createElement('summary');
+  summary.className = 'goal2-debt-payments-summary';
+  summary.textContent = 'Recent activity' + (recent.length ? ' · ' + recent.length : '');
+  details.appendChild(summary);
+
+  if (recent.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'goal2-debt-payments-empty';
+    empty.textContent = 'No activity recorded yet.';
+    details.appendChild(empty);
+  } else {
+    const ul = document.createElement('ul');
+    ul.className = 'goal2-debt-payments-list';
+    recent.forEach(function (p: PaymentHistoryItem) {
+      const li = document.createElement('li');
+      const kind = debtLedgerKind(p.kind);
+      li.className =
+        'goal2-debt-payment-row goal2-debt-ledger-row goal2-debt-ledger-row--' + kind;
+      const dateStr = new Date(p.at).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      const metaSpan = document.createElement('span');
+      metaSpan.className = 'goal2-debt-payment-meta';
+      metaSpan.textContent = formatDebtLedgerSummary(p, moneyExact) + ' · ' + dateStr;
+
+      const rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'goal2-remove-ledger-entry goal2-remove-payment no-print';
+      rm.textContent = 'Remove';
+      rm.setAttribute('data-debt-id', String(debt.id));
+      rm.setAttribute('data-ledger-id', String(p.id));
+      rm.setAttribute('data-payment-id', String(p.id));
+
+      li.appendChild(metaSpan);
+      li.appendChild(rm);
+      ul.appendChild(li);
+    });
+    details.appendChild(ul);
+  }
+
+  if (activityOpen.get(String(debt.id || ''))) details.open = true;
+  return details;
+}
+
+function buildSavingsRecentActivityDetails(
+  acc: SavingsAccount,
+  moneyExact: MoneyFn,
+  activityOpen: Map<string, boolean>
+): HTMLDetailsElement {
+  const hist = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
+  const recent = recentCardActivityEntries(hist);
+
+  const details = document.createElement('details');
+  details.className = 'goal3-savings-deposits';
+  const summary = document.createElement('summary');
+  summary.className = 'goal3-savings-deposits-summary';
+  summary.textContent = 'Recent activity' + (recent.length ? ' · ' + recent.length : '');
+  details.appendChild(summary);
+
+  if (recent.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'goal3-savings-deposits-empty';
+    empty.textContent = 'No activity logged yet.';
+    details.appendChild(empty);
+  } else {
+    const ul = document.createElement('ul');
+    ul.className = 'goal3-savings-deposits-list';
+    recent.forEach(function (p: DepositHistoryItem) {
+      const li = document.createElement('li');
+      const kind = savingsLedgerKind(p.kind);
+      li.className =
+        'goal3-savings-deposit-row goal3-savings-ledger-row goal3-savings-ledger-row--' + kind;
+      const dateStr = new Date(p.at).toLocaleDateString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+      const metaSpan = document.createElement('span');
+      metaSpan.className = 'goal3-savings-deposit-meta';
+      metaSpan.textContent = formatSavingsLedgerSummary(p, moneyExact) + ' · ' + dateStr;
+
+      const rm = document.createElement('button');
+      rm.type = 'button';
+      rm.className = 'goal3-remove-ledger-entry goal3-remove-deposit no-print';
+      rm.textContent = 'Remove';
+      rm.setAttribute('data-savings-id', String(acc.id));
+      rm.setAttribute('data-ledger-id', String(p.id));
+      rm.setAttribute('data-deposit-id', String(p.id));
+
+      li.appendChild(metaSpan);
+      li.appendChild(rm);
+      ul.appendChild(li);
+    });
+    details.appendChild(ul);
+  }
+
+  if (activityOpen.get(String(acc.id || ''))) details.open = true;
+  return details;
+}
+
 function buildInlineEditActions(kind: 'debt' | 'savings'): HTMLDivElement {
   const wrap = document.createElement('div');
   wrap.className = 'card-inline-edit-actions no-print';
@@ -267,43 +400,58 @@ function buildInlineEditActions(kind: 'debt' | 'savings'): HTMLDivElement {
   return wrap;
 }
 
-function buildEditableDebtCard(debt: Debt): HTMLDivElement {
+function buildCardInlineFieldsGrid(): HTMLDivElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'card-inline-edit-fields';
+  const inputs = document.createElement('div');
+  inputs.className = 'card-inline-edit-fields__inputs';
+  wrap.appendChild(inputs);
+  return wrap;
+}
+
+function buildEditableDebtCard(
+  debt: Debt,
+  moneyExact: MoneyFn,
+  activityOpen: Map<string, boolean>
+): HTMLDivElement {
   const wrap = document.createElement('div');
   wrap.className = 'goal2-debt goal2-debt--editing';
   wrap.setAttribute('data-debt-id', String(debt.id || ''));
 
-  const head = document.createElement('div');
-  head.className = 'goal2-debt-head goal2-debt-head--editing';
+  const fields = buildCardInlineFieldsGrid();
+  const inputs = fields.querySelector('.card-inline-edit-fields__inputs') as HTMLDivElement;
 
   const nameInput = document.createElement('input');
   nameInput.type = 'text';
-  nameInput.className = 'card-inline-edit-name';
+  nameInput.className = 'card-inline-edit-input card-inline-edit-name';
   nameInput.setAttribute('data-field', 'name');
   nameInput.setAttribute('aria-label', 'Debt name');
   nameInput.autocomplete = 'off';
+  nameInput.placeholder = 'Name';
   nameInput.value = debt.name || '';
 
   const balanceInput = document.createElement('input');
   balanceInput.type = 'text';
-  balanceInput.className = 'card-inline-edit-balance';
+  balanceInput.className = 'card-inline-edit-input card-inline-edit-balance';
   balanceInput.setAttribute('data-field', 'current');
   balanceInput.setAttribute('data-money', 'currency');
   balanceInput.setAttribute('inputmode', 'decimal');
   balanceInput.setAttribute('aria-label', 'Current balance');
   balanceInput.autocomplete = 'off';
-  balanceInput.placeholder = '$0.00';
+  balanceInput.placeholder = 'Balance';
   const cur = numOr(debt.current, 0);
   balanceInput.value = cur > 0 ? formatCurrencyInput(cur) : '';
 
-  head.appendChild(nameInput);
-  head.appendChild(balanceInput);
+  inputs.appendChild(nameInput);
+  inputs.appendChild(balanceInput);
 
   const ledger = document.createElement('div');
   ledger.className = 'card-inline-edit-ledger';
   ledger.innerHTML = buildDebtLedgerUnifiedCellHtml();
 
-  wrap.appendChild(head);
+  wrap.appendChild(fields);
   wrap.appendChild(ledger);
+  wrap.appendChild(buildDebtRecentActivityDetails(debt, moneyExact, activityOpen));
   wrap.appendChild(buildInlineEditActions('debt'));
   return wrap;
 }
@@ -312,12 +460,13 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
   const host = document.getElementById('goal2-debts') as HTMLElement | null;
   if (!host) return;
   const activityOpen = captureDebtCardActivityOpen(host);
+  const ledgerDrafts = getEditingDebtCardId() ? captureDebtLedgerDrafts(host) : [];
   host.innerHTML = '';
   const debts = getDebtsInProgressOrder(plan);
   const editingDebtId = getEditingDebtCardId();
   debts.forEach(function (debt) {
     if (editingDebtId && String(debt.id || '') === editingDebtId) {
-      host.appendChild(buildEditableDebtCard(debt));
+      host.appendChild(buildEditableDebtCard(debt, moneyExact, activityOpen));
       return;
     }
     const current = Number.isFinite(debt.current) ? debt.current : 0;
@@ -353,69 +502,13 @@ export function renderGoal2Debts(plan: FinancialPlan, moneyExact: MoneyFn): void
     fill.style.width = pct.toFixed(2) + '%';
     track.appendChild(fill);
 
-    const now = Date.now();
-    const cutoff = now - 30 * 24 * 60 * 60 * 1000;
-    const history = Array.isArray(debt.paymentHistory) ? debt.paymentHistory : [];
-    const recent = history.filter(function (p) {
-      const ts = new Date(p.at).getTime();
-      return Number.isFinite(ts) && ts >= cutoff && ts <= now;
-    });
-    recent.sort(function (a, b) {
-      return new Date(b.at).getTime() - new Date(a.at).getTime();
-    });
-
-    const details = document.createElement('details');
-    details.className = 'goal2-debt-payments';
-    const summary = document.createElement('summary');
-    summary.className = 'goal2-debt-payments-summary';
-    summary.textContent = 'Recent activity (30 days)' + (recent.length ? ' · ' + recent.length : '');
-    details.appendChild(summary);
-
-    if (recent.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'goal2-debt-payments-empty';
-      empty.textContent = 'No activity recorded in the last 30 days.';
-      details.appendChild(empty);
-    } else {
-      const ul = document.createElement('ul');
-      ul.className = 'goal2-debt-payments-list';
-      recent.forEach(function (p) {
-        const li = document.createElement('li');
-        const kind = debtLedgerKind(p.kind);
-        li.className =
-          'goal2-debt-payment-row goal2-debt-ledger-row goal2-debt-ledger-row--' + kind;
-        const dateStr = new Date(p.at).toLocaleDateString(undefined, {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        });
-        const metaSpan = document.createElement('span');
-        metaSpan.className = 'goal2-debt-payment-meta';
-        metaSpan.textContent = formatDebtLedgerSummary(p, moneyExact) + ' · ' + dateStr;
-
-        const rm = document.createElement('button');
-        rm.type = 'button';
-        rm.className = 'goal2-remove-ledger-entry goal2-remove-payment no-print';
-        rm.textContent = 'Remove';
-        rm.setAttribute('data-debt-id', String(debt.id));
-        rm.setAttribute('data-ledger-id', String(p.id));
-        rm.setAttribute('data-payment-id', String(p.id));
-
-        li.appendChild(metaSpan);
-        li.appendChild(rm);
-        ul.appendChild(li);
-      });
-      details.appendChild(ul);
-    }
-
-    if (activityOpen.get(String(debt.id || ''))) details.open = true;
-
     wrap.appendChild(head);
     wrap.appendChild(labels);
     wrap.appendChild(track);
-    wrap.appendChild(details);
+    wrap.appendChild(buildDebtRecentActivityDetails(debt, moneyExact, activityOpen));
     host.appendChild(wrap);
   });
+  if (ledgerDrafts.length) restoreDebtLedgerDrafts(host, ledgerDrafts);
 }
 
 export function appendDebtsEditorEmptyState(host: HTMLElement, segment?: DebtsEditorSegment): void {
@@ -1068,68 +1161,62 @@ export function renderSavingsEditor(
   applyGoal3SaveButtonState();
 }
 
-function buildEditableSavingsCard(acc: SavingsAccount): HTMLDivElement {
+function buildEditableSavingsCard(
+  acc: SavingsAccount,
+  moneyExact: MoneyFn,
+  activityOpen: Map<string, boolean>
+): HTMLDivElement {
   const wrap = document.createElement('div');
   wrap.className = 'goal3-savings-account goal3-savings-account--editing';
   wrap.setAttribute('data-savings-id', String(acc.id || ''));
 
-  const head = document.createElement('div');
-  head.className = 'goal3-savings-head goal3-savings-head--editing';
-
-  const titleRow = document.createElement('div');
-  titleRow.className = 'goal3-savings-title-row goal3-savings-title-row--editing';
+  const fields = buildCardInlineFieldsGrid();
+  const inputs = fields.querySelector('.card-inline-edit-fields__inputs') as HTMLDivElement;
 
   const nameInput = document.createElement('input');
   nameInput.type = 'text';
-  nameInput.className = 'card-inline-edit-name';
+  nameInput.className = 'card-inline-edit-input card-inline-edit-name';
   nameInput.setAttribute('data-field', 'name');
   nameInput.setAttribute('aria-label', 'Account name');
   nameInput.autocomplete = 'off';
+  nameInput.placeholder = 'Name';
   nameInput.value = acc.name || '';
 
   const balanceInput = document.createElement('input');
   balanceInput.type = 'text';
-  balanceInput.className = 'card-inline-edit-balance';
+  balanceInput.className = 'card-inline-edit-input card-inline-edit-balance';
   balanceInput.setAttribute('data-field', 'current');
   balanceInput.setAttribute('data-money', 'currency');
   balanceInput.setAttribute('inputmode', 'decimal');
   balanceInput.setAttribute('aria-label', 'Balance');
   balanceInput.autocomplete = 'off';
-  balanceInput.placeholder = '$0.00';
+  balanceInput.placeholder = 'Balance';
   const cur = numOr(acc.current, 0);
   balanceInput.value = cur !== 0 ? formatCurrencyInput(cur) : '';
 
-  titleRow.appendChild(nameInput);
-  titleRow.appendChild(balanceInput);
-
-  const apyRow = document.createElement('label');
-  apyRow.className = 'card-inline-edit-apy-row';
-  const apyLabel = document.createElement('span');
-  apyLabel.className = 'card-inline-edit-apy-label';
-  apyLabel.textContent = 'APY %';
   const apyInput = document.createElement('input');
   apyInput.type = 'text';
-  apyInput.className = 'card-inline-edit-apy';
+  apyInput.className = 'card-inline-edit-input card-inline-edit-apy';
   apyInput.setAttribute('data-field', 'apyPct');
   apyInput.setAttribute('data-money', 'rate');
   apyInput.setAttribute('inputmode', 'decimal');
   apyInput.setAttribute('aria-label', 'Annual percentage yield');
   apyInput.autocomplete = 'off';
-  apyInput.placeholder = '0.00';
+  apyInput.placeholder = 'APY %';
   const apy = numOr(acc.apyPct, 0);
   apyInput.value = apy > 0 ? formatMoneyInput(apy) : '';
-  apyRow.appendChild(apyLabel);
-  apyRow.appendChild(apyInput);
 
-  head.appendChild(titleRow);
-  head.appendChild(apyRow);
+  inputs.appendChild(nameInput);
+  inputs.appendChild(balanceInput);
+  inputs.appendChild(apyInput);
 
   const ledger = document.createElement('div');
   ledger.className = 'card-inline-edit-ledger';
   ledger.innerHTML = buildSavingsLedgerUnifiedCellHtml();
 
-  wrap.appendChild(head);
+  wrap.appendChild(fields);
   wrap.appendChild(ledger);
+  wrap.appendChild(buildSavingsRecentActivityDetails(acc, moneyExact, activityOpen));
   wrap.appendChild(buildInlineEditActions('savings'));
   return wrap;
 }
@@ -1141,12 +1228,13 @@ export function renderGoal3SavingsAccounts(
   const host = document.getElementById('goal3-savings') as HTMLElement | null;
   if (!host) return;
   const activityOpen = captureSavingsCardActivityOpen(host);
+  const ledgerDrafts = getEditingSavingsCardId() ? captureSavingsLedgerDrafts(host) : [];
   host.innerHTML = '';
   const accs: SavingsAccount[] = applyFrozenSavingsCardOrder((d.savingsAccounts || []) as SavingsAccount[]);
   const editingSavingsId = getEditingSavingsCardId();
   accs.forEach(function (acc) {
     if (editingSavingsId && String(acc.id || '') === editingSavingsId) {
-      host.appendChild(buildEditableSavingsCard(acc));
+      host.appendChild(buildEditableSavingsCard(acc, moneyExact, activityOpen));
       return;
     }
     const current = numOr(acc.current, 0);
@@ -1263,67 +1351,12 @@ export function renderGoal3SavingsAccounts(
     goalsDetails.appendChild(goalsSummary);
     goalsDetails.appendChild(goalsAnim);
 
-    const now = Date.now();
-    const cutoff = now - 30 * 24 * 60 * 60 * 1000;
-    const recent = hist.filter(function (p) {
-      const ts = new Date(p.at).getTime();
-      return Number.isFinite(ts) && ts >= cutoff && ts <= now;
-    });
-    recent.sort(function (a, b) {
-      return new Date(b.at).getTime() - new Date(a.at).getTime();
-    });
-
-    const details = document.createElement('details');
-    details.className = 'goal3-savings-deposits';
-    const summary = document.createElement('summary');
-    summary.className = 'goal3-savings-deposits-summary';
-    summary.textContent = 'Recent activity (30 days)' + (recent.length ? ' · ' + recent.length : '');
-    details.appendChild(summary);
-
-    if (recent.length === 0) {
-      const empty = document.createElement('div');
-      empty.className = 'goal3-savings-deposits-empty';
-      empty.textContent = 'No activity logged in the last 30 days.';
-      details.appendChild(empty);
-    } else {
-      const ul = document.createElement('ul');
-      ul.className = 'goal3-savings-deposits-list';
-      recent.forEach(function (p) {
-        const li = document.createElement('li');
-        const kind = savingsLedgerKind(p.kind);
-        li.className =
-          'goal3-savings-deposit-row goal3-savings-ledger-row goal3-savings-ledger-row--' + kind;
-        const dateStr = new Date(p.at).toLocaleDateString(undefined, {
-          month: 'short',
-          day: 'numeric',
-          year: 'numeric',
-        });
-        const metaSpan = document.createElement('span');
-        metaSpan.className = 'goal3-savings-deposit-meta';
-        metaSpan.textContent = formatSavingsLedgerSummary(p, moneyExact) + ' · ' + dateStr;
-
-        const rm = document.createElement('button');
-        rm.type = 'button';
-        rm.className = 'goal3-remove-ledger-entry goal3-remove-deposit no-print';
-        rm.textContent = 'Remove';
-        rm.setAttribute('data-savings-id', String(acc.id));
-        rm.setAttribute('data-ledger-id', String(p.id));
-        rm.setAttribute('data-deposit-id', String(p.id));
-
-        li.appendChild(metaSpan);
-        li.appendChild(rm);
-        ul.appendChild(li);
-      });
-      details.appendChild(ul);
-    }
-
-    if (activityOpen.get(String(acc.id || ''))) details.open = true;
-
     wrap.appendChild(head);
     wrap.appendChild(goalsDetails);
-    wrap.appendChild(details);
+    wrap.appendChild(buildSavingsRecentActivityDetails(acc, moneyExact, activityOpen));
     host.appendChild(wrap);
   });
+  if (ledgerDrafts.length) restoreSavingsLedgerDrafts(host, ledgerDrafts);
 }
 
 /**

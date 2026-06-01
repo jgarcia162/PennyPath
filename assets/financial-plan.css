@@ -5857,23 +5857,49 @@ body.financial-plan-demo-mode #checkin-form {
   background: rgba(107, 91, 138, 0.16);
   border-color: rgba(107, 91, 138, 0.32);
 }
-.goal2-debt-head--editing,
-.goal3-savings-head--editing {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 12px;
-  align-items: stretch;
+/* Inline-edit cards: compact 2-col grid (matches Activity / ledger-unified). */
+.card-inline-edit-fields,
+.card-inline-edit-ledger {
+  margin-bottom: 8px;
 }
-.goal3-savings-title-row--editing {
+.card-inline-edit-fields__inputs,
+.goal2-debt--editing .card-inline-edit-ledger .ledger-unified__inputs,
+.goal3-savings-account--editing .card-inline-edit-ledger .ledger-unified__inputs {
+  display: grid;
+  gap: 4px 6px;
+  min-width: 0;
+}
+.card-inline-edit-fields__inputs {
+  grid-template-columns: 1fr 1fr;
+}
+.card-inline-edit-fields__inputs .card-inline-edit-apy {
+  grid-column: 2;
+  max-width: 6.5rem;
+  justify-self: end;
+}
+.goal2-debt--editing .card-inline-edit-ledger .ledger-unified__inputs,
+.goal3-savings-account--editing .card-inline-edit-ledger .ledger-unified__inputs {
+  grid-template-columns: minmax(0, 6.5rem) minmax(0, 6.5rem);
+  flex: 0 1 auto;
+  width: fit-content;
+  max-width: calc(100% - 3.25rem);
+}
+.card-inline-edit-fields__inputs .card-inline-edit-input--full,
+.goal2-debt--editing .card-inline-edit-ledger .ledger-memo,
+.goal3-savings-account--editing .card-inline-edit-ledger .ledger-memo {
+  grid-column: 1 / -1;
+}
+.goal2-debt--editing .card-inline-edit-ledger .ledger-unified,
+.goal3-savings-account--editing .card-inline-edit-ledger .ledger-unified {
   display: flex;
   flex-wrap: nowrap;
-  gap: 8px;
   align-items: center;
+  gap: 6px;
+  width: 100%;
 }
-.card-inline-edit-name,
-.card-inline-edit-balance,
-.card-inline-edit-apy {
+.card-inline-edit-input,
+.goal2-debt--editing .card-inline-edit-ledger input[type='text'],
+.goal3-savings-account--editing .card-inline-edit-ledger input[type='text'] {
   font-family: inherit;
   font-size: 13px;
   font-weight: 700;
@@ -5886,9 +5912,9 @@ body.financial-plan-demo-mode #checkin-form {
   min-width: 0;
   box-sizing: border-box;
 }
-.card-inline-edit-name:focus,
-.card-inline-edit-balance:focus,
-.card-inline-edit-apy:focus {
+.card-inline-edit-input:focus,
+.goal2-debt--editing .card-inline-edit-ledger input[type='text']:focus,
+.goal3-savings-account--editing .card-inline-edit-ledger input[type='text']:focus {
   outline: none;
   border-color: var(--gold);
   box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.35);
@@ -5898,35 +5924,32 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .goal3-savings-account--editing .card-inline-edit-name {
   color: var(--purple);
-  flex: 1;
 }
-.goal3-savings-account--editing .card-inline-edit-balance {
-  flex: 0 1 140px;
+.goal2-debt--editing .card-inline-edit-balance,
+.goal3-savings-account--editing .card-inline-edit-balance,
+.goal3-savings-account--editing .card-inline-edit-apy {
   text-align: right;
 }
-.card-inline-edit-apy-row {
-  display: flex;
+.goal2-debt--editing .goal2-debt-payments,
+.goal3-savings-account--editing .goal3-savings-deposits {
+  margin-bottom: 8px;
+}
+.goal2-debt--editing .card-inline-edit-ledger .btn-quick-ledger-entry,
+.goal3-savings-account--editing .card-inline-edit-ledger .btn-quick-savings-ledger-entry {
+  width: auto;
+  height: auto;
+  min-height: 0;
+  min-width: 2.75rem;
+  flex: 0 0 auto;
+  align-self: center;
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
-  color: #666;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-.card-inline-edit-apy-label {
-  flex-shrink: 0;
-}
-.card-inline-edit-apy {
+  justify-content: center;
   font-size: 12px;
-  width: 100px;
-  text-align: right;
-}
-.card-inline-edit-ledger {
-  margin-bottom: 12px;
-}
-.card-inline-edit-ledger .ledger-unified {
-  width: 100%;
+  font-weight: 700;
+  line-height: 1.2;
+  padding: 6px 14px;
+  border-radius: 8px;
 }
 .card-inline-edit-actions {
   display: flex;
@@ -5962,15 +5985,12 @@ body.financial-plan-demo-mode #checkin-form {
   transform: translateY(-1px);
 }
 
-:root[data-theme='dark'] .card-inline-edit-name,
-:root[data-theme='dark'] .card-inline-edit-balance,
-:root[data-theme='dark'] .card-inline-edit-apy {
+:root[data-theme='dark'] .card-inline-edit-input,
+:root[data-theme='dark'] .goal2-debt--editing .card-inline-edit-ledger input[type='text'],
+:root[data-theme='dark'] .goal3-savings-account--editing .card-inline-edit-ledger input[type='text'] {
   background: rgba(20, 22, 28, 0.85);
   color: rgba(233, 233, 246, 0.95);
   border-color: rgba(255, 255, 255, 0.18);
-}
-:root[data-theme='dark'] .card-inline-edit-apy-row {
-  color: rgba(233, 233, 246, 0.55);
 }
 :root[data-theme='dark'] .card-inline-edit-cancel {
   color: rgba(233, 233, 246, 0.7);

@@ -16,22 +16,42 @@ export type SavingsLedgerDraft = {
   withdrawalMemo: string;
 };
 
+function captureDebtLedgerDraftsFromRoot(row: Element, drafts: DebtLedgerDraft[]): void {
+  const debtId = row.getAttribute('data-debt-id');
+  if (!debtId) return;
+  const pay = row.querySelector('input[data-field="payment"]') as HTMLInputElement | null;
+  const charge = row.querySelector('input[data-field="charge"]') as HTMLInputElement | null;
+  const memo = row.querySelector('input[data-field="charge-memo"]') as HTMLInputElement | null;
+  drafts.push({
+    debtId: String(debtId),
+    payment: pay ? String(pay.value || '') : '',
+    charge: charge ? String(charge.value || '') : '',
+    chargeMemo: memo ? String(memo.value || '') : '',
+  });
+}
+
 export function captureDebtLedgerDrafts(host: HTMLElement): DebtLedgerDraft[] {
   const drafts: DebtLedgerDraft[] = [];
   host.querySelectorAll('.debt-row').forEach(function (row) {
-    const debtId = row.getAttribute('data-debt-id');
-    if (!debtId) return;
-    const pay = row.querySelector('input[data-field="payment"]') as HTMLInputElement | null;
-    const charge = row.querySelector('input[data-field="charge"]') as HTMLInputElement | null;
-    const memo = row.querySelector('input[data-field="charge-memo"]') as HTMLInputElement | null;
-    drafts.push({
-      debtId: String(debtId),
-      payment: pay ? String(pay.value || '') : '',
-      charge: charge ? String(charge.value || '') : '',
-      chargeMemo: memo ? String(memo.value || '') : '',
-    });
+    captureDebtLedgerDraftsFromRoot(row, drafts);
+  });
+  host.querySelectorAll('.goal2-debt--editing').forEach(function (row) {
+    captureDebtLedgerDraftsFromRoot(row, drafts);
   });
   return drafts;
+}
+
+function restoreDebtLedgerDraftsToRoot(row: Element, byId: Map<string, DebtLedgerDraft>): void {
+  const id = row.getAttribute('data-debt-id');
+  if (!id) return;
+  const snap = byId.get(String(id));
+  if (!snap) return;
+  const pay = row.querySelector('input[data-field="payment"]') as HTMLInputElement | null;
+  const charge = row.querySelector('input[data-field="charge"]') as HTMLInputElement | null;
+  const memo = row.querySelector('input[data-field="charge-memo"]') as HTMLInputElement | null;
+  if (pay) pay.value = snap.payment;
+  if (charge) charge.value = snap.charge;
+  if (memo) memo.value = snap.chargeMemo;
 }
 
 export function restoreDebtLedgerDrafts(host: HTMLElement, drafts: DebtLedgerDraft[]): void {
@@ -41,35 +61,49 @@ export function restoreDebtLedgerDrafts(host: HTMLElement, drafts: DebtLedgerDra
     byId.set(d.debtId, d);
   });
   host.querySelectorAll('.debt-row').forEach(function (row) {
-    const id = row.getAttribute('data-debt-id');
-    if (!id) return;
-    const snap = byId.get(String(id));
-    if (!snap) return;
-    const pay = row.querySelector('input[data-field="payment"]') as HTMLInputElement | null;
-    const charge = row.querySelector('input[data-field="charge"]') as HTMLInputElement | null;
-    const memo = row.querySelector('input[data-field="charge-memo"]') as HTMLInputElement | null;
-    if (pay) pay.value = snap.payment;
-    if (charge) charge.value = snap.charge;
-    if (memo) memo.value = snap.chargeMemo;
+    restoreDebtLedgerDraftsToRoot(row, byId);
+  });
+  host.querySelectorAll('.goal2-debt--editing').forEach(function (row) {
+    restoreDebtLedgerDraftsToRoot(row, byId);
+  });
+}
+
+function captureSavingsLedgerDraftsFromRoot(row: Element, drafts: SavingsLedgerDraft[]): void {
+  const savingsId = row.getAttribute('data-savings-id');
+  if (!savingsId) return;
+  const dep = row.querySelector('input[data-field="deposit"]') as HTMLInputElement | null;
+  const wd = row.querySelector('input[data-field="withdrawal"]') as HTMLInputElement | null;
+  const memo = row.querySelector('input[data-field="withdrawal-memo"]') as HTMLInputElement | null;
+  drafts.push({
+    savingsId: String(savingsId),
+    deposit: dep ? String(dep.value || '') : '',
+    withdrawal: wd ? String(wd.value || '') : '',
+    withdrawalMemo: memo ? String(memo.value || '') : '',
   });
 }
 
 export function captureSavingsLedgerDrafts(host: HTMLElement): SavingsLedgerDraft[] {
   const drafts: SavingsLedgerDraft[] = [];
   host.querySelectorAll('.savings-row').forEach(function (row) {
-    const savingsId = row.getAttribute('data-savings-id');
-    if (!savingsId) return;
-    const dep = row.querySelector('input[data-field="deposit"]') as HTMLInputElement | null;
-    const wd = row.querySelector('input[data-field="withdrawal"]') as HTMLInputElement | null;
-    const memo = row.querySelector('input[data-field="withdrawal-memo"]') as HTMLInputElement | null;
-    drafts.push({
-      savingsId: String(savingsId),
-      deposit: dep ? String(dep.value || '') : '',
-      withdrawal: wd ? String(wd.value || '') : '',
-      withdrawalMemo: memo ? String(memo.value || '') : '',
-    });
+    captureSavingsLedgerDraftsFromRoot(row, drafts);
+  });
+  host.querySelectorAll('.goal3-savings-account--editing').forEach(function (row) {
+    captureSavingsLedgerDraftsFromRoot(row, drafts);
   });
   return drafts;
+}
+
+function restoreSavingsLedgerDraftsToRoot(row: Element, byId: Map<string, SavingsLedgerDraft>): void {
+  const id = row.getAttribute('data-savings-id');
+  if (!id) return;
+  const snap = byId.get(String(id));
+  if (!snap) return;
+  const dep = row.querySelector('input[data-field="deposit"]') as HTMLInputElement | null;
+  const wd = row.querySelector('input[data-field="withdrawal"]') as HTMLInputElement | null;
+  const memo = row.querySelector('input[data-field="withdrawal-memo"]') as HTMLInputElement | null;
+  if (dep) dep.value = snap.deposit;
+  if (wd) wd.value = snap.withdrawal;
+  if (memo) memo.value = snap.withdrawalMemo;
 }
 
 export function restoreSavingsLedgerDrafts(host: HTMLElement, drafts: SavingsLedgerDraft[]): void {
@@ -79,16 +113,10 @@ export function restoreSavingsLedgerDrafts(host: HTMLElement, drafts: SavingsLed
     byId.set(d.savingsId, d);
   });
   host.querySelectorAll('.savings-row').forEach(function (row) {
-    const id = row.getAttribute('data-savings-id');
-    if (!id) return;
-    const snap = byId.get(String(id));
-    if (!snap) return;
-    const dep = row.querySelector('input[data-field="deposit"]') as HTMLInputElement | null;
-    const wd = row.querySelector('input[data-field="withdrawal"]') as HTMLInputElement | null;
-    const memo = row.querySelector('input[data-field="withdrawal-memo"]') as HTMLInputElement | null;
-    if (dep) dep.value = snap.deposit;
-    if (wd) wd.value = snap.withdrawal;
-    if (memo) memo.value = snap.withdrawalMemo;
+    restoreSavingsLedgerDraftsToRoot(row, byId);
+  });
+  host.querySelectorAll('.goal3-savings-account--editing').forEach(function (row) {
+    restoreSavingsLedgerDraftsToRoot(row, byId);
   });
 }
 
