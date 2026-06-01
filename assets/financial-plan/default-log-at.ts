@@ -20,3 +20,8 @@ export function defaultLogAtIsoForEdits(): IsoDateTimeString {
   return new Date(y, m - 1, 15, 12, 0, 0).toISOString();
 }
 
+/** Dashboard per-card inline Activity — always log at the current moment. */
+export function defaultLogAtIsoForDashboardCardEdits(): IsoDateTimeString {
+  return new Date().toISOString();
+}
+

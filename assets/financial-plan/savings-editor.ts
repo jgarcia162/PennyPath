@@ -8,16 +8,20 @@ import { parseMoneyInput, numOr, roundMoney, formatCurrencyInput, formatMoneyInp
 import { appendSavingsEditorEmptyState, buildSavingsEditorThead, buildSavingsRowTR } from './render-sections';
 import { normalizeDepositHistory, newDepositId, newWithdrawalId } from './persistence';
 import { ID_GOAL_HYSA, ensureSavingsGoals, getAccountGoalIds } from './savings-goals';
-import { defaultLogAtIsoForEdits } from './default-log-at';
+import { defaultLogAtIsoForDashboardCardEdits, defaultLogAtIsoForEdits } from './default-log-at';
+import type { IsoDateTimeString } from '../../types/index.js';
 import { concatSavingsLedgerOrder, partitionSavingsByLedger } from './savings-ledger';
 import { isSavingsDepositEntry, normalizeLedgerMemo, savingsLedgerKind } from './ledger-utils';
+import { syncLegacySavingsFromAccounts } from './savings-accounts';
 
 function parseSavingsRowFromDOM(
   row: Element,
   rowIdx: number,
   planAcc: SavingsAccount[],
-  applyPendingLedger: boolean
+  applyPendingLedger: boolean,
+  logAtIso?: IsoDateTimeString
 ): SavingsAccount {
+  const logAt = logAtIso ?? defaultLogAtIsoForEdits();
   let id = row.getAttribute('data-savings-id');
   if (id == null || String(id).trim() === '') {
     id = planAcc[rowIdx] ? String(planAcc[rowIdx].id) : 's_' + rowIdx;
@@ -71,7 +75,7 @@ function parseSavingsRowFromDOM(
     hist.push({
       id: newDepositId(),
       amount: dep,
-      at: defaultLogAtIsoForEdits(),
+      at: logAt,
       kind: 'deposit',
     });
     if (curEl) curEl.value = currentBal > 0 ? formatCurrencyInput(currentBal) : '';
@@ -87,7 +91,7 @@ function parseSavingsRowFromDOM(
     hist.push({
       id: newWithdrawalId(),
       amount: applied,
-      at: defaultLogAtIsoForEdits(),
+      at: logAt,
       kind: 'withdrawal',
       memo: withdrawMemoEl ? normalizeLedgerMemo(withdrawMemoEl.value) : '',
     });
@@ -125,6 +129,36 @@ function parseSavingsRowFromDOM(
 export type ReadSavingsEditorOptions = {
   applyPendingLedger?: boolean;
 };
+
+export type MergeSavingsFromCardOptions = {
+  applyPendingLedger?: boolean;
+};
+
+/** Merge inline Goal 3 card fields (+ optional Activity) into PLAN. */
+export function mergeSavingsFromCardElement(card: Element, opts?: MergeSavingsFromCardOptions): boolean {
+  const savingsId = card.getAttribute('data-savings-id');
+  if (savingsId == null || String(savingsId).trim() === '') return false;
+  const applyPendingLedger = opts?.applyPendingLedger === true;
+  const planAcc: SavingsAccount[] = Array.isArray((PLAN as any).savingsAccounts)
+    ? ((PLAN as any).savingsAccounts as SavingsAccount[])
+    : [];
+  const rowIdx = planAcc.findIndex(function (a: SavingsAccount) {
+    return String(a.id) === String(savingsId);
+  });
+  if (rowIdx < 0) return false;
+  const parsed = parseSavingsRowFromDOM(
+    card,
+    rowIdx,
+    planAcc,
+    applyPendingLedger,
+    defaultLogAtIsoForDashboardCardEdits()
+  );
+  const next = planAcc.slice();
+  next[rowIdx] = parsed;
+  (PLAN as any).savingsAccounts = next;
+  syncLegacySavingsFromAccounts(PLAN);
+  return true;
+}
 
 export function readSavingsEditorIntoPlan(opts?: ReadSavingsEditorOptions): void {
   const applyPendingLedger = opts?.applyPendingLedger === true;
