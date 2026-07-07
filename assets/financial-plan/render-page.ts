@@ -223,6 +223,15 @@ export type PlanPageRenderOptions = {
    * wiping DOM before focus lands on an input.
    */
   refreshBalanceEditors?: boolean;
+  /**
+   * When false, Activity column inputs (amounts + notes) are cleared after editor re-render.
+   * Used after Add commits a ledger row so memo fields do not restore from the draft store.
+   */
+  preserveLedgerActivityDrafts?: boolean;
+  /** Rebuild `#goal2-debts` even when a card is in inline-edit mode (e.g. after Activity Add). */
+  refreshGoal2DebtsCards?: boolean;
+  /** Rebuild `#goal3-savings` even when a card is in inline-edit mode (e.g. after Activity Add). */
+  refreshGoal3SavingsCards?: boolean;
 };
 
 function shouldSkipDebtsEditorRender(opts?: PlanPageRenderOptions): boolean {
@@ -247,16 +256,16 @@ function shouldSkipSavingsEditorRender(opts?: PlanPageRenderOptions): boolean {
 
 /**
  * While a Goal 2 debt card is open in inline-edit mode, skip generic rerenders
- * of `#goal2-debts` so typing isn't wiped. Explicit `refreshBalanceEditors`
- * calls (entering/leaving edit mode, Save) still rebuild the host.
+ * of `#goal2-debts` so typing isn't wiped. Pass `refreshGoal2DebtsCards` when the
+ * dashboard card list must update (enter/leave edit, Activity Add, Save).
  */
 function shouldSkipGoal2DebtsCardsRender(opts?: PlanPageRenderOptions): boolean {
-  if (opts && opts.refreshBalanceEditors === true) return false;
+  if (opts && opts.refreshGoal2DebtsCards === true) return false;
   return getEditingDebtCardId() != null;
 }
 
 function shouldSkipGoal3SavingsCardsRender(opts?: PlanPageRenderOptions): boolean {
-  if (opts && opts.refreshBalanceEditors === true) return false;
+  if (opts && opts.refreshGoal3SavingsCards === true) return false;
   return getEditingSavingsCardId() != null;
 }
 
@@ -430,8 +439,11 @@ export function render(opts?: PlanPageRenderOptions): void {
   renderDashboardDebtArchives(PLAN, moneyExact);
   renderDashboardDeletedBin(PLAN, moneyExact);
   setTextDash('debts-paid-off-lifetime', String(d.debtsPaidOffLifetimeCount ?? 0));
+  const editorOpts = {
+    preserveLedgerActivityDrafts: opts?.preserveLedgerActivityDrafts,
+  };
   if (!shouldSkipDebtsEditorRender(opts)) {
-    renderDebtsEditor(PLAN);
+    renderDebtsEditor(PLAN, editorOpts);
   } else {
     const g2 = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
     if (g2 && g2.open) {
@@ -448,7 +460,7 @@ export function render(opts?: PlanPageRenderOptions): void {
     renderGoal3SavingsAccounts(d, moneyExact);
   }
   if (!shouldSkipSavingsEditorRender(opts)) {
-    renderSavingsEditor(d);
+    renderSavingsEditor(d, editorOpts);
   }
 
   renderSavingsGoalsTargetEditor();

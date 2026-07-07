@@ -21,6 +21,7 @@ import {
   removeDebtLedgerEntry,
   setDebtLedgerStatusById,
   hardRemoveDebtById,
+  mergeDebtFromCardElement,
 } from './debt-editor';
 import {
   readSavingsEditorIntoPlan,
@@ -30,16 +31,22 @@ import {
   removeSavingsLedgerEntry,
   setSavingsLedgerStatusById,
   hardRemoveSavingsById,
+  mergeSavingsFromCardElement,
 } from './savings-editor';
 import { freezeEditorOrders, clearEditorOrderFreeze } from './render-sections';
+import type { PlanPageRenderOptions } from './render-page';
 import { isLedgerPendingEditorField } from './ledger-utils';
 import {
   applyGoal2SaveButtonState,
   applyGoal3SaveButtonState,
   debtsEditorHasConflictingLedgerInputs,
+  debtRowHasConflictingLedgerInputs,
+  debtRowHasDualLedgerAmounts,
   findDebtRowWithDualLedgerAmounts,
   findSavingsRowWithDualLedgerAmounts,
   savingsEditorHasConflictingLedgerInputs,
+  savingsRowHasConflictingLedgerInputs,
+  savingsRowHasDualLedgerAmounts,
 } from './editor-ledger-save-guard';
 import {
   clearDebtLedgerActivityInputs,
@@ -290,12 +297,7 @@ function showGoal3Unsaved() {
   setSaveNeeds('btn-save-goal3-savings', true);
 }
 
-type RenderFn = (opts?: {
-  skipDebtsEditor?: boolean;
-  skipSavingsEditor?: boolean;
-  refreshBalanceEditors?: boolean;
-  preserveLedgerActivityDrafts?: boolean;
-}) => void;
+type RenderFn = (opts?: PlanPageRenderOptions) => void;
 
 export function wireGoal2DebtEditor(render: RenderFn): void {
   // This module can be initialized multiple times (Next.js client navigation back to /dashboard).
@@ -317,10 +319,18 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
 
   async function finishGoal2Persist(
     ok: boolean,
-    opts?: { preserveLedgerActivityDrafts?: boolean }
+    opts?: {
+      preserveLedgerActivityDrafts?: boolean;
+      refreshGoal2DebtsCards?: boolean;
+      refreshGoal3SavingsCards?: boolean;
+    }
   ): Promise<void> {
     render({
       refreshBalanceEditors: true,
+      refreshGoal2DebtsCards:
+        opts?.refreshGoal2DebtsCards === true || getEditingDebtCardId() == null,
+      refreshGoal3SavingsCards:
+        opts?.refreshGoal3SavingsCards === true || getEditingSavingsCardId() == null,
       preserveLedgerActivityDrafts: opts?.preserveLedgerActivityDrafts !== false,
     });
     applyGoal2SaveButtonState();
@@ -457,6 +467,8 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
           clearDebtLedgerDraftStore();
           clearDebtLedgerActivityInputs(debtsHostEl);
           const ok = await savePlanOverrides();
+          clearDebtLedgerDraftStore();
+          clearDebtLedgerActivityInputs(debtsHostEl);
           await finishGoal2Persist(ok, { preserveLedgerActivityDrafts: false });
         })();
         return;
@@ -534,14 +546,15 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         return;
       }
       setEditingDebtCardId(String(debtId));
-      render({ refreshBalanceEditors: true });
+      render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
       focusEditingDebtCard(String(debtId));
+      applyGoal2SaveButtonState();
     }
 
     function cancelDebtCardInlineEdit(): void {
       if (getEditingDebtCardId() == null) return;
       setEditingDebtCardId(null);
-      render({ refreshBalanceEditors: true });
+      render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
     }
 
     function commitDebtCardInlineEdit(): void {
@@ -557,29 +570,53 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         : null;
       if (!card) {
         setEditingDebtCardId(null);
-        render({ refreshBalanceEditors: true });
+        render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
         return;
       }
-      const nameIn = card.querySelector('input[data-field="name"]') as HTMLInputElement | null;
-      const balIn = card.querySelector('input[data-field="current"]') as HTMLInputElement | null;
-      const debts = Array.isArray(PLAN.debts) ? (PLAN.debts as Debt[]) : [];
-      const target = debts.find(function (d) {
-        return String(d.id) === id;
-      });
-      if (target) {
-        const newName = nameIn ? String(nameIn.value || '').trim() : '';
-        if (newName) target.name = newName;
-        const parsed = balIn ? parseMoneyInput(balIn.value) : null;
-        if (parsed != null && parsed >= 0) {
-          target.current = roundMoney(parsed);
-        } else if (balIn && String(balIn.value || '').trim() === '') {
-          target.current = 0;
-        }
+      if (debtRowHasConflictingLedgerInputs(card) || debtRowHasDualLedgerAmounts(card)) {
+        window.alert(
+          'Enter only a payment or a charge amount (not both), then tap Save or Add again.'
+        );
+        applyGoal2SaveButtonState();
+        return;
       }
+      mergeDebtFromCardElement(card, { applyPendingLedger: true });
       setEditingDebtCardId(null);
+      render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
       void (async function () {
         const ok = await savePlanOverrides();
         await finishGoal2Persist(ok);
+      })();
+    }
+
+    function openDebtCardRecentActivity(debtId: string): void {
+      const host = document.getElementById('goal2-debts');
+      if (!host) return;
+      const idEsc =
+        typeof CSS !== 'undefined' && CSS.escape
+          ? CSS.escape(debtId)
+          : debtId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const det = host.querySelector(
+        '.goal2-debt[data-debt-id="' + idEsc + '"] .goal2-debt-payments'
+      ) as HTMLDetailsElement | null;
+      if (det) det.open = true;
+    }
+
+    function applyDebtCardLedgerQuickAdd(card: HTMLElement): void {
+      if (debtRowHasConflictingLedgerInputs(card) || debtRowHasDualLedgerAmounts(card)) {
+        window.alert(
+          'Enter only a payment or a charge amount (not both), then tap Add again.'
+        );
+        applyGoal2SaveButtonState();
+        return;
+      }
+      const debtId = card.getAttribute('data-debt-id');
+      mergeDebtFromCardElement(card, { applyPendingLedger: true });
+      clearDebtLedgerActivityInputs(card);
+      void (async function () {
+        const ok = await savePlanOverrides();
+        await finishGoal2Persist(ok, { refreshGoal2DebtsCards: true });
+        if (debtId) openDebtCardRecentActivity(String(debtId));
       })();
     }
 
@@ -594,7 +631,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       const ok = window.confirm('Remove this activity record?\n\nThe balance will be adjusted.');
       if (!ok) return;
       removeDebtLedgerEntry(debtId, entryId, showGoal2Unsaved, function () {
-        render({ refreshBalanceEditors: true });
+        render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
       });
       void (async function () {
         const ok = await saveGoal2DebtsFromEditor();
@@ -602,10 +639,29 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       })();
     }, { signal });
 
+    goal2Host.addEventListener('input', function (e) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function') return;
+      const card = t.closest('.goal2-debt--editing');
+      if (!card) return;
+      if (isLedgerPendingEditorField(t)) {
+        syncDebtLedgerDraftFromRow(card);
+        applyGoal2SaveButtonState();
+      }
+    }, { signal });
+
     goal2Host.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function') return;
       const action = (t.closest('[data-action]') as HTMLElement | null)?.getAttribute('data-action') || '';
+      if (action === 'quick-ledger-entry') {
+        const card = t.closest('.goal2-debt--editing') as HTMLElement | null;
+        if (card) {
+          e.preventDefault();
+          applyDebtCardLedgerQuickAdd(card);
+          return;
+        }
+      }
       if (action === 'inline-save-debt') {
         e.preventDefault();
         commitDebtCardInlineEdit();
@@ -621,7 +677,12 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if (!debtEl) return;
 
       // Ignore clicks on interactive children (details toggles, remove buttons, inputs).
-      if (t.closest('summary, button, a, input, select, textarea, .goal2-remove-payment')) return;
+      if (
+        t.closest(
+          'summary, button, a, input, select, textarea, .goal2-remove-payment, .btn-quick-ledger-entry'
+        )
+      )
+        return;
       // Already editing this card — let focus/typing happen.
       if (debtEl.classList.contains('goal2-debt--editing')) return;
 
@@ -748,10 +809,18 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
 
   async function finishGoal3Persist(
     ok: boolean,
-    opts?: { preserveLedgerActivityDrafts?: boolean }
+    opts?: {
+      preserveLedgerActivityDrafts?: boolean;
+      refreshGoal2DebtsCards?: boolean;
+      refreshGoal3SavingsCards?: boolean;
+    }
   ): Promise<void> {
     render({
       refreshBalanceEditors: true,
+      refreshGoal2DebtsCards:
+        opts?.refreshGoal2DebtsCards === true || getEditingDebtCardId() == null,
+      refreshGoal3SavingsCards:
+        opts?.refreshGoal3SavingsCards === true || getEditingSavingsCardId() == null,
       preserveLedgerActivityDrafts: opts?.preserveLedgerActivityDrafts !== false,
     });
     applyGoal3SaveButtonState();
@@ -822,6 +891,8 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
           clearSavingsLedgerActivityInputs(savingsHostEl);
           syncLegacySavingsFromAccounts(PLAN);
           const ok = await savePlanOverrides();
+          clearSavingsLedgerDraftStore();
+          clearSavingsLedgerActivityInputs(savingsHostEl);
           await finishGoal3Persist(ok, { preserveLedgerActivityDrafts: false });
         })();
         return;
@@ -911,14 +982,15 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         return;
       }
       setEditingSavingsCardId(String(sid));
-      render({ refreshBalanceEditors: true });
+      render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
       focusEditingSavingsCard(String(sid));
+      applyGoal3SaveButtonState();
     }
 
     function cancelSavingsCardInlineEdit(): void {
       if (getEditingSavingsCardId() == null) return;
       setEditingSavingsCardId(null);
-      render({ refreshBalanceEditors: true });
+      render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
     }
 
     function commitSavingsCardInlineEdit(): void {
@@ -936,41 +1008,54 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         : null;
       if (!card) {
         setEditingSavingsCardId(null);
-        render({ refreshBalanceEditors: true });
+        render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
         return;
       }
-      const nameIn = card.querySelector('input[data-field="name"]') as HTMLInputElement | null;
-      const balIn = card.querySelector('input[data-field="current"]') as HTMLInputElement | null;
-      const apyIn = card.querySelector('input[data-field="apyPct"]') as HTMLInputElement | null;
-      const accs = Array.isArray((PLAN as any).savingsAccounts)
-        ? ((PLAN as any).savingsAccounts as SavingsAccount[])
-        : [];
-      const target = accs.find(function (a) {
-        return String(a.id) === id;
-      });
-      if (target) {
-        const newName = nameIn ? String(nameIn.value || '').trim() : '';
-        if (newName) target.name = newName;
-        const parsedBal = balIn ? parseMoneyInput(balIn.value) : null;
-        if (parsedBal != null) {
-          target.current = roundMoney(parsedBal);
-        } else if (balIn && String(balIn.value || '').trim() === '') {
-          target.current = 0;
-        }
-        const parsedApy = apyIn ? parseMoneyInput(apyIn.value) : null;
-        if (parsedApy != null && parsedApy >= 0) {
-          target.apyPct = roundMoney(parsedApy);
-        } else if (apyIn && String(apyIn.value || '').trim() === '') {
-          target.apyPct = 0;
-        }
+      if (savingsRowHasConflictingLedgerInputs(card) || savingsRowHasDualLedgerAmounts(card)) {
+        window.alert(
+          'Enter only a deposit or a withdrawal amount (not both), then tap Save or Add again.'
+        );
+        applyGoal3SaveButtonState();
+        return;
       }
+      mergeSavingsFromCardElement(card, { applyPendingLedger: true });
       setEditingSavingsCardId(null);
-      syncLegacySavingsFromAccounts(PLAN);
-      void savePlanOverrides();
-      render({ refreshBalanceEditors: true });
-      setSaveNeeds('btn-save-goal3-savings', false);
-      showGoal3Saved();
-      lastSavedSavings = cloneSavingsSnapshot();
+      render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
+      void (async function () {
+        const ok = await savePlanOverrides();
+        await finishGoal3Persist(ok);
+      })();
+    }
+
+    function openSavingsCardRecentActivity(savingsId: string): void {
+      const host = document.getElementById('goal3-savings');
+      if (!host) return;
+      const idEsc =
+        typeof CSS !== 'undefined' && CSS.escape
+          ? CSS.escape(savingsId)
+          : savingsId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      const det = host.querySelector(
+        '.goal3-savings-account[data-savings-id="' + idEsc + '"] .goal3-savings-deposits'
+      ) as HTMLDetailsElement | null;
+      if (det) det.open = true;
+    }
+
+    function applySavingsCardLedgerQuickAdd(card: HTMLElement): void {
+      if (savingsRowHasConflictingLedgerInputs(card) || savingsRowHasDualLedgerAmounts(card)) {
+        window.alert(
+          'Enter only a deposit or a withdrawal amount (not both), then tap Add again.'
+        );
+        applyGoal3SaveButtonState();
+        return;
+      }
+      const savingsId = card.getAttribute('data-savings-id');
+      mergeSavingsFromCardElement(card, { applyPendingLedger: true });
+      clearSavingsLedgerActivityInputs(card);
+      void (async function () {
+        const ok = await savePlanOverrides();
+        await finishGoal3Persist(ok, { refreshGoal3SavingsCards: true });
+        if (savingsId) openSavingsCardRecentActivity(String(savingsId));
+      })();
     }
 
     goal3Host.addEventListener('click', function (e) {
@@ -984,17 +1069,36 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       const ok = window.confirm('Remove this activity record?\n\nThe balance will be adjusted.');
       if (!ok) return;
       removeSavingsLedgerEntry(sid, entryId, showGoal3Unsaved, function () {
-        render({ refreshBalanceEditors: true });
+        render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
       });
       syncLegacySavingsFromAccounts(PLAN);
       void savePlanOverrides();
       lastSavedSavings = cloneSavingsSnapshot();
     }, { signal });
 
+    goal3Host.addEventListener('input', function (e) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function') return;
+      const card = t.closest('.goal3-savings-account--editing');
+      if (!card) return;
+      if (isLedgerPendingEditorField(t)) {
+        syncSavingsLedgerDraftFromRow(card);
+        applyGoal3SaveButtonState();
+      }
+    }, { signal });
+
     goal3Host.addEventListener('click', function (e) {
       const t = e.target as HTMLElement | null;
       if (!t || typeof t.closest !== 'function') return;
       const action = (t.closest('[data-action]') as HTMLElement | null)?.getAttribute('data-action') || '';
+      if (action === 'quick-savings-ledger-entry') {
+        const card = t.closest('.goal3-savings-account--editing') as HTMLElement | null;
+        if (card) {
+          e.preventDefault();
+          applySavingsCardLedgerQuickAdd(card);
+          return;
+        }
+      }
       if (action === 'inline-save-savings') {
         e.preventDefault();
         commitSavingsCardInlineEdit();
@@ -1010,7 +1114,12 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if (!accountEl) return;
 
       // Ignore clicks on interactive children (details toggles, remove buttons, inputs).
-      if (t.closest('summary, button, a, input, select, textarea, .goal3-remove-deposit')) return;
+      if (
+        t.closest(
+          'summary, button, a, input, select, textarea, .goal3-remove-deposit, .btn-quick-savings-ledger-entry'
+        )
+      )
+        return;
       if (accountEl.classList.contains('goal3-savings-account--editing')) return;
 
       const sid = accountEl.getAttribute('data-savings-id');

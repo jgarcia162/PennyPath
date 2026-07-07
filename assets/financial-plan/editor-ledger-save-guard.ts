@@ -92,6 +92,12 @@ export function applyGoal2SaveButtonState(): void {
     '.btn-quick-ledger-entry',
     debtRowHasConflictingLedgerInputs
   );
+  setAddButtonsDisabled(
+    document.getElementById('goal2-debts'),
+    '.goal2-debt--editing',
+    '.btn-quick-ledger-entry',
+    debtRowHasConflictingLedgerInputs
+  );
 }
 
 export function applyGoal3SaveButtonState(): void {
@@ -106,6 +112,12 @@ export function applyGoal3SaveButtonState(): void {
   setAddButtonsDisabled(
     document.getElementById('savings-editor-list'),
     '.savings-row',
+    '.btn-quick-savings-ledger-entry',
+    savingsRowHasConflictingLedgerInputs
+  );
+  setAddButtonsDisabled(
+    document.getElementById('goal3-savings'),
+    '.goal3-savings-account--editing',
     '.btn-quick-savings-ledger-entry',
     savingsRowHasConflictingLedgerInputs
   );
