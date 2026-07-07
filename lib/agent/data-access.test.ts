@@ -337,7 +337,7 @@ describe('AgentDataAccess.addDebtPayment', () => {
 
     // Verify from('payment_history') was called
     const fromCalls = (mock.from as ReturnType<typeof vi.fn>).mock.calls;
-    const paymentCall = fromCalls.find(([t]: [string]) => t === 'payment_history');
+    const paymentCall = fromCalls.find((call) => call[0] === 'payment_history');
     expect(paymentCall).toBeDefined();
   });
 
