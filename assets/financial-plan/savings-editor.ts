@@ -293,27 +293,33 @@ export function removeSavingsLedgerEntry(
   entryId: string,
   onUnsaved: () => void,
   rerender: () => void
-): void {
+): boolean {
+  const id = String(entryId || '').trim();
+  if (!id) return false;
   const acc = (((PLAN as any).savingsAccounts || []) as SavingsAccount[]).find(function (a: SavingsAccount) {
     return String(a.id) === String(accountId);
   });
-  if (!acc || !Array.isArray(acc.depositHistory)) return;
+  if (!acc || !Array.isArray(acc.depositHistory)) return false;
   const idx = acc.depositHistory.findIndex(function (p: DepositHistoryItem) {
-    return String(p.id) === String(entryId);
+    return String(p.id || '').trim() === id;
   });
-  if (idx === -1) return;
+  if (idx === -1) return false;
   const entry = acc.depositHistory[idx];
   const amt = Number(entry.amount);
-  if (!Number.isFinite(amt) || amt <= 0) return;
   const kind = savingsLedgerKind(entry.kind);
-  acc.depositHistory.splice(idx, 1);
-  if (kind === 'withdrawal') {
-    acc.current = roundMoney(numOr(acc.current, 0) + amt);
-  } else {
-    acc.current = roundMoney(Math.max(0, numOr(acc.current, 0) - amt));
+  acc.depositHistory = acc.depositHistory.filter(function (_p, i) {
+    return i !== idx;
+  });
+  if (Number.isFinite(amt) && amt > 0) {
+    if (kind === 'withdrawal') {
+      acc.current = roundMoney(numOr(acc.current, 0) + amt);
+    } else {
+      acc.current = roundMoney(Math.max(0, numOr(acc.current, 0) - amt));
+    }
   }
   onUnsaved();
   rerender();
+  return true;
 }
 
 /** @deprecated Use removeSavingsLedgerEntry */

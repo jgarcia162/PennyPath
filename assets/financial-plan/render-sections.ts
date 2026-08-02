@@ -282,7 +282,8 @@ function buildDebtRecentActivityDetails(
   details.className = 'goal2-debt-payments';
   const summary = document.createElement('summary');
   summary.className = 'goal2-debt-payments-summary';
-  summary.textContent = 'Recent activity' + (recent.length ? ' · ' + recent.length : '');
+  // Show total history count (not the capped recent list length) so Remove isn't a no-op visually at 10+.
+  summary.textContent = 'Recent activity' + (history.length ? ' · ' + history.length : '');
   details.appendChild(summary);
 
   if (recent.length === 0) {
@@ -338,7 +339,7 @@ function buildSavingsRecentActivityDetails(
   details.className = 'goal3-savings-deposits';
   const summary = document.createElement('summary');
   summary.className = 'goal3-savings-deposits-summary';
-  summary.textContent = 'Recent activity' + (recent.length ? ' · ' + recent.length : '');
+  summary.textContent = 'Recent activity' + (hist.length ? ' · ' + hist.length : '');
   details.appendChild(summary);
 
   if (recent.length === 0) {
