@@ -3486,9 +3486,11 @@ body.financial-plan-demo-mode #checkin-form {
     transform: scaleX(1);
   }
 }
+/* Mounted inside the open <dialog> so it paints in the modal top layer above the editor. */
 .hold-delete-hint {
+  --hold-hint-caret-x: 50%;
   position: fixed;
-  z-index: 10050;
+  z-index: 50;
   max-width: min(260px, calc(100vw - 16px));
   padding: 8px 12px;
   border-radius: 10px;
@@ -3504,6 +3506,9 @@ body.financial-plan-demo-mode #checkin-form {
   transform: translateY(4px);
   transition: opacity 0.16s ease, transform 0.16s ease;
 }
+.goal-editor-dialog .hold-delete-hint {
+  z-index: 20;
+}
 .hold-delete-hint.is-visible {
   opacity: 1;
   transform: translateY(0);
@@ -3511,7 +3516,7 @@ body.financial-plan-demo-mode #checkin-form {
 .hold-delete-hint::after {
   content: '';
   position: absolute;
-  left: 50%;
+  left: var(--hold-hint-caret-x, 50%);
   bottom: -5px;
   width: 10px;
   height: 10px;

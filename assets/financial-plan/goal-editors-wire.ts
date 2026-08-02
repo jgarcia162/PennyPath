@@ -77,14 +77,28 @@ function wasSavingsIdLastSaved(id: string): boolean {
 let holdDeleteHintEl: HTMLElement | null = null;
 let holdDeleteHintHideTimer: ReturnType<typeof setTimeout> | null = null;
 
-function getHoldDeleteHintEl(): HTMLElement {
-  if (holdDeleteHintEl && holdDeleteHintEl.isConnected) return holdDeleteHintEl;
+/** Prefer the open editor <dialog> so the hint sits in the modal top layer (not under the backdrop). */
+function holdDeleteHintHostFor(btn: HTMLElement): HTMLElement {
+  const dlg =
+    (typeof btn.closest === 'function' ? btn.closest('dialog') : null) ||
+    document.getElementById('goal2-editor-dialog') ||
+    document.getElementById('goal3-editor-dialog');
+  return (dlg as HTMLElement) || document.body;
+}
+
+function getHoldDeleteHintEl(host: HTMLElement): HTMLElement {
+  if (holdDeleteHintEl && holdDeleteHintEl.isConnected) {
+    if (holdDeleteHintEl.parentElement !== host) {
+      host.appendChild(holdDeleteHintEl);
+    }
+    return holdDeleteHintEl;
+  }
   const el = document.createElement('div');
   el.className = 'hold-delete-hint';
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');
   el.hidden = true;
-  document.body.appendChild(el);
+  host.appendChild(el);
   holdDeleteHintEl = el;
   return el;
 }
@@ -101,29 +115,44 @@ function hideHoldDeleteHint(): void {
 }
 
 function showHoldDeleteHint(btn: HTMLElement, message: string, holdMs?: number): void {
-  const el = getHoldDeleteHintEl();
+  const host = holdDeleteHintHostFor(btn);
+  const el = getHoldDeleteHintEl(host);
   el.textContent = message;
   el.hidden = false;
   el.classList.add('is-visible');
   if (holdMs != null && Number.isFinite(holdMs)) {
     el.style.setProperty('--hold-delete-ms', String(holdMs) + 'ms');
   }
+
   const rect = btn.getBoundingClientRect();
+  const hostRect = host.getBoundingClientRect();
   const pad = 8;
-  // Measure after visible so width is accurate.
-  const hintW = el.offsetWidth || 200;
+  // Hint uses position:fixed (viewport coords). Keep it on-screen and point the caret at the button.
+  const hintW = el.offsetWidth || 220;
   const hintH = el.offsetHeight || 36;
-  let left = rect.left + rect.width / 2 - hintW / 2;
-  left = Math.max(pad, Math.min(left, window.innerWidth - hintW - pad));
+  const btnCenterX = rect.left + rect.width / 2;
+  let left = btnCenterX - hintW / 2;
+  const minLeft = Math.max(pad, hostRect.left + pad);
+  const maxLeft = Math.min(window.innerWidth - hintW - pad, hostRect.right - hintW - pad);
+  if (minLeft <= maxLeft) {
+    left = Math.max(minLeft, Math.min(left, maxLeft));
+  } else {
+    left = Math.max(pad, Math.min(left, window.innerWidth - hintW - pad));
+  }
   let top = rect.top - hintH - 10;
   let placeBelow = false;
-  if (top < pad) {
+  const minTop = Math.max(pad, hostRect.top + pad);
+  if (top < minTop) {
     top = rect.bottom + 10;
     placeBelow = true;
   }
   el.style.left = Math.round(left) + 'px';
   el.style.top = Math.round(top) + 'px';
+  // Caret tracks the button even when the bubble was clamped horizontally.
+  const caretX = Math.max(12, Math.min(btnCenterX - left, hintW - 12));
+  el.style.setProperty('--hold-hint-caret-x', Math.round(caretX) + 'px');
   el.classList.toggle('hold-delete-hint--below', placeBelow);
+
   if (holdDeleteHintHideTimer != null) clearTimeout(holdDeleteHintHideTimer);
   holdDeleteHintHideTimer = setTimeout(function () {
     hideHoldDeleteHint();
