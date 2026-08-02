@@ -91,6 +91,30 @@ describe('mergeDebtFromCardElement', () => {
     const card = mountDebtInlineCard();
     expect(mergeDebtFromCardElement(card, { applyPendingLedger: true })).toBe(false);
   });
+
+  it('keeps an intentional lower balance even when the debt has charge history', () => {
+    // Regression: any balance below PLAN.current used to be treated as "stale after
+    // charges" and discarded — Apple (and any debt with charges) could not be edited.
+    (PLAN as any).debts = [
+      {
+        ...TEST_DEBT,
+        current: 80415.85,
+        paidOff: 106548.4,
+        paymentHistory: [
+          { id: 'ph1', amount: 100, at: '2026-01-01T12:00:00Z', kind: 'payment' },
+          { id: 'ch1', amount: 50, at: '2026-01-02T12:00:00Z', kind: 'charge', memo: 'store' },
+        ],
+      },
+    ];
+    const card = mountDebtInlineCard();
+    const cur = card.querySelector('input[data-field="current"]') as HTMLInputElement;
+    cur.value = '$585.55';
+
+    expect(mergeDebtFromCardElement(card, { applyPendingLedger: true })).toBe(true);
+
+    const debt = ((PLAN as any).debts as Debt[]).find((d) => d.id === TEST_DEBT.id);
+    expect(debt!.current).toBe(585.55);
+  });
 });
 
 describe('recentCardActivityEntries', () => {
