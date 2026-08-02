@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { wireMoneyMasks, formatCurrencyFromDigitCents } from './money-input-mask.js';
+import { wireMoneyMasks, formatCurrencyFromDigitCents } from './money-input-mask';
 
 function mountEditorCurrencyField(hostId: string, initialValue: string): HTMLInputElement {
   document.body.innerHTML =
