@@ -120,7 +120,7 @@ function renderSavingsGoalsTargetEditor(): void {
   [
     { t: 'Goal name', title: 'Savings goal label' },
     { t: 'Target amount', title: 'Dollar target for this goal' },
-    { t: 'Goal by', title: 'Optional target month (YYYY-MM)' },
+    { t: 'Goal by', title: 'Optional target date (stored as month)' },
     { t: '', title: 'Remove row' },
   ].forEach(function (h) {
     const th = document.createElement('th');
@@ -162,14 +162,16 @@ function renderSavingsGoalsTargetEditor(): void {
     const tdBy = document.createElement('td');
     tdBy.className = 'editor-table__cell--goal-by';
     const byIn = document.createElement('input');
-    byIn.type = 'month';
+    // Native date calendar (month inputs are poorly supported in Safari).
+    // Persistence stays YYYY-MM via goalByYm.
+    byIn.type = 'date';
     byIn.setAttribute('data-field', 'goal-by');
-    byIn.setAttribute('aria-label', 'Goal by month');
+    byIn.setAttribute('aria-label', 'Goal by date');
     const ym =
       typeof g.goalByYm === 'string' && /^\d{4}-\d{2}$/.test(g.goalByYm.trim())
         ? g.goalByYm.trim()
         : '';
-    byIn.value = ym as unknown as string;
+    byIn.value = ym ? ym + '-01' : '';
     tdBy.appendChild(byIn);
 
     const tdRm = document.createElement('td');

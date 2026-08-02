@@ -2365,6 +2365,10 @@ body.financial-plan-demo-mode #checkin-form {
   gap: 10px;
   padding: 4px 0 12px;
 }
+.dashboard-goals-edit-btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
 .dashboard-goals-summary {
   appearance: none;
   border: none;

@@ -7,6 +7,7 @@ import { PLAN, PLAN_DEFAULTS } from './plan-data';
 import { applyPlanOverrides, getLastPlanSaveError, savePlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { wireMoneyMasks } from './money-input-mask';
+import { parseMoneyInput } from './utils';
 import {
   getEditingDebtCardId,
   getEditingSavingsCardId,
@@ -264,6 +265,54 @@ function setSaveNeeds(saveBtnId: string, needsSave: boolean): void {
   else if (saveBtnId === 'btn-save-goal3-savings') applyGoal3SaveButtonState();
 }
 
+/** Ignore input/change that fires while editor DOM is torn down/rebuilt during save. */
+let goal2IgnoreActivityUntil = 0;
+let goal3IgnoreActivityUntil = 0;
+
+function beginGoal2PersistGuard(): void {
+  goal2IgnoreActivityUntil = Date.now() + 400;
+}
+
+function beginGoal3PersistGuard(): void {
+  goal3IgnoreActivityUntil = Date.now() + 400;
+}
+
+function shouldIgnoreGoal2EditorActivity(): boolean {
+  return Date.now() < goal2IgnoreActivityUntil;
+}
+
+function shouldIgnoreGoal3EditorActivity(): boolean {
+  return Date.now() < goal3IgnoreActivityUntil;
+}
+
+function captureEditorFieldBaseline(el: HTMLElement): void {
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+    el.setAttribute('data-edit-baseline', String(el.value ?? ''));
+  }
+}
+
+/** True when the field value differs from what it was when focused (real edit). */
+function editorFieldChangedFromBaseline(el: HTMLElement): boolean {
+  if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) {
+    return true;
+  }
+  if (!el.hasAttribute('data-edit-baseline')) return true;
+  const baseline = String(el.getAttribute('data-edit-baseline') ?? '');
+  const current = String(el.value ?? '');
+  if (current === baseline) return false;
+  // Currency/rate masks may reformat display without changing the amount.
+  if (el instanceof HTMLInputElement) {
+    const moneyKind = el.getAttribute('data-money');
+    if (moneyKind === 'currency' || moneyKind === 'rate') {
+      const a = parseMoneyInput(baseline);
+      const b = parseMoneyInput(current);
+      if (a != null && b != null && a === b) return false;
+      if ((baseline === '' || a == null) && (current === '' || b == null)) return false;
+    }
+  }
+  return true;
+}
+
 function showGoal2Saved() {
   const st = document.getElementById('goal2-save-status');
   if (!st) return;
@@ -291,18 +340,46 @@ function showGoal3Saved() {
   }, 1800);
 }
 
-function showGoal2Unsaved() {
+function showGoal2Unsaved(opts?: { force?: boolean }) {
+  if (!opts?.force && shouldIgnoreGoal2EditorActivity()) return;
   const st = document.getElementById('goal2-save-status');
   if (!st) return;
   st.textContent = 'Unsaved changes';
   setSaveNeeds('btn-save-goal2-debts', true);
 }
 
-function showGoal3Unsaved() {
+function showGoal3Unsaved(opts?: { force?: boolean }) {
+  if (!opts?.force && shouldIgnoreGoal3EditorActivity()) return;
   const st = document.getElementById('goal3-save-status');
   if (!st) return;
   st.textContent = 'Unsaved changes';
   setSaveNeeds('btn-save-goal3-savings', true);
+}
+
+function clearGoal2SaveStatus(): void {
+  const st = document.getElementById('goal2-save-status');
+  if (st) st.textContent = '';
+  setSaveNeeds('btn-save-goal2-debts', false);
+}
+
+function clearGoal3SaveStatus(): void {
+  const st = document.getElementById('goal3-save-status');
+  if (st) st.textContent = '';
+  setSaveNeeds('btn-save-goal3-savings', false);
+}
+
+/** Mark unsaved only when the focused field's value actually changed. */
+function markUnsavedFromEditorField(
+  el: HTMLElement,
+  which: 'goal2' | 'goal3'
+): boolean {
+  if (which === 'goal2' ? shouldIgnoreGoal2EditorActivity() : shouldIgnoreGoal3EditorActivity()) {
+    return false;
+  }
+  if (!editorFieldChangedFromBaseline(el)) return false;
+  if (which === 'goal2') showGoal2Unsaved({ force: true });
+  else showGoal3Unsaved({ force: true });
+  return true;
 }
 
 type RenderFn = (opts?: PlanPageRenderOptions) => void;
@@ -333,6 +410,11 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       refreshGoal3SavingsCards?: boolean;
     }
   ): Promise<void> {
+    beginGoal2PersistGuard();
+    if (debtDraftRerenderTimer != null) {
+      clearTimeout(debtDraftRerenderTimer);
+      debtDraftRerenderTimer = null;
+    }
     render({
       refreshBalanceEditors: true,
       refreshGoal2DebtsCards:
@@ -348,7 +430,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       lastSavedDebts = cloneDebtsSnapshot();
     } else {
       showGoal2SaveFailed();
-      showGoal2Unsaved();
+      showGoal2Unsaved({ force: true });
     }
   }
 
@@ -437,9 +519,16 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         applyGoal2SaveButtonState();
         return;
       }
-      showGoal2Unsaved();
+      if (!markUnsavedFromEditorField(t, 'goal2')) return;
       scheduleDebtsDraftSyncToPlanAndRender();
     }
+    debtsHost.addEventListener('focusin', function (e) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function' || typeof (t as any).matches !== 'function') return;
+      if (!t.closest('.debt-row') || !debtsHostEl.contains(t)) return;
+      if (!(t as any).matches('input, textarea, select')) return;
+      captureEditorFieldBaseline(t);
+    }, { signal });
     debtsHost.addEventListener('input', onDebtRowFieldActivity, { signal });
     debtsHost.addEventListener('change', onDebtRowFieldActivity, { signal });
     debtsHost.addEventListener('click', function (e) {
@@ -828,6 +917,8 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       refreshGoal3SavingsCards?: boolean;
     }
   ): Promise<void> {
+    beginGoal3PersistGuard();
+    cancelSavingsDraftSyncTimer();
     render({
       refreshBalanceEditors: true,
       refreshGoal2DebtsCards:
@@ -842,7 +933,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       showGoal3Saved();
       lastSavedSavings = cloneSavingsSnapshot();
     } else {
-      showGoal3Unsaved();
+      showGoal3Unsaved({ force: true });
     }
   }
 
@@ -879,9 +970,16 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         applyGoal3SaveButtonState();
         return;
       }
-      showGoal3Unsaved();
+      if (!markUnsavedFromEditorField(t, 'goal3')) return;
       scheduleSavingsDraftSyncToPlanAndRender();
     }
+    savingsHost.addEventListener('focusin', function (e) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function' || typeof (t as any).matches !== 'function') return;
+      if (!t.closest('.savings-row') || !savingsHostEl.contains(t)) return;
+      if (!(t as any).matches('input, textarea, select')) return;
+      captureEditorFieldBaseline(t);
+    }, { signal });
     savingsHost.addEventListener('input', onSavingsFieldActivity, { signal });
     savingsHost.addEventListener('change', onSavingsFieldActivity, { signal });
 
@@ -1186,17 +1284,25 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
   if (saveBtn) {
     saveBtn.addEventListener('click', function () {
       if (savingsEditorHasConflictingLedgerInputs()) return;
-      readSavingsEditorIntoPlan();
-      syncLegacySavingsFromAccounts(PLAN);
-      void savePlanOverrides();
-      render({ refreshBalanceEditors: true });
-      setSaveNeeds('btn-save-goal3-savings', false);
-      showGoal3Saved();
-      lastSavedSavings = cloneSavingsSnapshot();
-      const dlg = document.getElementById('goal3-editor-dialog') as HTMLDialogElement | null;
-      try {
-        if (dlg && typeof dlg.close === 'function') dlg.close();
-      } catch {}
+      void (async function () {
+        beginGoal3PersistGuard();
+        cancelSavingsDraftSyncTimer();
+        readSavingsEditorIntoPlan();
+        syncLegacySavingsFromAccounts(PLAN);
+        const ok = await savePlanOverrides();
+        render({ refreshBalanceEditors: true });
+        if (ok) {
+          setSaveNeeds('btn-save-goal3-savings', false);
+          showGoal3Saved();
+          lastSavedSavings = cloneSavingsSnapshot();
+        } else {
+          showGoal3Unsaved({ force: true });
+        }
+        const dlg = document.getElementById('goal3-editor-dialog') as HTMLDialogElement | null;
+        try {
+          if (ok && dlg && typeof dlg.close === 'function') dlg.close();
+        } catch {}
+      })();
     }, { signal });
   }
 
@@ -1344,6 +1450,8 @@ export function wireGoalEditorDialogs(): void {
         }
         lockBodyScrollForGoalDialog();
         setExpanded(true);
+        if (dialogId === 'goal2-editor-dialog') clearGoal2SaveStatus();
+        else if (dialogId === 'goal3-editor-dialog') clearGoal3SaveStatus();
       }, { signal });
     });
 
@@ -1351,6 +1459,8 @@ export function wireGoalEditorDialogs(): void {
       clearEditorOrderFreeze();
       unlockBodyScrollForGoalDialog();
       setExpanded(false);
+      if (dialogId === 'goal2-editor-dialog') clearGoal2SaveStatus();
+      else if (dialogId === 'goal3-editor-dialog') clearGoal3SaveStatus();
     }, { signal });
 
     dlg.addEventListener('click', function (e) {
