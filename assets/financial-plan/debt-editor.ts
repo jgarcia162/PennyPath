@@ -46,13 +46,24 @@ function balanceBeforePayments(debt: Debt | null | undefined): number | null {
   return roundMoney(prevCur + paidFromHist - chargedFromHist);
 }
 
-/** True when the balance input is below PLAN after charges were logged. */
+/**
+ * True when the balance input still shows the pre-charge amount while PLAN already
+ * includes charges. Must be an exact match (not "any lower value") so intentional
+ * balance reductions are not discarded for debts that have charge history.
+ */
 function domCurrentLooksStaleAfterCharges(rawCurrent: number | null, prev: Debt | null | undefined): boolean {
   if (rawCurrent === null || !prev) return false;
   const hist = normalizePaymentHistory(prev);
-  if (!hist.some(isDebtChargeEntry)) return false;
-  const prevCur = numOr(prev.current, 0);
-  return rawCurrent < prevCur - 0.01;
+  let chargedFromHist = 0;
+  let hasCharge = false;
+  hist.forEach(function (p) {
+    if (!isDebtChargeEntry(p)) return;
+    hasCharge = true;
+    chargedFromHist += numOr(p.amount, 0);
+  });
+  if (!hasCharge) return false;
+  const beforeCharges = roundMoney(numOr(prev.current, 0) - chargedFromHist);
+  return Math.abs(rawCurrent - beforeCharges) < 0.01;
 }
 
 /** True when the balance input still shows the pre-payment amount while PLAN already has payments. */
