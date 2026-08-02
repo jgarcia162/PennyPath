@@ -3440,8 +3440,13 @@ body.financial-plan-demo-mode #checkin-form {
 :root[data-theme="dark"] .editor-empty-state__text strong {
   color: rgba(245, 240, 232, 0.9);
 }
-.btn-remove-debt {
-  background: rgba(184,92,92,0.16);
+.btn-remove-debt,
+.btn-remove-savings {
+  --hold-delete-ms: 2s;
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: rgba(184, 92, 92, 0.16);
   color: var(--red);
   border: none;
   border-radius: 10px;
@@ -3449,8 +3454,80 @@ body.financial-plan-demo-mode #checkin-form {
   font-size: 12px;
   font-weight: 800;
   cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
 }
-.btn-remove-debt:hover { background: rgba(184,92,92,0.22); }
+.btn-remove-debt:hover,
+.btn-remove-savings:hover {
+  background: rgba(184, 92, 92, 0.22);
+}
+/* Hold-to-delete fill: brighter red sweeps left → right while pressed. */
+.btn-remove-debt::before,
+.btn-remove-savings::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(184, 92, 92, 0.55);
+  transform: scaleX(0);
+  transform-origin: left center;
+  pointer-events: none;
+  z-index: -1;
+}
+.btn-remove-debt.is-hold-armed::before,
+.btn-remove-savings.is-hold-armed::before {
+  animation: hold-delete-fill-progress var(--hold-delete-ms, 2s) linear forwards;
+}
+@keyframes hold-delete-fill-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.hold-delete-hint {
+  position: fixed;
+  z-index: 10050;
+  max-width: min(260px, calc(100vw - 16px));
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--ink, #1c1f26);
+  color: rgba(245, 240, 232, 0.95);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
+}
+.hold-delete-hint.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.hold-delete-hint::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: inherit;
+  transform: rotate(45deg);
+  border-radius: 2px;
+}
+.hold-delete-hint--below::after {
+  top: -5px;
+  bottom: auto;
+}
+:root[data-theme='dark'] .hold-delete-hint {
+  background: rgba(28, 30, 38, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
 
 .savings-editor-list {
   display: block;
@@ -3467,18 +3544,6 @@ body.financial-plan-demo-mode #checkin-form {
 }
 .savings-row .balance-field { margin: 0; }
 .savings-row .balance-field input { font-size: 14px; padding: 9px 10px; border-radius: 10px; }
-.btn-remove-savings {
-  background: rgba(184,92,92,0.16);
-  color: var(--red);
-  border: none;
-  border-radius: 10px;
-  padding: 9px 10px;
-  font-size: 12px;
-  font-weight: 800;
-  cursor: pointer;
-}
-.btn-remove-savings:hover { background: rgba(184,92,92,0.22); }
-
 :root[data-theme="dark"] .savings-editor-list {
   border-color: rgba(255, 255, 255, 0.1);
   background: rgba(255, 255, 255, 0.03);
