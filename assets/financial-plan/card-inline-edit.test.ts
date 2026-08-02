@@ -6,7 +6,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import type { Debt } from '../../types/index.js';
 import { PLAN } from './plan-data';
 import { defaultLogAtIsoForDashboardCardEdits } from './default-log-at';
-import { mergeDebtFromCardElement } from './debt-editor';
+import { mergeDebtFromCardElement, removeDebtLedgerEntry } from './debt-editor';
 import { mergeSavingsFromCardElement } from './savings-editor';
 import { yyyyMmFromDate } from './monthly-activity';
 import { RECENT_CARD_ACTIVITY_LIMIT, recentCardActivityEntries } from './render-sections';
@@ -90,6 +90,30 @@ describe('mergeDebtFromCardElement', () => {
     (PLAN as any).debts = [{ ...TEST_DEBT, ledgerStatus: 'completed' }];
     const card = mountDebtInlineCard();
     expect(mergeDebtFromCardElement(card, { applyPendingLedger: true })).toBe(false);
+  });
+
+  it('removes a ledger entry and adjusts balance', () => {
+    (PLAN as any).debts = [
+      {
+        ...TEST_DEBT,
+        current: 300,
+        paidOff: 200,
+        paymentHistory: [
+          { id: 'ph_keep', amount: 100, at: '2026-01-01T12:00:00Z', kind: 'payment' },
+          { id: 'ph_remove', amount: 50, at: '2026-01-02T12:00:00Z', kind: 'payment' },
+        ],
+      },
+    ];
+    let rendered = 0;
+    const ok = removeDebtLedgerEntry('card-debt-1', 'ph_remove', function () {}, function () {
+      rendered += 1;
+    });
+    expect(ok).toBe(true);
+    expect(rendered).toBe(1);
+    const debt = ((PLAN as any).debts as Debt[])[0];
+    expect(debt.paymentHistory.map((p) => p.id)).toEqual(['ph_keep']);
+    expect(debt.current).toBe(350);
+    expect(debt.paidOff).toBe(150);
   });
 
   it('keeps an intentional lower balance even when the debt has charge history', () => {
