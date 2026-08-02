@@ -2,7 +2,7 @@
  * Cents-based currency input mask (data-money="currency").
  */
 
-import { formatCurrencyInput, formatMoneyInput, parseMoneyInput } from './utils.js';
+import { formatCurrencyInput, formatMoneyInput, parseMoneyInput } from './utils';
 
 export function currencyDigitsOnly(s: string): string {
   return String(s || '').replace(/[^\d]/g, '');
