@@ -1,5 +1,5 @@
 /**
- * Goal targets editor (savings goal amounts + optional “goal by” month per row).
+ * Goal targets editor (savings goal amounts + optional “goal by” date per row).
  * Keeps edits in the shared PLAN object and persists them.
  */
 
@@ -30,6 +30,14 @@ function flashStatus(msg: string): void {
   }, 1800);
 }
 
+/** Accept YYYY-MM or YYYY-MM-DD from the Goal by control; store as YYYY-MM. */
+function parseGoalByYmFromInput(raw: string): string {
+  const s = String(raw || '').trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0, 7);
+  if (/^\d{4}-\d{2}$/.test(s)) return s;
+  return '';
+}
+
 function readSavingsGoalsFromDom(): void {
   const host = document.getElementById('savings-goals-target-editor') as HTMLElement | null;
   if (!host) return;
@@ -43,10 +51,7 @@ function readSavingsGoalsFromDom(): void {
     const byEl = row.querySelector('input[data-field="goal-by"]') as HTMLInputElement | null;
     const name = nameEl ? String(nameEl.value || '').trim() : '';
     const amt = amtEl ? parseMoneyInput(amtEl.value) : null;
-    let goalByYm = '';
-    if (byEl && typeof byEl.value === 'string' && /^\d{4}-\d{2}$/.test(byEl.value.trim())) {
-      goalByYm = byEl.value.trim();
-    }
+    const goalByYm = byEl ? parseGoalByYmFromInput(byEl.value) : '';
     const rowObj = normalizeSavingsGoalRow({
       id: id,
       name: name || 'Savings goal',
@@ -56,6 +61,38 @@ function readSavingsGoalsFromDom(): void {
     if (rowObj) next.push(rowObj);
   });
   if (next.length) PLAN.savingsGoals = next;
+}
+
+/** Switch to Financial Plan tab, expand the goals editor, and scroll it into view. */
+export function openPlanGoalsEditor(): void {
+  const tabPlan = document.getElementById('tab-plan') as HTMLElement | null;
+  if (tabPlan) tabPlan.click();
+
+  const peg = document.getElementById('plan-goals-editor') as HTMLElement | null;
+  if (!peg) return;
+
+  // Next.js wraps Section 02 in a collapsible <details>.
+  const sectionDetails = peg.closest('details.section-collapsible') as HTMLDetailsElement | null;
+  if (sectionDetails && !sectionDetails.open) sectionDetails.open = true;
+
+  if (peg instanceof HTMLDetailsElement && !peg.open) peg.open = true;
+
+  try {
+    peg.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch {
+    peg.scrollIntoView();
+  }
+
+  const firstName = peg.querySelector(
+    '#savings-goals-target-editor input[data-field="goal-name"]'
+  ) as HTMLInputElement | null;
+  if (firstName) {
+    try {
+      firstName.focus({ preventScroll: true });
+    } catch {
+      firstName.focus();
+    }
+  }
 }
 
 export function wireGoalTargetsEditor(render: (opts?: { refreshBalanceEditors?: boolean }) => void): void {
@@ -70,6 +107,8 @@ export function wireGoalTargetsEditor(render: (opts?: { refreshBalanceEditors?: 
       const t = e.target as HTMLElement | null;
       if (t && (t as any).id === 'btn-add-savings-goal') {
         e.preventDefault();
+        // Harvest in-progress edits before rebuild — otherwise a second Add wipes the prior row.
+        readSavingsGoalsFromDom();
         ensureSavingsGoals(PLAN);
         PLAN.savingsGoals = PLAN.savingsGoals || [];
         PLAN.savingsGoals.push({
@@ -93,6 +132,7 @@ export function wireGoalTargetsEditor(render: (opts?: { refreshBalanceEditors?: 
         }
         const ok = window.confirm('Remove this savings goal? It will be unchecked on all accounts.');
         if (!ok) return;
+        readSavingsGoalsFromDom();
         stripGoalIdFromAllAccounts(PLAN, gid);
         PLAN.savingsGoals = (PLAN.savingsGoals || []).filter(function (g) {
           return g && String(g.id) !== String(gid);
@@ -102,6 +142,15 @@ export function wireGoalTargetsEditor(render: (opts?: { refreshBalanceEditors?: 
         void savePlanOverrides();
         if (typeof render === 'function') render({ refreshBalanceEditors: true });
       }
+    });
+  }
+
+  const openGoalsBtn = document.getElementById('btn-open-goals-editor') as HTMLButtonElement | null;
+  if (openGoalsBtn && !(openGoalsBtn as any)._goalsOpenWired) {
+    (openGoalsBtn as any)._goalsOpenWired = true;
+    openGoalsBtn.addEventListener('click', function (e) {
+      e.preventDefault();
+      openPlanGoalsEditor();
     });
   }
 
