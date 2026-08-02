@@ -74,6 +74,62 @@ function wasSavingsIdLastSaved(id: string): boolean {
   });
 }
 
+let holdDeleteHintEl: HTMLElement | null = null;
+let holdDeleteHintHideTimer: ReturnType<typeof setTimeout> | null = null;
+
+function getHoldDeleteHintEl(): HTMLElement {
+  if (holdDeleteHintEl && holdDeleteHintEl.isConnected) return holdDeleteHintEl;
+  const el = document.createElement('div');
+  el.className = 'hold-delete-hint';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  el.hidden = true;
+  document.body.appendChild(el);
+  holdDeleteHintEl = el;
+  return el;
+}
+
+function hideHoldDeleteHint(): void {
+  if (holdDeleteHintHideTimer != null) {
+    clearTimeout(holdDeleteHintHideTimer);
+    holdDeleteHintHideTimer = null;
+  }
+  const el = holdDeleteHintEl;
+  if (!el) return;
+  el.classList.remove('is-visible');
+  el.hidden = true;
+}
+
+function showHoldDeleteHint(btn: HTMLElement, message: string, holdMs?: number): void {
+  const el = getHoldDeleteHintEl();
+  el.textContent = message;
+  el.hidden = false;
+  el.classList.add('is-visible');
+  if (holdMs != null && Number.isFinite(holdMs)) {
+    el.style.setProperty('--hold-delete-ms', String(holdMs) + 'ms');
+  }
+  const rect = btn.getBoundingClientRect();
+  const pad = 8;
+  // Measure after visible so width is accurate.
+  const hintW = el.offsetWidth || 200;
+  const hintH = el.offsetHeight || 36;
+  let left = rect.left + rect.width / 2 - hintW / 2;
+  left = Math.max(pad, Math.min(left, window.innerWidth - hintW - pad));
+  let top = rect.top - hintH - 10;
+  let placeBelow = false;
+  if (top < pad) {
+    top = rect.bottom + 10;
+    placeBelow = true;
+  }
+  el.style.left = Math.round(left) + 'px';
+  el.style.top = Math.round(top) + 'px';
+  el.classList.toggle('hold-delete-hint--below', placeBelow);
+  if (holdDeleteHintHideTimer != null) clearTimeout(holdDeleteHintHideTimer);
+  holdDeleteHintHideTimer = setTimeout(function () {
+    hideHoldDeleteHint();
+  }, 3200);
+}
+
 function wireHoldToConfirm(
   rootEl: HTMLElement | null,
   buttonSelector: string,
@@ -85,8 +141,11 @@ function wireHoldToConfirm(
 ): void {
   if (!rootEl) return;
   const holdMs = (opts && Number.isFinite(opts.holdMs) ? opts.holdMs : 2000) || 2000;
+  const holdSec = Math.max(1, Math.round(holdMs / 1000));
   const confirmMessage = (opts && opts.confirmMessage) || 'Delete this item?';
   const onConfirm = (opts && opts.onConfirm) || function () {};
+  const hintClick = 'Hold for ' + holdSec + ' second' + (holdSec === 1 ? '' : 's') + ' to remove';
+  const hintHolding = 'Keep holding to remove…';
 
   function getBtnFromEventTarget(t: unknown): HTMLElement | null {
     const el = t as HTMLElement | null;
@@ -94,12 +153,19 @@ function wireHoldToConfirm(
     return el.closest(buttonSelector) as HTMLElement | null;
   }
 
-  function clearHold(btn: any): void {
+  function clearHold(btn: HTMLElement | null | undefined, optsClear?: { completed?: boolean }): void {
     if (!btn) return;
-    const timer = btn._holdDeleteTimer;
+    const timer = (btn as any)._holdDeleteTimer as ReturnType<typeof setTimeout> | null | undefined;
     if (timer) clearTimeout(timer);
-    btn._holdDeleteTimer = null;
+    (btn as any)._holdDeleteTimer = null;
+    (btn as any)._holdDeleteArmedAt = 0;
+    // Force fill animation to restart from zero on the next press.
     btn.classList.remove('is-hold-armed');
+    void btn.offsetWidth;
+    btn.style.removeProperty('--hold-delete-ms');
+    if (!optsClear || optsClear.completed !== true) {
+      /* early release — hint may still be showing */
+    }
   }
 
   rootEl.addEventListener('pointerdown', function (e) {
@@ -108,33 +174,56 @@ function wireHoldToConfirm(
     // Only arm the hold for primary button / touch.
     if (e.button != null && e.button !== 0) return;
     clearHold(btn);
+    btn.style.setProperty('--hold-delete-ms', String(holdMs) + 'ms');
     btn.classList.add('is-hold-armed');
+    (btn as any)._holdDeleteArmedAt = Date.now();
+    showHoldDeleteHint(btn, hintHolding, holdMs);
+    try {
+      btn.setPointerCapture(e.pointerId);
+    } catch {}
     (btn as any)._holdDeleteTimer = setTimeout(function () {
-      clearHold(btn);
+      (btn as any)._holdDeleteJustCompleted = true;
+      clearHold(btn, { completed: true });
+      hideHoldDeleteHint();
       const msg = typeof confirmMessage === 'function' ? confirmMessage(btn) : confirmMessage;
       const ok = window.confirm(String(msg || 'Delete this item?'));
-      if (!ok) return;
+      if (!ok) {
+        (btn as any)._holdDeleteJustCompleted = false;
+        return;
+      }
       onConfirm(btn);
     }, holdMs);
   });
 
-  ['pointerup', 'pointercancel', 'pointerleave', 'blur'].forEach(function (evt) {
-    rootEl.addEventListener(
-      evt,
-      function (e) {
-        const btn = getBtnFromEventTarget(e.target);
-        if (btn) clearHold(btn);
-      },
-      true
-    );
+  function onHoldRelease(e: Event): void {
+    const btn = getBtnFromEventTarget(e.target);
+    if (!btn) return;
+    if ((btn as any)._holdDeleteJustCompleted) return;
+    const armedAt = Number((btn as any)._holdDeleteArmedAt || 0);
+    const heldMs = armedAt ? Date.now() - armedAt : 0;
+    const wasArmed = btn.classList.contains('is-hold-armed');
+    clearHold(btn);
+    // Released early: nudge with the hold hint.
+    if (wasArmed && heldMs < holdMs - 40) {
+      showHoldDeleteHint(btn, hintClick, holdMs);
+    }
+  }
+
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (evt) {
+    rootEl.addEventListener(evt, onHoldRelease, true);
   });
 
-  // Prevent accidental “click to delete”.
+  // Prevent accidental “click to delete”; show hold hint on a quick tap.
   rootEl.addEventListener('click', function (e) {
     const btn = getBtnFromEventTarget(e.target);
     if (!btn) return;
     e.preventDefault();
     e.stopPropagation();
+    if ((btn as any)._holdDeleteJustCompleted) {
+      (btn as any)._holdDeleteJustCompleted = false;
+      return;
+    }
+    showHoldDeleteHint(btn, hintClick, holdMs);
   });
 }
 
