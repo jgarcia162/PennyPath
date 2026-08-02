@@ -460,31 +460,38 @@ export function removeDebtLedgerEntry(
   entryId: string,
   onUnsaved: () => void,
   rerender: () => void
-): void {
+): boolean {
+  const id = String(entryId || '').trim();
+  if (!id) return false;
   const debt = (((PLAN as any).debts || []) as Debt[]).find(function (d: Debt) {
     return String(d.id) === String(debtId);
   });
-  if (!debt || !Array.isArray(debt.paymentHistory)) return;
+  if (!debt || !Array.isArray(debt.paymentHistory)) return false;
   const idx = debt.paymentHistory.findIndex(function (p: PaymentHistoryItem) {
-    return String(p.id) === String(entryId);
+    return String(p.id || '').trim() === id;
   });
-  if (idx === -1) return;
+  if (idx === -1) return false;
   const entry = debt.paymentHistory[idx];
   const amt = Number(entry.amount);
-  if (!Number.isFinite(amt) || amt <= 0) return;
   const kind = debtLedgerKind(entry.kind);
-  debt.paymentHistory.splice(idx, 1);
-  if (kind === 'charge') {
-    debt.current = roundMoney(Math.max(0, numOr(debt.current, 0) - amt));
-  } else {
-    debt.current = roundMoney(numOr(debt.current, 0) + amt);
-    debt.paidOff = roundMoney(Math.max(0, numOr(debt.paidOff, 0) - amt));
-    if (debt.ledgerStatus === 'completed' && numOr(debt.current, 0) > 0) {
-      debt.ledgerStatus = 'active';
+  // Replace the array so callers holding stale references cannot resurrect the row.
+  debt.paymentHistory = debt.paymentHistory.filter(function (_p, i) {
+    return i !== idx;
+  });
+  if (Number.isFinite(amt) && amt > 0) {
+    if (kind === 'charge') {
+      debt.current = roundMoney(Math.max(0, numOr(debt.current, 0) - amt));
+    } else {
+      debt.current = roundMoney(numOr(debt.current, 0) + amt);
+      debt.paidOff = roundMoney(Math.max(0, numOr(debt.paidOff, 0) - amt));
+      if (debt.ledgerStatus === 'completed' && numOr(debt.current, 0) > 0) {
+        debt.ledgerStatus = 'active';
+      }
     }
   }
   onUnsaved();
   rerender();
+  return true;
 }
 
 /** @deprecated Use removeDebtLedgerEntry */

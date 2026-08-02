@@ -516,17 +516,21 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if (!t || typeof t.closest !== 'function') return;
       const btn = t.closest('.goal2-remove-ledger-entry, .goal2-remove-payment') as HTMLElement | null;
       if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
       const debtId = btn.getAttribute('data-debt-id');
       const entryId = btn.getAttribute('data-ledger-id') || btn.getAttribute('data-payment-id');
-      if (debtId == null || entryId == null) return;
+      if (debtId == null || entryId == null || String(entryId).trim() === '') return;
       const ok = window.confirm('Remove this activity record?\n\nThe balance will be adjusted.');
       if (!ok) return;
-      removeDebtLedgerEntry(debtId, entryId, showGoal2Unsaved, function () {
+      const removed = removeDebtLedgerEntry(debtId, entryId, showGoal2Unsaved, function () {
         render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
       });
+      if (!removed) return;
+      // Persist PLAN as-is — do not re-read the debts editor (that can overwrite card edits).
       void (async function () {
-        const ok = await saveGoal2DebtsFromEditor();
-        await finishGoal2Persist(ok);
+        const saved = await savePlanOverrides();
+        await finishGoal2Persist(saved, { refreshGoal2DebtsCards: true });
       })();
     }, { signal });
 
@@ -570,7 +574,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       // Ignore clicks on interactive children (details toggles, remove buttons, inputs).
       if (
         t.closest(
-          'summary, button, a, input, select, textarea, .goal2-remove-payment, .btn-quick-ledger-entry'
+          'summary, button, a, input, select, textarea, .goal2-remove-ledger-entry, .goal2-remove-payment, .btn-quick-ledger-entry'
         )
       )
         return;
@@ -956,17 +960,22 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if (!t || typeof t.closest !== 'function') return;
       const btn = t.closest('.goal3-remove-ledger-entry, .goal3-remove-deposit') as HTMLElement | null;
       if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
       const sid = btn.getAttribute('data-savings-id');
       const entryId = btn.getAttribute('data-ledger-id') || btn.getAttribute('data-deposit-id');
-      if (sid == null || entryId == null) return;
+      if (sid == null || entryId == null || String(entryId).trim() === '') return;
       const ok = window.confirm('Remove this activity record?\n\nThe balance will be adjusted.');
       if (!ok) return;
-      removeSavingsLedgerEntry(sid, entryId, showGoal3Unsaved, function () {
+      const removed = removeSavingsLedgerEntry(sid, entryId, showGoal3Unsaved, function () {
         render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
       });
+      if (!removed) return;
       syncLegacySavingsFromAccounts(PLAN);
-      void savePlanOverrides();
-      lastSavedSavings = cloneSavingsSnapshot();
+      void (async function () {
+        const saved = await savePlanOverrides();
+        await finishGoal3Persist(saved, { refreshGoal3SavingsCards: true });
+      })();
     }, { signal });
 
     goal3Host.addEventListener('input', function (e) {
@@ -1009,7 +1018,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       // Ignore clicks on interactive children (details toggles, remove buttons, inputs).
       if (
         t.closest(
-          'summary, button, a, input, select, textarea, .goal3-remove-deposit, .btn-quick-savings-ledger-entry'
+          'summary, button, a, input, select, textarea, .goal3-remove-ledger-entry, .goal3-remove-deposit, .btn-quick-savings-ledger-entry'
         )
       )
         return;
