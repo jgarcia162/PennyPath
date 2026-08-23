@@ -713,16 +713,25 @@
 
     <!-- Native <details> hides body with display:none when closed, so height/grid transitions do not run; use button + class toggle instead. -->
     <div class="dashboard-goals-details no-print" id="dashboard-goals-at-glance">
-      <button
-        type="button"
-        class="dashboard-goals-summary"
-        id="dashboard-goals-toggle"
-        aria-expanded="false"
-        aria-controls="dashboard-goals-panel"
-      >
-        <span class="dashboard-goals-summary-chevron" aria-hidden="true"></span>
-        <span class="section-eyebrow dashboard-goals-summary-eyebrow" id="dashboard-goals-heading">Goals at a glance</span>
-      </button>
+      <div class="dashboard-goals-header">
+        <button
+          type="button"
+          class="dashboard-goals-summary"
+          id="dashboard-goals-toggle"
+          aria-expanded="false"
+          aria-controls="dashboard-goals-panel"
+        >
+          <span class="dashboard-goals-summary-chevron" aria-hidden="true"></span>
+          <span class="section-eyebrow dashboard-goals-summary-eyebrow" id="dashboard-goals-heading">Goals at a glance</span>
+        </button>
+        <button
+          type="button"
+          class="toggle-goal-editor-btn dashboard-goals-edit-btn"
+          id="btn-open-goals-editor"
+        >
+          Edit goals
+        </button>
+      </div>
       <div
         class="dashboard-goals-anim"
         id="dashboard-goals-panel"

@@ -7,6 +7,7 @@ import { PLAN, PLAN_DEFAULTS } from './plan-data';
 import { applyPlanOverrides, getLastPlanSaveError, savePlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { wireMoneyMasks } from './money-input-mask';
+import { parseMoneyInput } from './utils';
 import {
   getEditingDebtCardId,
   getEditingSavingsCardId,
@@ -50,8 +51,10 @@ import {
 } from './editor-ledger-save-guard';
 import {
   clearDebtLedgerActivityInputs,
+  clearDebtLedgerDraftForId,
   clearDebtLedgerDraftStore,
   clearSavingsLedgerActivityInputs,
+  clearSavingsLedgerDraftForId,
   clearSavingsLedgerDraftStore,
   syncDebtLedgerDraftFromRow,
   syncSavingsLedgerDraftFromRow,
@@ -74,6 +77,91 @@ function wasSavingsIdLastSaved(id: string): boolean {
   });
 }
 
+let holdDeleteHintEl: HTMLElement | null = null;
+let holdDeleteHintHideTimer: ReturnType<typeof setTimeout> | null = null;
+
+/** Prefer the open editor <dialog> so the hint sits in the modal top layer (not under the backdrop). */
+function holdDeleteHintHostFor(btn: HTMLElement): HTMLElement {
+  const dlg =
+    (typeof btn.closest === 'function' ? btn.closest('dialog') : null) ||
+    document.getElementById('goal2-editor-dialog') ||
+    document.getElementById('goal3-editor-dialog');
+  return (dlg as HTMLElement) || document.body;
+}
+
+function getHoldDeleteHintEl(host: HTMLElement): HTMLElement {
+  if (holdDeleteHintEl && holdDeleteHintEl.isConnected) {
+    if (holdDeleteHintEl.parentElement !== host) {
+      host.appendChild(holdDeleteHintEl);
+    }
+    return holdDeleteHintEl;
+  }
+  const el = document.createElement('div');
+  el.className = 'hold-delete-hint';
+  el.setAttribute('role', 'status');
+  el.setAttribute('aria-live', 'polite');
+  el.hidden = true;
+  host.appendChild(el);
+  holdDeleteHintEl = el;
+  return el;
+}
+
+function hideHoldDeleteHint(): void {
+  if (holdDeleteHintHideTimer != null) {
+    clearTimeout(holdDeleteHintHideTimer);
+    holdDeleteHintHideTimer = null;
+  }
+  const el = holdDeleteHintEl;
+  if (!el) return;
+  el.classList.remove('is-visible');
+  el.hidden = true;
+}
+
+function showHoldDeleteHint(btn: HTMLElement, message: string, holdMs?: number): void {
+  const host = holdDeleteHintHostFor(btn);
+  const el = getHoldDeleteHintEl(host);
+  el.textContent = message;
+  el.hidden = false;
+  el.classList.add('is-visible');
+  if (holdMs != null && Number.isFinite(holdMs)) {
+    el.style.setProperty('--hold-delete-ms', String(holdMs) + 'ms');
+  }
+
+  const rect = btn.getBoundingClientRect();
+  const hostRect = host.getBoundingClientRect();
+  const pad = 8;
+  // Hint uses position:fixed (viewport coords). Keep it on-screen and point the caret at the button.
+  const hintW = el.offsetWidth || 220;
+  const hintH = el.offsetHeight || 36;
+  const btnCenterX = rect.left + rect.width / 2;
+  let left = btnCenterX - hintW / 2;
+  const minLeft = Math.max(pad, hostRect.left + pad);
+  const maxLeft = Math.min(window.innerWidth - hintW - pad, hostRect.right - hintW - pad);
+  if (minLeft <= maxLeft) {
+    left = Math.max(minLeft, Math.min(left, maxLeft));
+  } else {
+    left = Math.max(pad, Math.min(left, window.innerWidth - hintW - pad));
+  }
+  let top = rect.top - hintH - 10;
+  let placeBelow = false;
+  const minTop = Math.max(pad, hostRect.top + pad);
+  if (top < minTop) {
+    top = rect.bottom + 10;
+    placeBelow = true;
+  }
+  el.style.left = Math.round(left) + 'px';
+  el.style.top = Math.round(top) + 'px';
+  // Caret tracks the button even when the bubble was clamped horizontally.
+  const caretX = Math.max(12, Math.min(btnCenterX - left, hintW - 12));
+  el.style.setProperty('--hold-hint-caret-x', Math.round(caretX) + 'px');
+  el.classList.toggle('hold-delete-hint--below', placeBelow);
+
+  if (holdDeleteHintHideTimer != null) clearTimeout(holdDeleteHintHideTimer);
+  holdDeleteHintHideTimer = setTimeout(function () {
+    hideHoldDeleteHint();
+  }, 3200);
+}
+
 function wireHoldToConfirm(
   rootEl: HTMLElement | null,
   buttonSelector: string,
@@ -85,8 +173,11 @@ function wireHoldToConfirm(
 ): void {
   if (!rootEl) return;
   const holdMs = (opts && Number.isFinite(opts.holdMs) ? opts.holdMs : 2000) || 2000;
+  const holdSec = Math.max(1, Math.round(holdMs / 1000));
   const confirmMessage = (opts && opts.confirmMessage) || 'Delete this item?';
   const onConfirm = (opts && opts.onConfirm) || function () {};
+  const hintClick = 'Hold for ' + holdSec + ' second' + (holdSec === 1 ? '' : 's') + ' to remove';
+  const hintHolding = 'Keep holding to remove…';
 
   function getBtnFromEventTarget(t: unknown): HTMLElement | null {
     const el = t as HTMLElement | null;
@@ -94,12 +185,19 @@ function wireHoldToConfirm(
     return el.closest(buttonSelector) as HTMLElement | null;
   }
 
-  function clearHold(btn: any): void {
+  function clearHold(btn: HTMLElement | null | undefined, optsClear?: { completed?: boolean }): void {
     if (!btn) return;
-    const timer = btn._holdDeleteTimer;
+    const timer = (btn as any)._holdDeleteTimer as ReturnType<typeof setTimeout> | null | undefined;
     if (timer) clearTimeout(timer);
-    btn._holdDeleteTimer = null;
+    (btn as any)._holdDeleteTimer = null;
+    (btn as any)._holdDeleteArmedAt = 0;
+    // Force fill animation to restart from zero on the next press.
     btn.classList.remove('is-hold-armed');
+    void btn.offsetWidth;
+    btn.style.removeProperty('--hold-delete-ms');
+    if (!optsClear || optsClear.completed !== true) {
+      /* early release — hint may still be showing */
+    }
   }
 
   rootEl.addEventListener('pointerdown', function (e) {
@@ -108,33 +206,56 @@ function wireHoldToConfirm(
     // Only arm the hold for primary button / touch.
     if (e.button != null && e.button !== 0) return;
     clearHold(btn);
+    btn.style.setProperty('--hold-delete-ms', String(holdMs) + 'ms');
     btn.classList.add('is-hold-armed');
+    (btn as any)._holdDeleteArmedAt = Date.now();
+    showHoldDeleteHint(btn, hintHolding, holdMs);
+    try {
+      btn.setPointerCapture(e.pointerId);
+    } catch {}
     (btn as any)._holdDeleteTimer = setTimeout(function () {
-      clearHold(btn);
+      (btn as any)._holdDeleteJustCompleted = true;
+      clearHold(btn, { completed: true });
+      hideHoldDeleteHint();
       const msg = typeof confirmMessage === 'function' ? confirmMessage(btn) : confirmMessage;
       const ok = window.confirm(String(msg || 'Delete this item?'));
-      if (!ok) return;
+      if (!ok) {
+        (btn as any)._holdDeleteJustCompleted = false;
+        return;
+      }
       onConfirm(btn);
     }, holdMs);
   });
 
-  ['pointerup', 'pointercancel', 'pointerleave', 'blur'].forEach(function (evt) {
-    rootEl.addEventListener(
-      evt,
-      function (e) {
-        const btn = getBtnFromEventTarget(e.target);
-        if (btn) clearHold(btn);
-      },
-      true
-    );
+  function onHoldRelease(e: Event): void {
+    const btn = getBtnFromEventTarget(e.target);
+    if (!btn) return;
+    if ((btn as any)._holdDeleteJustCompleted) return;
+    const armedAt = Number((btn as any)._holdDeleteArmedAt || 0);
+    const heldMs = armedAt ? Date.now() - armedAt : 0;
+    const wasArmed = btn.classList.contains('is-hold-armed');
+    clearHold(btn);
+    // Released early: nudge with the hold hint.
+    if (wasArmed && heldMs < holdMs - 40) {
+      showHoldDeleteHint(btn, hintClick, holdMs);
+    }
+  }
+
+  ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (evt) {
+    rootEl.addEventListener(evt, onHoldRelease, true);
   });
 
-  // Prevent accidental “click to delete”.
+  // Prevent accidental “click to delete”; show hold hint on a quick tap.
   rootEl.addEventListener('click', function (e) {
     const btn = getBtnFromEventTarget(e.target);
     if (!btn) return;
     e.preventDefault();
     e.stopPropagation();
+    if ((btn as any)._holdDeleteJustCompleted) {
+      (btn as any)._holdDeleteJustCompleted = false;
+      return;
+    }
+    showHoldDeleteHint(btn, hintClick, holdMs);
   });
 }
 
@@ -144,6 +265,54 @@ function setSaveNeeds(saveBtnId: string, needsSave: boolean): void {
   saveBtn.dataset.needsSave = needsSave ? '1' : '0';
   if (saveBtnId === 'btn-save-goal2-debts') applyGoal2SaveButtonState();
   else if (saveBtnId === 'btn-save-goal3-savings') applyGoal3SaveButtonState();
+}
+
+/** Ignore input/change that fires while editor DOM is torn down/rebuilt during save. */
+let goal2IgnoreActivityUntil = 0;
+let goal3IgnoreActivityUntil = 0;
+
+function beginGoal2PersistGuard(): void {
+  goal2IgnoreActivityUntil = Date.now() + 400;
+}
+
+function beginGoal3PersistGuard(): void {
+  goal3IgnoreActivityUntil = Date.now() + 400;
+}
+
+function shouldIgnoreGoal2EditorActivity(): boolean {
+  return Date.now() < goal2IgnoreActivityUntil;
+}
+
+function shouldIgnoreGoal3EditorActivity(): boolean {
+  return Date.now() < goal3IgnoreActivityUntil;
+}
+
+function captureEditorFieldBaseline(el: HTMLElement): void {
+  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
+    el.setAttribute('data-edit-baseline', String(el.value ?? ''));
+  }
+}
+
+/** True when the field value differs from what it was when focused (real edit). */
+function editorFieldChangedFromBaseline(el: HTMLElement): boolean {
+  if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) {
+    return true;
+  }
+  if (!el.hasAttribute('data-edit-baseline')) return true;
+  const baseline = String(el.getAttribute('data-edit-baseline') ?? '');
+  const current = String(el.value ?? '');
+  if (current === baseline) return false;
+  // Currency/rate masks may reformat display without changing the amount.
+  if (el instanceof HTMLInputElement) {
+    const moneyKind = el.getAttribute('data-money');
+    if (moneyKind === 'currency' || moneyKind === 'rate') {
+      const a = parseMoneyInput(baseline);
+      const b = parseMoneyInput(current);
+      if (a != null && b != null && a === b) return false;
+      if ((baseline === '' || a == null) && (current === '' || b == null)) return false;
+    }
+  }
+  return true;
 }
 
 function showGoal2Saved() {
@@ -173,18 +342,46 @@ function showGoal3Saved() {
   }, 1800);
 }
 
-function showGoal2Unsaved() {
+function showGoal2Unsaved(opts?: { force?: boolean }) {
+  if (!opts?.force && shouldIgnoreGoal2EditorActivity()) return;
   const st = document.getElementById('goal2-save-status');
   if (!st) return;
   st.textContent = 'Unsaved changes';
   setSaveNeeds('btn-save-goal2-debts', true);
 }
 
-function showGoal3Unsaved() {
+function showGoal3Unsaved(opts?: { force?: boolean }) {
+  if (!opts?.force && shouldIgnoreGoal3EditorActivity()) return;
   const st = document.getElementById('goal3-save-status');
   if (!st) return;
   st.textContent = 'Unsaved changes';
   setSaveNeeds('btn-save-goal3-savings', true);
+}
+
+function clearGoal2SaveStatus(): void {
+  const st = document.getElementById('goal2-save-status');
+  if (st) st.textContent = '';
+  setSaveNeeds('btn-save-goal2-debts', false);
+}
+
+function clearGoal3SaveStatus(): void {
+  const st = document.getElementById('goal3-save-status');
+  if (st) st.textContent = '';
+  setSaveNeeds('btn-save-goal3-savings', false);
+}
+
+/** Mark unsaved only when the focused field's value actually changed. */
+function markUnsavedFromEditorField(
+  el: HTMLElement,
+  which: 'goal2' | 'goal3'
+): boolean {
+  if (which === 'goal2' ? shouldIgnoreGoal2EditorActivity() : shouldIgnoreGoal3EditorActivity()) {
+    return false;
+  }
+  if (!editorFieldChangedFromBaseline(el)) return false;
+  if (which === 'goal2') showGoal2Unsaved({ force: true });
+  else showGoal3Unsaved({ force: true });
+  return true;
 }
 
 type RenderFn = (opts?: PlanPageRenderOptions) => void;
@@ -215,6 +412,11 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       refreshGoal3SavingsCards?: boolean;
     }
   ): Promise<void> {
+    beginGoal2PersistGuard();
+    if (debtDraftRerenderTimer != null) {
+      clearTimeout(debtDraftRerenderTimer);
+      debtDraftRerenderTimer = null;
+    }
     render({
       refreshBalanceEditors: true,
       refreshGoal2DebtsCards:
@@ -230,7 +432,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       lastSavedDebts = cloneDebtsSnapshot();
     } else {
       showGoal2SaveFailed();
-      showGoal2Unsaved();
+      showGoal2Unsaved({ force: true });
     }
   }
 
@@ -319,9 +521,16 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         applyGoal2SaveButtonState();
         return;
       }
-      showGoal2Unsaved();
+      if (!markUnsavedFromEditorField(t, 'goal2')) return;
       scheduleDebtsDraftSyncToPlanAndRender();
     }
+    debtsHost.addEventListener('focusin', function (e) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function' || typeof (t as any).matches !== 'function') return;
+      if (!t.closest('.debt-row') || !debtsHostEl.contains(t)) return;
+      if (!(t as any).matches('input, textarea, select')) return;
+      captureEditorFieldBaseline(t);
+    }, { signal });
     debtsHost.addEventListener('input', onDebtRowFieldActivity, { signal });
     debtsHost.addEventListener('change', onDebtRowFieldActivity, { signal });
     debtsHost.addEventListener('click', function (e) {
@@ -472,6 +681,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         return;
       }
       mergeDebtFromCardElement(card, { applyPendingLedger: true });
+      clearDebtLedgerDraftForId(String(id));
       setEditingDebtCardId(null);
       render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
       void (async function () {
@@ -504,6 +714,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       const debtId = card.getAttribute('data-debt-id');
       mergeDebtFromCardElement(card, { applyPendingLedger: true });
       clearDebtLedgerActivityInputs(card);
+      if (debtId) clearDebtLedgerDraftForId(String(debtId));
       void (async function () {
         const ok = await savePlanOverrides();
         await finishGoal2Persist(ok, { refreshGoal2DebtsCards: true });
@@ -710,6 +921,8 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       refreshGoal3SavingsCards?: boolean;
     }
   ): Promise<void> {
+    beginGoal3PersistGuard();
+    cancelSavingsDraftSyncTimer();
     render({
       refreshBalanceEditors: true,
       refreshGoal2DebtsCards:
@@ -724,7 +937,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       showGoal3Saved();
       lastSavedSavings = cloneSavingsSnapshot();
     } else {
-      showGoal3Unsaved();
+      showGoal3Unsaved({ force: true });
     }
   }
 
@@ -761,9 +974,16 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         applyGoal3SaveButtonState();
         return;
       }
-      showGoal3Unsaved();
+      if (!markUnsavedFromEditorField(t, 'goal3')) return;
       scheduleSavingsDraftSyncToPlanAndRender();
     }
+    savingsHost.addEventListener('focusin', function (e) {
+      const t = e.target as HTMLElement | null;
+      if (!t || typeof t.closest !== 'function' || typeof (t as any).matches !== 'function') return;
+      if (!t.closest('.savings-row') || !savingsHostEl.contains(t)) return;
+      if (!(t as any).matches('input, textarea, select')) return;
+      captureEditorFieldBaseline(t);
+    }, { signal });
     savingsHost.addEventListener('input', onSavingsFieldActivity, { signal });
     savingsHost.addEventListener('change', onSavingsFieldActivity, { signal });
 
@@ -916,6 +1136,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         return;
       }
       mergeSavingsFromCardElement(card, { applyPendingLedger: true });
+      clearSavingsLedgerDraftForId(String(id));
       setEditingSavingsCardId(null);
       render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
       void (async function () {
@@ -948,6 +1169,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       const savingsId = card.getAttribute('data-savings-id');
       mergeSavingsFromCardElement(card, { applyPendingLedger: true });
       clearSavingsLedgerActivityInputs(card);
+      if (savingsId) clearSavingsLedgerDraftForId(String(savingsId));
       void (async function () {
         const ok = await savePlanOverrides();
         await finishGoal3Persist(ok, { refreshGoal3SavingsCards: true });
@@ -1068,17 +1290,25 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
   if (saveBtn) {
     saveBtn.addEventListener('click', function () {
       if (savingsEditorHasConflictingLedgerInputs()) return;
-      readSavingsEditorIntoPlan();
-      syncLegacySavingsFromAccounts(PLAN);
-      void savePlanOverrides();
-      render({ refreshBalanceEditors: true });
-      setSaveNeeds('btn-save-goal3-savings', false);
-      showGoal3Saved();
-      lastSavedSavings = cloneSavingsSnapshot();
-      const dlg = document.getElementById('goal3-editor-dialog') as HTMLDialogElement | null;
-      try {
-        if (dlg && typeof dlg.close === 'function') dlg.close();
-      } catch {}
+      void (async function () {
+        beginGoal3PersistGuard();
+        cancelSavingsDraftSyncTimer();
+        readSavingsEditorIntoPlan();
+        syncLegacySavingsFromAccounts(PLAN);
+        const ok = await savePlanOverrides();
+        render({ refreshBalanceEditors: true });
+        if (ok) {
+          setSaveNeeds('btn-save-goal3-savings', false);
+          showGoal3Saved();
+          lastSavedSavings = cloneSavingsSnapshot();
+        } else {
+          showGoal3Unsaved({ force: true });
+        }
+        const dlg = document.getElementById('goal3-editor-dialog') as HTMLDialogElement | null;
+        try {
+          if (ok && dlg && typeof dlg.close === 'function') dlg.close();
+        } catch {}
+      })();
     }, { signal });
   }
 
@@ -1226,6 +1456,8 @@ export function wireGoalEditorDialogs(): void {
         }
         lockBodyScrollForGoalDialog();
         setExpanded(true);
+        if (dialogId === 'goal2-editor-dialog') clearGoal2SaveStatus();
+        else if (dialogId === 'goal3-editor-dialog') clearGoal3SaveStatus();
       }, { signal });
     });
 
@@ -1233,6 +1465,8 @@ export function wireGoalEditorDialogs(): void {
       clearEditorOrderFreeze();
       unlockBodyScrollForGoalDialog();
       setExpanded(false);
+      if (dialogId === 'goal2-editor-dialog') clearGoal2SaveStatus();
+      else if (dialogId === 'goal3-editor-dialog') clearGoal3SaveStatus();
     }, { signal });
 
     dlg.addEventListener('click', function (e) {

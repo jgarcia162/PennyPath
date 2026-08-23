@@ -662,6 +662,8 @@ export function buildDebtRowTR(debt: Debt, segment: DebtsEditorSegment = 'active
     rm.type = 'button';
     rm.className = 'btn-remove-debt';
     rm.setAttribute('data-action', 'remove');
+    rm.setAttribute('title', 'Hold for 2 seconds to move to Recently deleted');
+    rm.setAttribute('aria-label', 'Hold for 2 seconds to move to Recently deleted');
     rm.textContent = 'To Deleted';
     rmTd.appendChild(rm);
     const restore = document.createElement('button');
@@ -675,6 +677,8 @@ export function buildDebtRowTR(debt: Debt, segment: DebtsEditorSegment = 'active
     rm.type = 'button';
     rm.className = 'btn-remove-debt';
     rm.setAttribute('data-action', 'remove');
+    rm.setAttribute('title', 'Hold for 2 seconds to remove');
+    rm.setAttribute('aria-label', 'Hold for 2 seconds to remove');
     rm.textContent = 'Remove';
     rmTd.appendChild(rm);
   }
@@ -1103,6 +1107,8 @@ export function buildSavingsRowTR(acc: SavingsAccount, savingsGoals: SavingsGoal
   rm.type = 'button';
   rm.className = 'btn-remove-savings';
   rm.setAttribute('data-action', 'remove');
+  rm.setAttribute('title', 'Hold for 2 seconds to remove');
+  rm.setAttribute('aria-label', 'Hold for 2 seconds to remove');
   rm.textContent = 'Remove';
   rmTd.appendChild(rm);
 

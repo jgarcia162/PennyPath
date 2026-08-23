@@ -1147,6 +1147,13 @@ export default function DashboardPage() {
                   Goals at a glance
                 </span>
               </button>
+              <button
+                type="button"
+                className="toggle-goal-editor-btn dashboard-goals-edit-btn"
+                id="btn-open-goals-editor"
+              >
+                Edit goals
+              </button>
             </div>
             <div
               className="dashboard-goals-anim"
