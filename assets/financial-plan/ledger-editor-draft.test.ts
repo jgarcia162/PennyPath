@@ -8,8 +8,10 @@ import {
   syncDebtLedgerDraftFromRow,
   listDebtLedgerDrafts,
   clearDebtLedgerDraftStore,
+  clearDebtLedgerDraftForId,
   clearDebtLedgerActivityInputs,
   restoreDebtLedgerDrafts,
+  clearSavingsLedgerDraftForId,
 } from './ledger-editor-draft.js';
 
 function mockInput(value = ''): HTMLInputElement {
@@ -114,6 +116,15 @@ describe('ledger-editor-draft savings', () => {
     const memo = row.querySelector('input[data-field="withdrawal-memo"]') as HTMLInputElement;
     expect(memo.value).toBe('');
   });
+
+  it('clearSavingsLedgerDraftForId drops one account and keeps other drafts', () => {
+    syncSavingsLedgerDraftFromRow(mockSavingsRow('s1', { deposit: '40' }));
+    syncSavingsLedgerDraftFromRow(mockSavingsRow('s2', { deposit: '15' }));
+    clearSavingsLedgerDraftForId('s1');
+    expect(listSavingsLedgerDrafts()).toEqual([
+      { savingsId: 's2', deposit: '15', withdrawal: '', withdrawalMemo: '' },
+    ]);
+  });
 });
 
 describe('ledger-editor-draft debts', () => {
@@ -138,5 +149,26 @@ describe('ledger-editor-draft debts', () => {
     const row = host.querySelectorAll('.debt-row')[0] as Element;
     const memo = row.querySelector('input[data-field="charge-memo"]') as HTMLInputElement;
     expect(memo.value).toBe('');
+  });
+
+  it('clearDebtLedgerDraftForId drops one debt and keeps other drafts', () => {
+    syncDebtLedgerDraftFromRow(mockDebtRow('d1', { payment: '100' }));
+    syncDebtLedgerDraftFromRow(mockDebtRow('d2', { payment: '50' }));
+    clearDebtLedgerDraftForId('d1');
+
+    expect(listDebtLedgerDrafts()).toEqual([
+      { debtId: 'd2', payment: '50', charge: '', chargeMemo: '' },
+    ]);
+
+    const host = mockDebtHost([
+      { id: 'd1', fields: {} },
+      { id: 'd2', fields: {} },
+    ]);
+    restoreDebtLedgerDrafts(host, listDebtLedgerDrafts());
+    const rows = host.querySelectorAll('.debt-row');
+    const d1Pay = rows[0].querySelector('input[data-field="payment"]') as HTMLInputElement;
+    const d2Pay = rows[1].querySelector('input[data-field="payment"]') as HTMLInputElement;
+    expect(d1Pay.value).toBe('');
+    expect(d2Pay.value).toBe('50');
   });
 });
