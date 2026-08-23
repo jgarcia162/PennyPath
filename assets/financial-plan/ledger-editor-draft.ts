@@ -145,6 +145,18 @@ export function clearDebtLedgerDraftStore(): void {
   _debtStore.clear();
 }
 
+/** Drop one debt's Activity draft after a card/editor Add so it cannot be re-applied. */
+export function clearDebtLedgerDraftForId(debtId: string): void {
+  const id = String(debtId || '').trim();
+  if (id) _debtStore.delete(id);
+}
+
+function elementHasClass(el: Element, className: string): boolean {
+  const list = (el as HTMLElement).classList;
+  if (list && typeof list.contains === 'function') return list.contains(className);
+  return (' ' + String((el as HTMLElement).className || '') + ' ').indexOf(' ' + className + ' ') !== -1;
+}
+
 function clearDebtLedgerInputsInRoot(root: Element): void {
   const pay = root.querySelector('input[data-field="payment"]') as HTMLInputElement | null;
   const charge = root.querySelector('input[data-field="charge"]') as HTMLInputElement | null;
@@ -155,6 +167,9 @@ function clearDebtLedgerInputsInRoot(root: Element): void {
 }
 
 export function clearDebtLedgerActivityInputs(host: HTMLElement): void {
+  if (elementHasClass(host, 'debt-row') || elementHasClass(host, 'goal2-debt--editing')) {
+    clearDebtLedgerInputsInRoot(host);
+  }
   host.querySelectorAll('.debt-row').forEach(clearDebtLedgerInputsInRoot);
   host.querySelectorAll('.goal2-debt--editing').forEach(clearDebtLedgerInputsInRoot);
 }
@@ -181,6 +196,12 @@ export function clearSavingsLedgerDraftStore(): void {
   _savingsStore.clear();
 }
 
+/** Drop one account's Activity draft after a card/editor Add so it cannot be re-applied. */
+export function clearSavingsLedgerDraftForId(savingsId: string): void {
+  const id = String(savingsId || '').trim();
+  if (id) _savingsStore.delete(id);
+}
+
 function clearSavingsLedgerInputsInRoot(root: Element): void {
   const dep = root.querySelector('input[data-field="deposit"]') as HTMLInputElement | null;
   const wd = root.querySelector('input[data-field="withdrawal"]') as HTMLInputElement | null;
@@ -191,6 +212,9 @@ function clearSavingsLedgerInputsInRoot(root: Element): void {
 }
 
 export function clearSavingsLedgerActivityInputs(host: HTMLElement): void {
+  if (elementHasClass(host, 'savings-row') || elementHasClass(host, 'goal3-savings-account--editing')) {
+    clearSavingsLedgerInputsInRoot(host);
+  }
   host.querySelectorAll('.savings-row').forEach(clearSavingsLedgerInputsInRoot);
   host.querySelectorAll('.goal3-savings-account--editing').forEach(clearSavingsLedgerInputsInRoot);
 }

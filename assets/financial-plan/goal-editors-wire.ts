@@ -51,8 +51,10 @@ import {
 } from './editor-ledger-save-guard';
 import {
   clearDebtLedgerActivityInputs,
+  clearDebtLedgerDraftForId,
   clearDebtLedgerDraftStore,
   clearSavingsLedgerActivityInputs,
+  clearSavingsLedgerDraftForId,
   clearSavingsLedgerDraftStore,
   syncDebtLedgerDraftFromRow,
   syncSavingsLedgerDraftFromRow,
@@ -679,6 +681,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         return;
       }
       mergeDebtFromCardElement(card, { applyPendingLedger: true });
+      clearDebtLedgerDraftForId(String(id));
       setEditingDebtCardId(null);
       render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
       void (async function () {
@@ -711,6 +714,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       const debtId = card.getAttribute('data-debt-id');
       mergeDebtFromCardElement(card, { applyPendingLedger: true });
       clearDebtLedgerActivityInputs(card);
+      if (debtId) clearDebtLedgerDraftForId(String(debtId));
       void (async function () {
         const ok = await savePlanOverrides();
         await finishGoal2Persist(ok, { refreshGoal2DebtsCards: true });
@@ -1132,6 +1136,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         return;
       }
       mergeSavingsFromCardElement(card, { applyPendingLedger: true });
+      clearSavingsLedgerDraftForId(String(id));
       setEditingSavingsCardId(null);
       render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
       void (async function () {
@@ -1164,6 +1169,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       const savingsId = card.getAttribute('data-savings-id');
       mergeSavingsFromCardElement(card, { applyPendingLedger: true });
       clearSavingsLedgerActivityInputs(card);
+      if (savingsId) clearSavingsLedgerDraftForId(String(savingsId));
       void (async function () {
         const ok = await savePlanOverrides();
         await finishGoal3Persist(ok, { refreshGoal3SavingsCards: true });
