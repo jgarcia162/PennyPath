@@ -20,7 +20,7 @@ import {
 } from './goal-editors-wire';
 import { wirePlanTabs } from './tabs-wire';
 import { wireGoalTargetsEditor } from './goal-targets-wire';
-import { wireCheckIns } from './checkin-log';
+import { wireCheckIns, renderCheckIns } from './checkin-log';
 import { wireBadges, renderBadges } from './features.js';
 import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage';
 import { wipeAllUserData } from './wipe-user-data.js';
@@ -108,27 +108,43 @@ function wireDashboardGoalsAtGlance(): void {
   });
 }
 
+let wipeAllButtonWired = false;
+
 function wireWipeAllButton(): void {
   const btn = document.getElementById('btn-wipe-all-data') as HTMLButtonElement | null;
   if (!btn) return;
+  if (wipeAllButtonWired) return;
+  wipeAllButtonWired = true;
   btn.addEventListener('click', function () {
     const ok = window.confirm(
       'Reset everything for this Financial Plan?\n\n' +
-        'This removes all saved balances, debts, savings accounts, payment/deposit logs, check-ins, and milestone (badge) progress in this browser. Your theme choice is kept. This cannot be undone.\n\n' +
+        'This permanently removes all debts (including Recently deleted), savings accounts, goals, budget amounts, payment and deposit logs, check-ins, wrap-up history, AI caches, and milestone (badge) progress. Your theme choice is kept. This cannot be undone.\n\n' +
         'Real Estate data is not affected.'
     );
     if (!ok) return;
-    wipeAllUserData();
-    document.body.classList.remove('financial-plan-demo-mode');
-    const svc = (window as any).CheckInService as any;
-    if (origCheckInList && svc) {
-      svc.list = origCheckInList;
-    }
-    void applyPlanOverrides();
-    syncLegacySavingsFromAccounts(PLAN);
-    render({ refreshBalanceEditors: true });
-    initEditorSnapshots();
-    void renderBadges();
+    btn.disabled = true;
+    void (async function () {
+      try {
+        await wipeAllUserData();
+        document.body.classList.remove('financial-plan-demo-mode');
+        const svc = (window as any).CheckInService as any;
+        if (origCheckInList && svc) {
+          svc.list = origCheckInList;
+        }
+        resetBudgetBreakdownEditMode();
+        syncLegacySavingsFromAccounts(PLAN);
+        render({
+          refreshBalanceEditors: true,
+          refreshGoal2DebtsCards: true,
+          refreshGoal3SavingsCards: true,
+        });
+        initEditorSnapshots();
+        renderCheckIns();
+        void renderBadges();
+      } finally {
+        btn.disabled = false;
+      }
+    })();
   });
 }
 

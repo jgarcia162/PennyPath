@@ -377,7 +377,7 @@ export default function DashboardPage() {
                   type="button"
                   className="site-settings-item site-settings-item--danger"
                   id="btn-wipe-all-data"
-                  title="Clear all saved balances, debts, savings, check-ins, and milestone progress in this browser"
+                  title="Clear all saved debts, savings, goals, budget, check-ins, and milestone progress"
                 >
                   Reset all data
                 </button>

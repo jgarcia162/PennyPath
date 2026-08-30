@@ -8,7 +8,7 @@ import { ID_GOAL_HYSA } from './savings-goals';
 import { isSavingsLedgerActive } from './savings-ledger';
 
 export function getSavingsAccounts(plan: FinancialPlan): SavingsAccount[] {
-  if (Array.isArray((plan as any).savingsAccounts) && (plan as any).savingsAccounts.length) {
+  if (Array.isArray((plan as any).savingsAccounts)) {
     return ((plan as any).savingsAccounts as SavingsAccount[]).filter(isSavingsLedgerActive);
   }
   return [
@@ -23,7 +23,7 @@ export function getSavingsAccounts(plan: FinancialPlan): SavingsAccount[] {
     },
     {
       id: 'jose',
-      name: 'Avery — personal',
+      name: 'Personal savings',
       current: numOr(plan.joseSavings, 0),
       apyPct: 0,
       goalIds: [],
@@ -32,7 +32,7 @@ export function getSavingsAccounts(plan: FinancialPlan): SavingsAccount[] {
     },
     {
       id: 'sher',
-      name: 'Jordan — personal',
+      name: 'Personal savings 2',
       current: numOr(plan.sherlynaSavings, 0),
       apyPct: 0,
       goalIds: [],

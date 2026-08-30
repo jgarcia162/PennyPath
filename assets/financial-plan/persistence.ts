@@ -17,11 +17,11 @@ import type {
 } from '../../types/index.js';
 import {
   PLAN,
-  PLAN_DEFAULTS,
   DEFAULT_DEBT_APR_PCT,
   DEFAULT_SAVINGS_APY_PCT,
   DEMO_MODE_STORAGE_KEY,
   STORAGE_KEY,
+  createBlankFinancialPlan,
 } from './plan-data';
 import { getRepositories } from '../../lib/repositories';
 import type { Repositories } from '../../lib/repositories/types';
@@ -262,7 +262,7 @@ function migrateLegacySavingsFromJson(o: any): SavingsAccount[] {
     },
     {
       id: 'jose',
-      name: 'Avery — personal',
+      name: 'Personal savings',
       current: typeof o.joseSavings === 'number' && Number.isFinite(o.joseSavings) ? o.joseSavings : 0,
       apyPct: 0,
       goalIds: [],
@@ -271,7 +271,7 @@ function migrateLegacySavingsFromJson(o: any): SavingsAccount[] {
     },
     {
       id: 'sher',
-      name: 'Jordan — personal',
+      name: 'Personal savings 2',
       current: typeof o.sherlynaSavings === 'number' && Number.isFinite(o.sherlynaSavings) ? o.sherlynaSavings : 0,
       apyPct: 0,
       goalIds: [],
@@ -281,22 +281,36 @@ function migrateLegacySavingsFromJson(o: any): SavingsAccount[] {
   ];
 }
 
-/** Mutate plan to empty debts + zeroed default savings accounts (fresh start). */
+/** Mutate plan to a complete blank slate (debts, savings, goals, budget, income). */
 export function applyBlankFinancialBalances(plan: FinancialPlan): void {
+  const blank = createBlankFinancialPlan();
+  blank.workingMonthYm = yyyyMmFromDate(new Date()) as YyyyMm;
+  blank.dashboardViewMonthYm = '';
+  Object.assign(plan, blank);
+  (plan as any).phase1 = { ccPayment: 0, hysaDeposit: 0 };
+  (plan as any).phase2 = { hysaDeposit: 0 };
+  (plan as any).interestNote = {
+    aprLow: 0,
+    aprHigh: 0,
+    monthOneLow: 0,
+    monthOneHigh: 0,
+    total8moLow: 0,
+    total8moHigh: 0,
+  };
+  (plan as any).labels = {
+    hysaGoalByShort: '',
+    fullPictureBy: '',
+    efundBuildAfter: '',
+    goalHysaWhen: '',
+    goalDebtWhen: '',
+    monthsToCloseEfund: '',
+  };
   (plan as any).debts = [];
-  (plan as any).debtsEditorSort = (PLAN_DEFAULTS as any).debtsEditorSort || 'saved';
-  (plan as any).debtsProgressSort = (PLAN_DEFAULTS as any).debtsProgressSort || 'saved';
-  (plan as any).debtsPaidOffLifetimeCount = 0;
-  (plan as any).debtsEditorLedgerSegment = 'active';
-  (plan as any).workingMonthYm = yyyyMmFromDate(new Date()) as YyyyMm;
-  (plan as any).dashboardViewMonthYm = '';
-  (plan as any).savingsGoals = JSON.parse(JSON.stringify((PLAN_DEFAULTS as any).savingsGoals));
-  (plan as any).savingsAccounts = JSON.parse(JSON.stringify((PLAN_DEFAULTS as any).savingsAccounts));
-  (plan as any).hysaBalance = (PLAN_DEFAULTS as any).hysaBalance;
-  (plan as any).joseSavings = (PLAN_DEFAULTS as any).joseSavings;
-  (plan as any).sherlynaSavings = (PLAN_DEFAULTS as any).sherlynaSavings;
-  syncLegacySavingsFromAccounts(plan as any);
+  (plan as any).savingsAccounts = [];
+  (plan as any).savingsGoals = [];
+  (plan as any).budgetCategories = undefined;
   (plan as any)._hysaStartingDefault = 0;
+  syncLegacySavingsFromAccounts(plan as any);
 }
 
 export function isFinancialPlanDemoMode(): boolean {
@@ -378,7 +392,7 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
       else (plan as any).debtsProgressSort = s as DebtsProgressSort;
     }
   }
-  if (Array.isArray(payload.savingsGoals) && payload.savingsGoals.length) {
+  if (Array.isArray(payload.savingsGoals)) {
     (plan as any).savingsGoals = payload.savingsGoals.map(normalizeSavingsGoalRow).filter(Boolean) as SavingsGoal[];
   }
   if (typeof payload.debtsPaidOffLifetimeCount === 'number' && Number.isFinite(payload.debtsPaidOffLifetimeCount)) {
@@ -434,7 +448,7 @@ export function applyPlanPayloadFromObject(plan: FinancialPlan, o: unknown): voi
     if (lifetime < completedN) lifetime = completedN;
     (plan as any).debtsPaidOffLifetimeCount = lifetime;
   }
-  if (Array.isArray(payload.savingsAccounts) && payload.savingsAccounts.length) {
+  if (Array.isArray(payload.savingsAccounts)) {
     (plan as any).savingsAccounts = payload.savingsAccounts.map(normalizeSavingsAccount).filter(Boolean) as SavingsAccount[];
   } else {
     (plan as any).savingsAccounts = migrateLegacySavingsFromJson(payload);

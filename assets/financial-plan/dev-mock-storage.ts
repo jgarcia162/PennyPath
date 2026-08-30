@@ -35,6 +35,14 @@ export const FINANCIAL_PLAN_STORAGE_KEYS = [
 /** Months of payment/deposit history to generate (~1.5 years). */
 export const MOCK_HISTORY_MONTHS = 18 as const;
 
+/** Visible suffix so demo/trial rows are never mistaken for the user's real data. */
+export function sampleDataLabel(name: string): string {
+  const s = String(name || '').trim();
+  if (!s) return 'Sample';
+  if (/\(sample\)\s*$/i.test(s)) return s;
+  return s + ' (sample)';
+}
+
 function newId(prefix: string): string {
   return prefix + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
 }
@@ -223,7 +231,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
   > = [
     {
       id: 'hysa',
-      name: 'Joint Savings',
+      name: sampleDataLabel('Joint Savings'),
       current: Math.max(hysaCurrent, sumLedgerAmounts(hysaDep)),
       apyPct: 3.25,
       goalIds: ['goal-hysa', 'goal-efund'],
@@ -232,7 +240,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     },
     {
       id: 'jose',
-      name: 'Avery — personal',
+      name: sampleDataLabel('Avery — personal'),
       current: Math.max(joseCurrent, sumLedgerAmounts(joseDep)),
       apyPct: 4.15,
       goalIds: ['goal-personal', 'goal-efund'],
@@ -241,7 +249,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     },
     {
       id: 'sher',
-      name: 'Jordan — personal',
+      name: sampleDataLabel('Jordan — personal'),
       current: Math.max(sherCurrent, sumLedgerAmounts(sherDep)),
       apyPct: 0,
       goalIds: ['goal-personal', 'goal-efund'],
@@ -250,7 +258,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     },
     {
       id: 'vacation',
-      name: 'Vacation fund',
+      name: sampleDataLabel('Vacation fund'),
       current: Math.max(vacationCurrent, sumLedgerAmounts(vacationDep)),
       apyPct: 3.5,
       goalIds: [],
@@ -259,7 +267,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     },
     {
       id: 'kids',
-      name: 'Kids — 529',
+      name: sampleDataLabel('Kids — 529'),
       current: Math.max(kidsCurrent, sumLedgerAmounts(kidsDep)),
       apyPct: 0,
       goalIds: [],
@@ -268,7 +276,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     },
     {
       id: 'ibonds',
-      name: 'I-Bonds ladder',
+      name: sampleDataLabel('I-Bonds ladder'),
       current: Math.max(ibondsCurrent, sumLedgerAmounts(ibondsDep)),
       apyPct: 0,
       goalIds: [],
@@ -284,14 +292,14 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
     sherlynaSavings: Math.max(0, sherCurrent),
     savingsAccounts,
     savingsGoals: [
-      { id: 'goal-hysa', name: 'Joint HYSA', targetAmount: 50000, goalByYm: '2027-06' },
-      { id: 'goal-efund', name: 'Emergency fund', targetAmount: 36000, goalByYm: '' },
-      { id: 'goal-personal', name: 'Personal savings', targetAmount: 25000, goalByYm: '' },
+      { id: 'goal-hysa', name: sampleDataLabel('Joint HYSA'), targetAmount: 50000, goalByYm: '2027-06' },
+      { id: 'goal-efund', name: sampleDataLabel('Emergency fund'), targetAmount: 36000, goalByYm: '' },
+      { id: 'goal-personal', name: sampleDataLabel('Personal savings'), targetAmount: 25000, goalByYm: '' },
     ],
     debts: [
       {
         id: 'cc',
-        name: 'Credit Cards',
+        name: sampleDataLabel('Credit Cards'),
         current: 19880,
         paidOff: 12400,
         aprPct: 0,
@@ -302,7 +310,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
       },
       {
         id: 'car',
-        name: 'Car loan',
+        name: sampleDataLabel('Car loan'),
         current: 6420,
         paidOff: 3580,
         aprPct: 5.9,
@@ -313,7 +321,7 @@ export function buildMockBalancesPayload(): Record<string, unknown> {
       },
       {
         id: 'student',
-        name: 'Student loan',
+        name: sampleDataLabel('Student loan'),
         current: 14200,
         paidOff: 6800,
         aprPct: 4.25,
@@ -433,11 +441,11 @@ export function applyDemoPlanSnapshot(plan: FinancialPlan, opts?: { seed?: strin
   const firstNames = ['Avery', 'Jordan', 'Casey', 'Taylor', 'Morgan', 'Riley', 'Sam', 'Alex', 'Jamie'];
   const kidNames = ['Kids', '529', 'College', 'Future'];
 
-  const hysaName = pick(rng, ['Joint Savings', 'Family HYSA', 'Primary Savings']);
+  const hysaName = sampleDataLabel(pick(rng, ['Joint Savings', 'Family HYSA', 'Primary Savings']));
   const hysaApy = Math.max(0, randMoney(rng, 2.75, 4.75, 0.05));
   const hysaCurrent = Math.max(0, randMoney(rng, 12000, 52000, 50));
-  const personal1Name = pick(rng, firstNames) + ' — personal';
-  const personal2Name = pick(rng, firstNames) + ' — personal';
+  const personal1Name = sampleDataLabel(pick(rng, firstNames) + ' — personal');
+  const personal2Name = sampleDataLabel(pick(rng, firstNames) + ' — personal');
 
   const joseCurrent = Math.max(0, randMoney(rng, 1500, 12000, 25));
   const sherCurrent = Math.max(0, randMoney(rng, 3500, 28000, 25));
@@ -455,15 +463,15 @@ export function applyDemoPlanSnapshot(plan: FinancialPlan, opts?: { seed?: strin
   const savingsGoals = [
     {
       id: 'goal-hysa',
-      name: pick(rng, ['Joint HYSA', 'Primary HYSA', 'Emergency HYSA']),
+      name: sampleDataLabel(pick(rng, ['Joint HYSA', 'Primary HYSA', 'Emergency HYSA'])),
       targetAmount: randInt(rng, 25000, 90000),
       goalByYm: pick(rng, ['2027-03', '2027-06', '2027-09', '2028-01']),
     },
-    { id: 'goal-efund', name: 'Emergency fund', targetAmount: randInt(rng, 18000, 54000), goalByYm: '' },
-    { id: 'goal-personal', name: 'Personal savings', targetAmount: randInt(rng, 8000, 32000), goalByYm: '' },
+    { id: 'goal-efund', name: sampleDataLabel('Emergency fund'), targetAmount: randInt(rng, 18000, 54000), goalByYm: '' },
+    { id: 'goal-personal', name: sampleDataLabel('Personal savings'), targetAmount: randInt(rng, 8000, 32000), goalByYm: '' },
     {
       id: 'goal-kids',
-      name: pick(rng, kidNames) + ' fund',
+      name: sampleDataLabel(pick(rng, kidNames) + ' fund'),
       targetAmount: randInt(rng, 6000, 40000),
       goalByYm: pick(rng, ['', '2027-12', '2028-06']),
     },
@@ -510,7 +518,7 @@ export function applyDemoPlanSnapshot(plan: FinancialPlan, opts?: { seed?: strin
   const debts = [
     {
       id: 'cc',
-      name: pick(rng, ['Credit Cards', 'Credit Card', 'Cards']),
+      name: sampleDataLabel(pick(rng, ['Credit Cards', 'Credit Card', 'Cards'])),
       current: randMoney(rng, 3500, 28000, 25),
       paidOff: randMoney(rng, 0, 16000, 25),
       aprPct: randMoney(rng, 0, 29.99, 0.25),
@@ -524,7 +532,7 @@ export function applyDemoPlanSnapshot(plan: FinancialPlan, opts?: { seed?: strin
   if (rng() < 0.75) {
     debts.push({
       id: 'car',
-      name: pick(rng, ['Car loan', 'Auto loan']),
+      name: sampleDataLabel(pick(rng, ['Car loan', 'Auto loan'])),
       current: randMoney(rng, 2500, 22000, 50),
       paidOff: randMoney(rng, 500, 12000, 50),
       aprPct: randMoney(rng, 2.25, 8.75, 0.05),
@@ -537,7 +545,7 @@ export function applyDemoPlanSnapshot(plan: FinancialPlan, opts?: { seed?: strin
   if (rng() < 0.65) {
     debts.push({
       id: 'student',
-      name: pick(rng, ['Student loan', 'Student loans']),
+      name: sampleDataLabel(pick(rng, ['Student loan', 'Student loans'])),
       current: randMoney(rng, 4000, 38000, 50),
       paidOff: randMoney(rng, 0, 18000, 50),
       aprPct: randMoney(rng, 2.25, 7.25, 0.05),

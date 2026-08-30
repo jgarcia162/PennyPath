@@ -63,7 +63,7 @@ export function buildMockMonthlySeries() {
     const debtLines = [
       {
         debtId: 'cc',
-        debtName: 'Credit Cards',
+        debtName: 'Credit Cards (sample)',
         total: money(cc),
         payments: Array.from({ length: txDebtCc }, function (_, j) {
           return {
@@ -74,7 +74,7 @@ export function buildMockMonthlySeries() {
       },
       {
         debtId: 'car',
-        debtName: 'Car loan',
+        debtName: 'Car loan (sample)',
         total: money(car),
         payments: Array.from({ length: txDebtCar }, function (_, j) {
           return {
@@ -85,7 +85,7 @@ export function buildMockMonthlySeries() {
       },
       {
         debtId: 'student',
-        debtName: 'Student loan',
+        debtName: 'Student loan (sample)',
         total: money(student),
         payments: Array.from({ length: txDebtStu }, function (_, j) {
           return {
@@ -101,7 +101,7 @@ export function buildMockMonthlySeries() {
     const savingsLines = [
       {
         accountId: 'hysa',
-        name: 'Joint Savings',
+        name: 'Joint Savings (sample)',
         total: money(savHysa),
         deposits:
           savHysa > 50
@@ -115,7 +115,7 @@ export function buildMockMonthlySeries() {
       },
       {
         accountId: 'jose',
-        name: 'Avery — personal',
+        name: 'Avery — personal (sample)',
         total: money(savJose),
         deposits:
           savJose > 0.01
@@ -124,7 +124,7 @@ export function buildMockMonthlySeries() {
       },
       {
         accountId: 'sher',
-        name: 'Jordan — personal',
+        name: 'Jordan — personal (sample)',
         total: money(savSher),
         deposits:
           savSher > 0.01
@@ -133,19 +133,19 @@ export function buildMockMonthlySeries() {
       },
       {
         accountId: 'vacation',
-        name: 'Vacation fund',
+        name: 'Vacation fund (sample)',
         total: money(savVac),
         deposits: savVac > 5 ? [{ amount: money(savVac), at: d.toISOString() }] : [],
       },
       {
         accountId: 'kids',
-        name: 'Kids — 529',
+        name: 'Kids — 529 (sample)',
         total: money(savKids),
         deposits: [{ amount: money(savKids), at: d.toISOString() }],
       },
       {
         accountId: 'ibonds',
-        name: 'I-Bonds ladder',
+        name: 'I-Bonds ladder (sample)',
         total: money(savBond),
         deposits: savBond > 1 ? [{ amount: money(savBond), at: d.toISOString() }] : [],
       },
