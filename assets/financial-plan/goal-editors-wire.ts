@@ -268,23 +268,60 @@ function setSaveNeeds(saveBtnId: string, needsSave: boolean): void {
 }
 
 /** Ignore input/change that fires while editor DOM is torn down/rebuilt during save. */
+const PERSIST_ACTIVITY_GUARD_MS = 800;
 let goal2IgnoreActivityUntil = 0;
 let goal3IgnoreActivityUntil = 0;
+let goal2PersistInFlight = false;
+let goal3PersistInFlight = false;
 
-function beginGoal2PersistGuard(): void {
-  goal2IgnoreActivityUntil = Date.now() + 400;
+function beginGoal2PersistGuard(ms?: number): void {
+  goal2IgnoreActivityUntil = Date.now() + (typeof ms === 'number' ? ms : PERSIST_ACTIVITY_GUARD_MS);
 }
 
-function beginGoal3PersistGuard(): void {
-  goal3IgnoreActivityUntil = Date.now() + 400;
+function beginGoal3PersistGuard(ms?: number): void {
+  goal3IgnoreActivityUntil = Date.now() + (typeof ms === 'number' ? ms : PERSIST_ACTIVITY_GUARD_MS);
 }
 
 function shouldIgnoreGoal2EditorActivity(): boolean {
-  return Date.now() < goal2IgnoreActivityUntil;
+  return goal2PersistInFlight || Date.now() < goal2IgnoreActivityUntil;
 }
 
 function shouldIgnoreGoal3EditorActivity(): boolean {
-  return Date.now() < goal3IgnoreActivityUntil;
+  return goal3PersistInFlight || Date.now() < goal3IgnoreActivityUntil;
+}
+
+function setEditorSaving(saveBtnId: string, saving: boolean): void {
+  const saveBtn = document.getElementById(saveBtnId) as HTMLButtonElement | null;
+  if (!saveBtn) return;
+  saveBtn.dataset.saving = saving ? '1' : '0';
+  if (saveBtnId === 'btn-save-goal2-debts') applyGoal2SaveButtonState();
+  else if (saveBtnId === 'btn-save-goal3-savings') applyGoal3SaveButtonState();
+}
+
+function startGoal2Persist(): void {
+  goal2PersistInFlight = true;
+  beginGoal2PersistGuard(60_000);
+  setEditorSaving('btn-save-goal2-debts', true);
+  showGoal2Saving();
+}
+
+function endGoal2Persist(): void {
+  beginGoal2PersistGuard();
+  setEditorSaving('btn-save-goal2-debts', false);
+  goal2PersistInFlight = false;
+}
+
+function startGoal3Persist(): void {
+  goal3PersistInFlight = true;
+  beginGoal3PersistGuard(60_000);
+  setEditorSaving('btn-save-goal3-savings', true);
+  showGoal3Saving();
+}
+
+function endGoal3Persist(): void {
+  beginGoal3PersistGuard();
+  setEditorSaving('btn-save-goal3-savings', false);
+  goal3PersistInFlight = false;
 }
 
 function captureEditorFieldBaseline(el: HTMLElement): void {
@@ -315,19 +352,42 @@ function editorFieldChangedFromBaseline(el: HTMLElement): boolean {
   return true;
 }
 
+function clearGoal2SavedTimeout(): void {
+  clearTimeout((showGoal2Saved as any)._t);
+}
+
+function clearGoal3SavedTimeout(): void {
+  clearTimeout((showGoal3Saved as any)._t);
+}
+
+function showGoal2Saving(): void {
+  const st = document.getElementById('goal2-save-status');
+  if (!st) return;
+  clearGoal2SavedTimeout();
+  st.textContent = 'Saving…';
+}
+
+function showGoal3Saving(): void {
+  const st = document.getElementById('goal3-save-status');
+  if (!st) return;
+  clearGoal3SavedTimeout();
+  st.textContent = 'Saving…';
+}
+
 function showGoal2Saved() {
   const st = document.getElementById('goal2-save-status');
   if (!st) return;
   st.textContent = 'Saved';
-  clearTimeout((showGoal2Saved as any)._t);
+  clearGoal2SavedTimeout();
   (showGoal2Saved as any)._t = setTimeout(function () {
-    if (st) st.textContent = '';
+    if (st && st.textContent === 'Saved') st.textContent = '';
   }, 1800);
 }
 
 function showGoal2SaveFailed() {
   const st = document.getElementById('goal2-save-status');
   if (!st) return;
+  clearGoal2SavedTimeout();
   const detail = getLastPlanSaveError();
   st.textContent = detail ? 'Save failed: ' + detail : 'Save failed — try again';
 }
@@ -335,25 +395,37 @@ function showGoal2SaveFailed() {
 function showGoal3Saved() {
   const st = document.getElementById('goal3-save-status');
   if (!st) return;
-  st.textContent = 'Saved in this browser';
-  clearTimeout((showGoal3Saved as any)._t);
+  st.textContent = 'Saved';
+  clearGoal3SavedTimeout();
   (showGoal3Saved as any)._t = setTimeout(function () {
-    if (st) st.textContent = '';
+    if (st && st.textContent === 'Saved') st.textContent = '';
   }, 1800);
 }
 
+function showGoal3SaveFailed() {
+  const st = document.getElementById('goal3-save-status');
+  if (!st) return;
+  clearGoal3SavedTimeout();
+  const detail = getLastPlanSaveError();
+  st.textContent = detail ? 'Save failed: ' + detail : 'Save failed — try again';
+}
+
 function showGoal2Unsaved(opts?: { force?: boolean }) {
+  if (goal2PersistInFlight) return;
   if (!opts?.force && shouldIgnoreGoal2EditorActivity()) return;
   const st = document.getElementById('goal2-save-status');
   if (!st) return;
+  clearGoal2SavedTimeout();
   st.textContent = 'Unsaved changes';
   setSaveNeeds('btn-save-goal2-debts', true);
 }
 
 function showGoal3Unsaved(opts?: { force?: boolean }) {
+  if (goal3PersistInFlight) return;
   if (!opts?.force && shouldIgnoreGoal3EditorActivity()) return;
   const st = document.getElementById('goal3-save-status');
   if (!st) return;
+  clearGoal3SavedTimeout();
   st.textContent = 'Unsaved changes';
   setSaveNeeds('btn-save-goal3-savings', true);
 }
@@ -432,7 +504,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       lastSavedDebts = cloneDebtsSnapshot();
     } else {
       showGoal2SaveFailed();
-      showGoal2Unsaved({ force: true });
+      setSaveNeeds('btn-save-goal2-debts', true);
     }
   }
 
@@ -559,17 +631,22 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
           return;
         }
         void (async function () {
-          if (debtDraftRerenderTimer != null) {
-            clearTimeout(debtDraftRerenderTimer);
-            debtDraftRerenderTimer = null;
+          startGoal2Persist();
+          try {
+            if (debtDraftRerenderTimer != null) {
+              clearTimeout(debtDraftRerenderTimer);
+              debtDraftRerenderTimer = null;
+            }
+            readDebtsEditorIntoPlan({ applyPendingLedger: true });
+            clearDebtLedgerDraftStore();
+            clearDebtLedgerActivityInputs(debtsHostEl);
+            const ok = await savePlanOverrides();
+            clearDebtLedgerDraftStore();
+            clearDebtLedgerActivityInputs(debtsHostEl);
+            await finishGoal2Persist(ok, { preserveLedgerActivityDrafts: false });
+          } finally {
+            endGoal2Persist();
           }
-          readDebtsEditorIntoPlan({ applyPendingLedger: true });
-          clearDebtLedgerDraftStore();
-          clearDebtLedgerActivityInputs(debtsHostEl);
-          const ok = await savePlanOverrides();
-          clearDebtLedgerDraftStore();
-          clearDebtLedgerActivityInputs(debtsHostEl);
-          await finishGoal2Persist(ok, { preserveLedgerActivityDrafts: false });
         })();
         return;
       }
@@ -685,8 +762,13 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       setEditingDebtCardId(null);
       render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
       void (async function () {
-        const ok = await savePlanOverrides();
-        await finishGoal2Persist(ok);
+        startGoal2Persist();
+        try {
+          const ok = await savePlanOverrides();
+          await finishGoal2Persist(ok);
+        } finally {
+          endGoal2Persist();
+        }
       })();
     }
 
@@ -716,9 +798,14 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       clearDebtLedgerActivityInputs(card);
       if (debtId) clearDebtLedgerDraftForId(String(debtId));
       void (async function () {
-        const ok = await savePlanOverrides();
-        await finishGoal2Persist(ok, { refreshGoal2DebtsCards: true });
-        if (debtId) openDebtCardRecentActivity(String(debtId));
+        startGoal2Persist();
+        try {
+          const ok = await savePlanOverrides();
+          await finishGoal2Persist(ok, { refreshGoal2DebtsCards: true });
+          if (debtId) openDebtCardRecentActivity(String(debtId));
+        } finally {
+          endGoal2Persist();
+        }
       })();
     }
 
@@ -740,8 +827,13 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if (!removed) return;
       // Persist PLAN as-is — do not re-read the debts editor (that can overwrite card edits).
       void (async function () {
-        const saved = await savePlanOverrides();
-        await finishGoal2Persist(saved, { refreshGoal2DebtsCards: true });
+        startGoal2Persist();
+        try {
+          const saved = await savePlanOverrides();
+          await finishGoal2Persist(saved, { refreshGoal2DebtsCards: true });
+        } finally {
+          endGoal2Persist();
+        }
       })();
     }, { signal });
 
@@ -836,13 +928,15 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   if (saveBtn) {
     saveBtn.addEventListener('click', function () {
       if (debtsEditorHasConflictingLedgerInputs()) return;
+      if (goal2PersistInFlight) return;
       void (async function () {
-        const ok = await saveGoal2DebtsFromEditor();
-        await finishGoal2Persist(ok);
-        const dlg = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
+        startGoal2Persist();
         try {
-          if (dlg && typeof dlg.close === 'function') dlg.close();
-        } catch {}
+          const ok = await saveGoal2DebtsFromEditor();
+          await finishGoal2Persist(ok);
+        } finally {
+          endGoal2Persist();
+        }
       })();
     }, { signal });
   }
@@ -937,7 +1031,8 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       showGoal3Saved();
       lastSavedSavings = cloneSavingsSnapshot();
     } else {
-      showGoal3Unsaved({ force: true });
+      showGoal3SaveFailed();
+      setSaveNeeds('btn-save-goal3-savings', true);
     }
   }
 
@@ -1002,15 +1097,20 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
           return;
         }
         void (async function () {
-          cancelSavingsDraftSyncTimer();
-          readSavingsEditorIntoPlan({ applyPendingLedger: true });
-          clearSavingsLedgerDraftStore();
-          clearSavingsLedgerActivityInputs(savingsHostEl);
-          syncLegacySavingsFromAccounts(PLAN);
-          const ok = await savePlanOverrides();
-          clearSavingsLedgerDraftStore();
-          clearSavingsLedgerActivityInputs(savingsHostEl);
-          await finishGoal3Persist(ok, { preserveLedgerActivityDrafts: false });
+          startGoal3Persist();
+          try {
+            cancelSavingsDraftSyncTimer();
+            readSavingsEditorIntoPlan({ applyPendingLedger: true });
+            clearSavingsLedgerDraftStore();
+            clearSavingsLedgerActivityInputs(savingsHostEl);
+            syncLegacySavingsFromAccounts(PLAN);
+            const ok = await savePlanOverrides();
+            clearSavingsLedgerDraftStore();
+            clearSavingsLedgerActivityInputs(savingsHostEl);
+            await finishGoal3Persist(ok, { preserveLedgerActivityDrafts: false });
+          } finally {
+            endGoal3Persist();
+          }
         })();
         return;
       }
@@ -1140,8 +1240,13 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       setEditingSavingsCardId(null);
       render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
       void (async function () {
-        const ok = await savePlanOverrides();
-        await finishGoal3Persist(ok);
+        startGoal3Persist();
+        try {
+          const ok = await savePlanOverrides();
+          await finishGoal3Persist(ok);
+        } finally {
+          endGoal3Persist();
+        }
       })();
     }
 
@@ -1171,9 +1276,14 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       clearSavingsLedgerActivityInputs(card);
       if (savingsId) clearSavingsLedgerDraftForId(String(savingsId));
       void (async function () {
-        const ok = await savePlanOverrides();
-        await finishGoal3Persist(ok, { refreshGoal3SavingsCards: true });
-        if (savingsId) openSavingsCardRecentActivity(String(savingsId));
+        startGoal3Persist();
+        try {
+          const ok = await savePlanOverrides();
+          await finishGoal3Persist(ok, { refreshGoal3SavingsCards: true });
+          if (savingsId) openSavingsCardRecentActivity(String(savingsId));
+        } finally {
+          endGoal3Persist();
+        }
       })();
     }
 
@@ -1195,8 +1305,13 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if (!removed) return;
       syncLegacySavingsFromAccounts(PLAN);
       void (async function () {
-        const saved = await savePlanOverrides();
-        await finishGoal3Persist(saved, { refreshGoal3SavingsCards: true });
+        startGoal3Persist();
+        try {
+          const saved = await savePlanOverrides();
+          await finishGoal3Persist(saved, { refreshGoal3SavingsCards: true });
+        } finally {
+          endGoal3Persist();
+        }
       })();
     }, { signal });
 
@@ -1290,24 +1405,18 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
   if (saveBtn) {
     saveBtn.addEventListener('click', function () {
       if (savingsEditorHasConflictingLedgerInputs()) return;
+      if (goal3PersistInFlight) return;
       void (async function () {
-        beginGoal3PersistGuard();
-        cancelSavingsDraftSyncTimer();
-        readSavingsEditorIntoPlan();
-        syncLegacySavingsFromAccounts(PLAN);
-        const ok = await savePlanOverrides();
-        render({ refreshBalanceEditors: true });
-        if (ok) {
-          setSaveNeeds('btn-save-goal3-savings', false);
-          showGoal3Saved();
-          lastSavedSavings = cloneSavingsSnapshot();
-        } else {
-          showGoal3Unsaved({ force: true });
-        }
-        const dlg = document.getElementById('goal3-editor-dialog') as HTMLDialogElement | null;
+        startGoal3Persist();
         try {
-          if (ok && dlg && typeof dlg.close === 'function') dlg.close();
-        } catch {}
+          cancelSavingsDraftSyncTimer();
+          readSavingsEditorIntoPlan();
+          syncLegacySavingsFromAccounts(PLAN);
+          const ok = await savePlanOverrides();
+          await finishGoal3Persist(ok);
+        } finally {
+          endGoal3Persist();
+        }
       })();
     }, { signal });
   }

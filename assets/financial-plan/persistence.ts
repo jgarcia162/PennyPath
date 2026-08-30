@@ -32,6 +32,68 @@ import { ID_GOAL_HYSA, ensureSavingsGoals, normalizeSavingsGoalRow } from './sav
 import { normalizeLedgerStatus } from './debt-ledger';
 import { debtLedgerKind, normalizeLedgerMemo, savingsLedgerKind } from './ledger-utils';
 import { isTrialSessionActive } from '../../lib/trial/trial-session';
+import { withAppBusy } from './app-busy';
+
+/** Show the busy overlay if a persist takes longer than this. */
+const SAVE_BUSY_DELAY_MS = 160;
+
+async function persistPlanOverridesInner(): Promise<boolean> {
+  // Trial sessions should not persist any edits beyond the current tab lifetime.
+  if (isTrialSessionActive()) {
+    return true;
+  }
+  if (isFinancialPlanDemoMode()) {
+    // If the user is editing, treat it as opting out of demo mode.
+    // Persist locally so refreshes don't revert to the mock snapshot.
+    safeWriteLocalPlanPayload(PLAN as any);
+    try {
+      localStorage.setItem(DEMO_MODE_STORAGE_KEY, '0');
+    } catch {}
+    return true;
+  }
+  clearPlanSaveError();
+  try {
+    const repos = getRepositories();
+    let remoteOk = true;
+
+    // Debts + payment_history first (matches agent API; not blocked by plan config errors).
+    try {
+      await persistDebtsToSupabase(repos);
+    } catch (e) {
+      remoteOk = false;
+      notePlanSaveError(e);
+      // eslint-disable-next-line no-console
+      console.warn('[PennyPath] persistDebtsToSupabase failed', e);
+    }
+
+    try {
+      await repos.planConfigRepository.save(PLAN as any);
+    } catch (e) {
+      remoteOk = false;
+      notePlanSaveError(e);
+      // eslint-disable-next-line no-console
+      console.warn('[PennyPath] planConfigRepository.save failed', e);
+    }
+
+    try {
+      await persistSavingsToSupabase(repos);
+    } catch (e) {
+      remoteOk = false;
+      notePlanSaveError(e);
+      // eslint-disable-next-line no-console
+      console.warn('[PennyPath] persistSavingsToSupabase failed', e);
+    }
+
+    safeWriteLocalPlanPayload(PLAN as any);
+    return remoteOk;
+  } catch (e) {
+    notePlanSaveError(e);
+    safeWriteLocalPlanPayload(PLAN as any);
+    // eslint-disable-next-line no-console
+    console.warn('[PennyPath] savePlanOverrides failed; saved to localStorage fallback', e);
+    return false;
+  }
+}
 
 let lastPlanSaveError: string | null = null;
 
@@ -509,58 +571,6 @@ export async function applyPlanOverrides(): Promise<void> {
 }
 
 export async function savePlanOverrides(): Promise<boolean> {
-  // Trial sessions should not persist any edits beyond the current tab lifetime.
-  if (isTrialSessionActive()) {
-    return true;
-  }
-  if (isFinancialPlanDemoMode()) {
-    // If the user is editing, treat it as opting out of demo mode.
-    // Persist locally so refreshes don't revert to the mock snapshot.
-    safeWriteLocalPlanPayload(PLAN as any);
-    try {
-      localStorage.setItem(DEMO_MODE_STORAGE_KEY, '0');
-    } catch {}
-    return true;
-  }
-  clearPlanSaveError();
-  try {
-    const repos = getRepositories();
-    let debtsOk = false;
-
-    // Debts + payment_history first (matches agent API; not blocked by plan config errors).
-    try {
-      await persistDebtsToSupabase(repos);
-      debtsOk = true;
-    } catch (e) {
-      notePlanSaveError(e);
-      // eslint-disable-next-line no-console
-      console.warn('[PennyPath] persistDebtsToSupabase failed', e);
-    }
-
-    try {
-      await repos.planConfigRepository.save(PLAN as any);
-    } catch (e) {
-      notePlanSaveError(e);
-      // eslint-disable-next-line no-console
-      console.warn('[PennyPath] planConfigRepository.save failed', e);
-    }
-
-    try {
-      await persistSavingsToSupabase(repos);
-    } catch (e) {
-      notePlanSaveError(e);
-      // eslint-disable-next-line no-console
-      console.warn('[PennyPath] persistSavingsToSupabase failed', e);
-    }
-
-    safeWriteLocalPlanPayload(PLAN as any);
-    return debtsOk;
-  } catch (e) {
-    notePlanSaveError(e);
-    safeWriteLocalPlanPayload(PLAN as any);
-    // eslint-disable-next-line no-console
-    console.warn('[PennyPath] savePlanOverrides failed; saved to localStorage fallback', e);
-    return false;
-  }
+  return withAppBusy('Saving…', persistPlanOverridesInner, { delayMs: SAVE_BUSY_DELAY_MS });
 }
 

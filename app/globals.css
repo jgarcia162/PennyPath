@@ -17,33 +17,7 @@ body {
   }
 }
 
-/* Full-screen busy state; spinner + label reuse `.ai-payoff-loading` from financial-plan.css */
-.app-loading-overlay {
-  position: fixed;
-  inset: 0;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
-  z-index: 10050;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right))
-    max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
-  box-sizing: border-box;
-  background: rgba(250, 246, 244, 0.82);
-  backdrop-filter: blur(8px);
-}
-:root[data-theme="dark"] .app-loading-overlay {
-  background: rgba(12, 14, 20, 0.85);
-}
-.app-loading-overlay__panel {
-  max-width: min(360px, 100%);
-  padding: 28px 32px 32px !important;
-  border-radius: 16px;
-  background: var(--paper);
-  border: 1px solid rgba(196, 168, 110, 0.38);
-  box-shadow: var(--md-elevation-3);
-}
+/* Overlay chrome lives in financial-plan.css (shared with static HTML). */
 
 /* Real Estate — inline AI research busy state (same spinner as payoff plan) */
 .re-ai-loading-panel {

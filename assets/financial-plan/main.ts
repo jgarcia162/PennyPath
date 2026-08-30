@@ -24,6 +24,7 @@ import { wireCheckIns, renderCheckIns } from './checkin-log';
 import { wireBadges, renderBadges } from './features.js';
 import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage';
 import { wipeAllUserData } from './wipe-user-data';
+import { withAppBusy } from './app-busy';
 import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap';
 import { wireBudgetBreakdown } from './budget-breakdown-wire';
 import { resetBudgetBreakdownEditMode } from './budget-breakdown-state';
@@ -125,22 +126,24 @@ function wireWipeAllButton(): void {
     btn.disabled = true;
     void (async function () {
       try {
-        await wipeAllUserData();
-        document.body.classList.remove('financial-plan-demo-mode');
-        const svc = (window as any).CheckInService as any;
-        if (origCheckInList && svc) {
-          svc.list = origCheckInList;
-        }
-        resetBudgetBreakdownEditMode();
-        syncLegacySavingsFromAccounts(PLAN);
-        render({
-          refreshBalanceEditors: true,
-          refreshGoal2DebtsCards: true,
-          refreshGoal3SavingsCards: true,
+        await withAppBusy('Resetting…', async function () {
+          await wipeAllUserData();
+          document.body.classList.remove('financial-plan-demo-mode');
+          const svc = (window as any).CheckInService as any;
+          if (origCheckInList && svc) {
+            svc.list = origCheckInList;
+          }
+          resetBudgetBreakdownEditMode();
+          syncLegacySavingsFromAccounts(PLAN);
+          render({
+            refreshBalanceEditors: true,
+            refreshGoal2DebtsCards: true,
+            refreshGoal3SavingsCards: true,
+          });
+          initEditorSnapshots();
+          renderCheckIns();
+          void renderBadges();
         });
-        initEditorSnapshots();
-        renderCheckIns();
-        void renderBadges();
       } finally {
         btn.disabled = false;
       }
