@@ -81,8 +81,9 @@ export function applyGoal2SaveButtonState(): void {
   const saveBtn = document.getElementById('btn-save-goal2-debts') as HTMLButtonElement | null;
   if (!saveBtn) return;
   const needsSave = saveBtn.dataset.needsSave === '1';
+  const saving = saveBtn.dataset.saving === '1';
   const conflict = debtsEditorHasConflictingLedgerInputs();
-  saveBtn.disabled = !needsSave || conflict;
+  saveBtn.disabled = saving || !needsSave || conflict;
   if (conflict) saveBtn.title = CONFLICT_TITLE;
   else saveBtn.removeAttribute('title');
 
@@ -104,8 +105,9 @@ export function applyGoal3SaveButtonState(): void {
   const saveBtn = document.getElementById('btn-save-goal3-savings') as HTMLButtonElement | null;
   if (!saveBtn) return;
   const needsSave = saveBtn.dataset.needsSave === '1';
+  const saving = saveBtn.dataset.saving === '1';
   const conflict = savingsEditorHasConflictingLedgerInputs();
-  saveBtn.disabled = !needsSave || conflict;
+  saveBtn.disabled = saving || !needsSave || conflict;
   if (conflict) saveBtn.title = CONFLICT_TITLE;
   else saveBtn.removeAttribute('title');
 

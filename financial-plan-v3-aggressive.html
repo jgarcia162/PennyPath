@@ -66,7 +66,7 @@
             type="button"
             class="site-settings-item site-settings-item--danger"
             id="btn-wipe-all-data"
-            title="Clear all saved balances, debts, savings, check-ins, and milestone progress in this browser"
+            title="Clear all saved debts, savings, goals, budget, check-ins, and milestone progress"
           >
             Reset all data
           </button>
@@ -602,8 +602,42 @@
         </div>
       </div>
       <p class="dashboard-month-wrap__hint">
-        Pick a month to see that month’s debt progress and to log payments or deposits with dates in that month. “Follow working month” keeps the bar aligned with wrap-up. Wrapping saves a snapshot, advances the working month, and resets the monthly bar for the new month. Use Undo once if you need to fix the previous month.
+        Pick a month to see that month’s debt progress and to log payments or deposits with dates in that month. “Follow working month” keeps the bar aligned with wrap-up. Wrapping saves a snapshot, then you choose which month to track next (defaults to this calendar month when you are behind). Use Undo once if you need to fix the previous month.
       </p>
+      <dialog
+        id="month-wrap-dialog"
+        class="ai-bill-cal-prompt-dialog month-wrap-dialog"
+        aria-labelledby="month-wrap-dialog-title"
+      >
+        <div class="ai-bill-cal-prompt-dialog__chrome">
+          <header class="ai-bill-cal-prompt-dialog__header">
+            <h3 id="month-wrap-dialog-title" class="ai-bill-cal-prompt-dialog__title">Wrap up month?</h3>
+            <button
+              type="button"
+              class="ai-bill-cal-prompt-dialog__close"
+              id="btn-month-wrap-dialog-close"
+              aria-label="Close"
+            >
+              &times;
+            </button>
+          </header>
+          <div class="ai-bill-cal-prompt-dialog__body">
+            <p class="ai-bill-cal-prompt-dialog__hint" id="month-wrap-dialog-hint">
+              A snapshot is stored on your account when signed in. Then the working month and monthly bar move to the month you pick.
+            </p>
+            <label class="ai-bill-cal-prompt-dialog__label" for="month-wrap-destination">Start tracking</label>
+            <select
+              id="month-wrap-destination"
+              class="month-wrap-dialog__select"
+              aria-label="Month to start tracking after wrap-up"
+            ></select>
+            <div class="ai-bill-cal-prompt-dialog__actions">
+              <button type="button" class="ai-bill-cal-prompt-dialog__action" id="btn-month-wrap-cancel">Cancel</button>
+              <button type="button" class="btn-save" id="btn-month-wrap-confirm">Wrap up</button>
+            </div>
+          </div>
+        </div>
+      </dialog>
     </div>
 
     <div class="dashboard-view-toolbar no-print">

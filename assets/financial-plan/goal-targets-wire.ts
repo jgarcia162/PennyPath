@@ -168,8 +168,11 @@ export function wireGoalTargetsEditor(render: (opts?: { refreshBalanceEditors?: 
 
     syncJointHysaPlanFieldsFromGoals(PLAN);
 
-    void savePlanOverrides();
-    if (typeof render === 'function') render({ refreshBalanceEditors: true });
-    flashStatus('Saved in this browser');
+    void (async function () {
+      flashStatus('Saving…');
+      const ok = await savePlanOverrides();
+      if (typeof render === 'function') render({ refreshBalanceEditors: true });
+      flashStatus(ok ? 'Saved' : 'Save failed — try again');
+    })();
   });
 }

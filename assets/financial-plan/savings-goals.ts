@@ -16,7 +16,16 @@ export const ID_GOAL_PERSONAL = 'goal-personal';
  */
 export function ensureSavingsGoals(plan: FinancialPlan): void {
   if (!plan || typeof plan !== 'object') return;
-  if (Array.isArray((plan as any).savingsGoals) && (plan as any).savingsGoals.length > 0) {
+  if (Array.isArray((plan as any).savingsGoals)) {
+    if ((plan as any).savingsGoals.length === 0) {
+      (plan as any).goalHysa = 0;
+      (plan as any).hysaGoalByYm = '';
+      (plan as any).hysaGoalBy = '';
+      if (!(plan as any).labels) (plan as any).labels = {};
+      (plan as any).labels.hysaGoalByShort = '';
+      (plan as any).labels.goalHysaWhen = '';
+      return;
+    }
     const hysa = ((plan as any).savingsGoals || []).find(function (x: any) {
       return x && x.id === ID_GOAL_HYSA;
     });
@@ -43,7 +52,7 @@ export function ensureSavingsGoals(plan: FinancialPlan): void {
     {
       id: ID_GOAL_HYSA,
       name: 'Joint HYSA',
-      targetAmount: numOr((plan as any).goalHysa, 0) > 0 ? numOr((plan as any).goalHysa, 0) : 50000,
+      targetAmount: numOr((plan as any).goalHysa, 0),
       goalByYm: hysaYm as YyyyMm,
     },
     {

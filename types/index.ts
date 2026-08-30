@@ -174,7 +174,7 @@ export interface FinancialPlan {
   sherlynaSavings: number;
 
   // Timeline / assumptions
-  timelineStart: YyyyMmDd;
+  timelineStart: YyyyMmDd | '';
   ccApr: number; // decimal fraction (e.g. 0.22)
 
   // Source-of-truth accounts / debts
