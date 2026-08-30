@@ -23,7 +23,7 @@ import { wireGoalTargetsEditor } from './goal-targets-wire';
 import { wireCheckIns, renderCheckIns } from './checkin-log';
 import { wireBadges, renderBadges } from './features.js';
 import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage';
-import { wipeAllUserData } from './wipe-user-data.js';
+import { wipeAllUserData } from './wipe-user-data';
 import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap';
 import { wireBudgetBreakdown } from './budget-breakdown-wire';
 import { resetBudgetBreakdownEditMode } from './budget-breakdown-state';
