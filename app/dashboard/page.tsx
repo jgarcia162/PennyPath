@@ -71,6 +71,94 @@ const StableSavingsEditorListHost = memo(
   () => true
 );
 
+/**
+ * Month picker, wrap-up controls, and wrap dialog are filled/wired by vanilla JS.
+ * Skip React reconciliation so parent re-renders do not wipe options or drop listeners.
+ */
+const StableDashboardMonthWrap = memo(
+  function StableDashboardMonthWrap() {
+    return (
+      <div className="dashboard-month-wrap no-print">
+        <div className="dashboard-month-wrap__row">
+          <div className="dashboard-month-wrap__text">
+            <span className="dashboard-month-wrap__eyebrow">View &amp; edit month</span>
+            <div className="dashboard-month-wrap__picker-row">
+              <label className="dashboard-month-wrap__picker-label" htmlFor="dashboard-view-month">
+                Month
+              </label>
+              <select
+                id="dashboard-view-month"
+                className="dashboard-view-month-select"
+                aria-label="Month to view on the dashboard and date new payments"
+                suppressHydrationWarning
+              ></select>
+            </div>
+            <p className="dashboard-month-wrap__working-note" id="dashboard-view-working-note" hidden></p>
+          </div>
+          <div className="dashboard-month-wrap__actions">
+            <button type="button" className="btn-save" id="btn-month-wrap-up">
+              Wrap up month
+            </button>
+            <button type="button" className="btn-undo" id="btn-month-wrap-undo" disabled>
+              Undo last wrap
+            </button>
+          </div>
+        </div>
+        <p className="dashboard-month-wrap__hint">
+          Pick a month to see that month’s debt progress and to log payments or deposits with dates in that month.
+          “Follow working month” keeps the bar aligned with wrap-up. Wrapping saves a snapshot, then you choose which
+          month to track next (defaults to this calendar month when you are behind). Use Undo once if you need to fix
+          the previous month.
+        </p>
+        <dialog
+          id="month-wrap-dialog"
+          className="ai-bill-cal-prompt-dialog month-wrap-dialog"
+          aria-labelledby="month-wrap-dialog-title"
+        >
+          <div className="ai-bill-cal-prompt-dialog__chrome">
+            <header className="ai-bill-cal-prompt-dialog__header">
+              <h3 id="month-wrap-dialog-title" className="ai-bill-cal-prompt-dialog__title">
+                Wrap up month?
+              </h3>
+              <button
+                type="button"
+                className="ai-bill-cal-prompt-dialog__close"
+                id="btn-month-wrap-dialog-close"
+                aria-label="Close"
+              >
+                &times;
+              </button>
+            </header>
+            <div className="ai-bill-cal-prompt-dialog__body">
+              <p className="ai-bill-cal-prompt-dialog__hint" id="month-wrap-dialog-hint">
+                A snapshot is stored on your account when signed in. Then the working month and monthly bar move to the
+                month you pick.
+              </p>
+              <label className="ai-bill-cal-prompt-dialog__label" htmlFor="month-wrap-destination">
+                Start tracking
+              </label>
+              <select
+                id="month-wrap-destination"
+                className="month-wrap-dialog__select"
+                aria-label="Month to start tracking after wrap-up"
+              ></select>
+              <div className="ai-bill-cal-prompt-dialog__actions">
+                <button type="button" className="ai-bill-cal-prompt-dialog__action" id="btn-month-wrap-cancel">
+                  Cancel
+                </button>
+                <button type="button" className="btn-save" id="btn-month-wrap-confirm">
+                  Wrap up
+                </button>
+              </div>
+            </div>
+          </div>
+        </dialog>
+      </div>
+    );
+  },
+  () => true
+);
+
 export default function DashboardPage() {
   const [booting, setBooting] = useState(true);
   const [planCollapseLabel, setPlanCollapseLabel] = useState<'Collapse all' | 'Expand all'>('Collapse all');
@@ -966,37 +1054,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="dashboard-month-wrap no-print">
-            <div className="dashboard-month-wrap__row">
-              <div className="dashboard-month-wrap__text">
-                <span className="dashboard-month-wrap__eyebrow">View &amp; edit month</span>
-                <div className="dashboard-month-wrap__picker-row">
-                  <label className="dashboard-month-wrap__picker-label" htmlFor="dashboard-view-month">
-                    Month
-                  </label>
-                  <select
-                    id="dashboard-view-month"
-                    className="dashboard-view-month-select"
-                    aria-label="Month to view on the dashboard and date new payments"
-                  ></select>
-                </div>
-                <p className="dashboard-month-wrap__working-note" id="dashboard-view-working-note" hidden></p>
-              </div>
-              <div className="dashboard-month-wrap__actions">
-                <button type="button" className="btn-save" id="btn-month-wrap-up">
-                  Wrap up month
-                </button>
-                <button type="button" className="btn-undo" id="btn-month-wrap-undo" disabled>
-                  Undo last wrap
-                </button>
-              </div>
-            </div>
-            <p className="dashboard-month-wrap__hint">
-              Pick a month to see that month’s debt progress and to log payments or deposits with dates in that month.
-              “Follow working month” keeps the bar aligned with wrap-up. Wrapping saves a snapshot, advances the working
-              month, and resets the monthly bar for the new month. Use Undo once if you need to fix the previous month.
-            </p>
-          </div>
+          <StableDashboardMonthWrap />
 
           <div className="dashboard-view-toolbar no-print">
             <div className="dashboard-tabs" role="tablist" aria-label="Dashboard tabs">

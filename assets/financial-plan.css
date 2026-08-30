@@ -2356,6 +2356,30 @@ body.financial-plan-demo-mode #checkin-form {
   color: rgba(233, 233, 246, 0.62);
 }
 
+.month-wrap-dialog {
+  width: min(440px, calc(100vw - 32px));
+}
+.month-wrap-dialog__select {
+  width: 100%;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.35;
+  padding: 8px 10px;
+  margin: 0 0 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(60, 68, 82, 0.18);
+  background: var(--paper);
+  color: var(--text);
+  cursor: pointer;
+  appearance: auto;
+}
+:root[data-theme="dark"] .month-wrap-dialog__select {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(233, 233, 246, 0.94);
+}
+
 .dashboard-goals-details {
   margin: 16px 0 22px;
 }
