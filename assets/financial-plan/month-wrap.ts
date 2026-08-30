@@ -15,6 +15,7 @@ import {
 } from './plan-data';
 import { getRepositories } from '../../lib/repositories';
 import { applyPlanOverrides, savePlanOverrides, isFinancialPlanDemoMode, getLastPlanSaveError } from './persistence';
+import { withAppBusy } from './app-busy';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { buildMonthCheckpointPayload } from './monthly-export';
 import { getWorkingMonthYm } from './plan-derived';
@@ -290,12 +291,14 @@ export async function wrapUpWorkingMonth(render?: () => void): Promise<void> {
     PLAN.dashboardViewMonthYm = '';
     if (typeof render === 'function') (render as (o?: { refreshBalanceEditors?: boolean }) => void)({ refreshBalanceEditors: true });
 
-    await persistRollbackRemote(rollback).catch(function () {
-      /* local undo snapshot already saved */
+    await withAppBusy('Saving wrap-up…', async function () {
+      await persistRollbackRemote(rollback).catch(function () {
+        /* local undo snapshot already saved */
+      });
+      await Promise.all([appendMonthArchiveSynced(checkpoint), savePlanOverrides()]);
+      syncLegacySavingsFromAccounts(plan);
+      if (typeof render === 'function') (render as (o?: { refreshBalanceEditors?: boolean }) => void)({ refreshBalanceEditors: true });
     });
-    await Promise.all([appendMonthArchiveSynced(checkpoint), savePlanOverrides()]);
-    syncLegacySavingsFromAccounts(plan);
-    if (typeof render === 'function') (render as (o?: { refreshBalanceEditors?: boolean }) => void)({ refreshBalanceEditors: true });
     const saveErr = getLastPlanSaveError();
     if (saveErr) {
       window.alert(
@@ -335,25 +338,27 @@ export async function undoLastMonthWrap(render?: () => void): Promise<void> {
       );
       if (!ok) return;
 
-      try {
-        localStorage.setItem(STORAGE_KEY, rollback.balancesRaw);
-        localStorage.setItem(
-          checkinStorageKey(),
-          typeof rollback.checkinsRaw === 'string' ? rollback.checkinsRaw : '[]'
-        );
-      } catch (e) {
-        window.alert('Could not restore saved data.');
-        return;
-      }
+      await withAppBusy('Restoring…', async function () {
+        try {
+          localStorage.setItem(STORAGE_KEY, rollback.balancesRaw);
+          localStorage.setItem(
+            checkinStorageKey(),
+            typeof rollback.checkinsRaw === 'string' ? rollback.checkinsRaw : '[]'
+          );
+        } catch (e) {
+          window.alert('Could not restore saved data.');
+          return;
+        }
 
-      try {
-        await repos.financialPlanStateRepository.clearMonthWrapRollback();
-      } catch (e) {}
+        try {
+          await repos.financialPlanStateRepository.clearMonthWrapRollback();
+        } catch (e) {}
 
-      await applyPlanOverrides();
-      const plan = asFinancialPlan(PLAN);
-      syncLegacySavingsFromAccounts(plan);
-      if (typeof render === 'function') (render as (o?: { refreshBalanceEditors?: boolean }) => void)({ refreshBalanceEditors: true });
+        await applyPlanOverrides();
+        const plan = asFinancialPlan(PLAN);
+        syncLegacySavingsFromAccounts(plan);
+        if (typeof render === 'function') (render as (o?: { refreshBalanceEditors?: boolean }) => void)({ refreshBalanceEditors: true });
+      });
       return;
     }
   } catch (e) {
@@ -382,24 +387,26 @@ export async function undoLastMonthWrap(render?: () => void): Promise<void> {
   );
   if (!ok) return;
 
-  try {
-    localStorage.setItem(STORAGE_KEY, rb.balancesRaw);
-    localStorage.setItem(
-      checkinStorageKey(),
-      typeof rb.checkinsRaw === 'string' ? rb.checkinsRaw : '[]'
-    );
-  } catch (e) {
-    window.alert('Could not restore saved data.');
-    return;
-  }
-  try {
-    localStorage.removeItem(MONTH_WRAP_ROLLBACK_KEY);
-  } catch (e) {}
+  await withAppBusy('Restoring…', async function () {
+    try {
+      localStorage.setItem(STORAGE_KEY, rb.balancesRaw);
+      localStorage.setItem(
+        checkinStorageKey(),
+        typeof rb.checkinsRaw === 'string' ? rb.checkinsRaw : '[]'
+      );
+    } catch (e) {
+      window.alert('Could not restore saved data.');
+      return;
+    }
+    try {
+      localStorage.removeItem(MONTH_WRAP_ROLLBACK_KEY);
+    } catch (e) {}
 
-  await applyPlanOverrides();
-  const plan = asFinancialPlan(PLAN);
-  syncLegacySavingsFromAccounts(plan);
-  if (typeof render === 'function') (render as (o?: { refreshBalanceEditors?: boolean }) => void)({ refreshBalanceEditors: true });
+    await applyPlanOverrides();
+    const plan = asFinancialPlan(PLAN);
+    syncLegacySavingsFromAccounts(plan);
+    if (typeof render === 'function') (render as (o?: { refreshBalanceEditors?: boolean }) => void)({ refreshBalanceEditors: true });
+  });
 }
 
 let dashboardMonthSelectWired = false;
