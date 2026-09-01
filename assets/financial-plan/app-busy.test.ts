@@ -4,7 +4,7 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
-  APP_BUSY_OVERLAY_ID,
+  APP_BUSY_BAR_ID,
   hideAppBusy,
   isAppBusy,
   resetAppBusyForTests,
@@ -12,19 +12,22 @@ import {
   withAppBusy,
 } from './app-busy';
 
-function overlay(): HTMLElement | null {
-  return document.getElementById(APP_BUSY_OVERLAY_ID);
+function bar(): HTMLElement | null {
+  return document.getElementById(APP_BUSY_BAR_ID);
 }
 
-function overlayIsVisible(): boolean {
-  const el = overlay();
+function barIsVisible(): boolean {
+  const el = bar();
   if (!el) return false;
-  const dlg = el as HTMLDialogElement;
-  if (typeof dlg.open === 'boolean') return dlg.open;
-  return el.hasAttribute('open') && !el.hasAttribute('hidden');
+  try {
+    if (el.matches(':popover-open')) return true;
+  } catch {
+    /* happy-dom may not support :popover-open */
+  }
+  return el.classList.contains('app-busy-bar--open');
 }
 
-describe('app-busy overlay', () => {
+describe('app-busy status bar', () => {
   beforeEach(() => {
     resetAppBusyForTests();
     document.body.innerHTML = '';
@@ -35,28 +38,30 @@ describe('app-busy overlay', () => {
     vi.useRealTimers();
   });
 
-  it('creates a dialog overlay with the given message', () => {
+  it('creates a non-blocking status bar with the given message', () => {
     showAppBusy('Saving wrap-up…');
-    const el = overlay();
+    const el = bar();
     expect(el).toBeTruthy();
-    expect(el?.tagName.toLowerCase()).toBe('dialog');
+    expect(el?.tagName.toLowerCase()).toBe('div');
+    expect(el?.getAttribute('popover')).toBe('manual');
+    expect(el?.getAttribute('role')).toBe('status');
     expect(isAppBusy()).toBe(true);
-    expect(overlayIsVisible()).toBe(true);
+    expect(barIsVisible()).toBe(true);
     expect(el?.textContent).toContain('Saving wrap-up…');
     hideAppBusy();
     expect(isAppBusy()).toBe(false);
-    expect(overlayIsVisible()).toBe(false);
+    expect(barIsVisible()).toBe(false);
   });
 
-  it('nests show/hide so the overlay stays until the outer operation finishes', () => {
+  it('nests show/hide so the bar stays until the outer operation finishes', () => {
     showAppBusy('Resetting…');
     showAppBusy('Saving…');
-    expect(overlay()?.textContent).toContain('Resetting…');
+    expect(bar()?.textContent).toContain('Resetting…');
     hideAppBusy();
-    expect(overlayIsVisible()).toBe(true);
-    expect(overlay()?.textContent).toContain('Resetting…');
+    expect(barIsVisible()).toBe(true);
+    expect(bar()?.textContent).toContain('Resetting…');
     hideAppBusy();
-    expect(overlayIsVisible()).toBe(false);
+    expect(barIsVisible()).toBe(false);
   });
 
   it('withAppBusy hides even when the work throws', async () => {
@@ -66,7 +71,7 @@ describe('app-busy overlay', () => {
       })
     ).rejects.toThrow('nope');
     expect(isAppBusy()).toBe(false);
-    expect(overlayIsVisible()).toBe(false);
+    expect(barIsVisible()).toBe(false);
   });
 
   it('delayed withAppBusy does not flash for fast work', async () => {
@@ -82,7 +87,7 @@ describe('app-busy overlay', () => {
     );
     await vi.advanceTimersByTimeAsync(50);
     await p;
-    expect(overlay()).toBeNull();
+    expect(bar()).toBeNull();
     expect(isAppBusy()).toBe(false);
   });
 
@@ -92,15 +97,19 @@ describe('app-busy overlay', () => {
     const work = new Promise<void>(function (resolve) {
       release = resolve;
     });
-    const p = withAppBusy('Saving…', function () {
-      return work;
-    }, { delayMs: 160 });
+    const p = withAppBusy(
+      'Saving…',
+      function () {
+        return work;
+      },
+      { delayMs: 160 }
+    );
     await vi.advanceTimersByTimeAsync(159);
-    expect(overlay()).toBeNull();
+    expect(bar()).toBeNull();
     await vi.advanceTimersByTimeAsync(1);
-    expect(overlayIsVisible()).toBe(true);
+    expect(barIsVisible()).toBe(true);
     release();
     await p;
-    expect(overlayIsVisible()).toBe(false);
+    expect(barIsVisible()).toBe(false);
   });
 });
