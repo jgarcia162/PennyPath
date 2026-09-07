@@ -6,7 +6,7 @@
 
 import type { DerivedPlanMetrics, EndOfPlanLiquidSummary, FinancialPlan, SavingsAccount, YyyyMm } from '../../types/index.js';
 import { numOr } from './utils';
-import { getSavingsAccounts } from './savings-accounts';
+import { getSavingsAccounts, isJointHysaAccount, sumJointHysaBalance, weightedJointHysaApyPct } from './savings-accounts';
 import {
   ensureSavingsGoals,
   sumBalancesTowardGoal,
@@ -71,7 +71,7 @@ function projectPersonalSavingsEnd(accs: SavingsAccount[], months: unknown): num
   const n = Math.max(0, (months as any) | 0);
   return accs
     .filter(function (a) {
-      return String(a.id) !== 'hysa';
+      return !isJointHysaAccount(a);
     })
     .reduce(function (sum, a) {
       const cur = numOr((a as any).current, 0);
@@ -90,9 +90,7 @@ export function endOfPlanLiquid(plan: FinancialPlan): EndOfPlanLiquidSummary {
   const hysaEnd =
     rows.length > 0
       ? rows[rows.length - 1].hysaEnd
-      : accs.reduce(function (s, a) {
-          return String(a.id) === 'hysa' ? s + numOr((a as any).current, 0) : s;
-        }, 0);
+      : sumJointHysaBalance(accs);
   const personalEnd = projectPersonalSavingsEnd(accs, months);
   return {
     months,
@@ -127,16 +125,10 @@ export function derived(plan: FinancialPlan): DerivedPlanMetrics {
       goalByWhen: goalByWhen,
     };
   });
-  const hysaBal = accs
-    .filter(function (a) {
-      return String(a.id) === 'hysa';
-    })
-    .reduce(function (s, a) {
-      return s + numOr((a as any).current, 0);
-    }, 0);
+  const hysaBal = sumJointHysaBalance(accs);
   const personalSavings = accs
     .filter(function (a) {
-      return String(a.id) !== 'hysa';
+      return !isJointHysaAccount(a);
     })
     .reduce(function (s, a) {
       return s + numOr((a as any).current, 0);
@@ -165,11 +157,8 @@ export function derived(plan: FinancialPlan): DerivedPlanMetrics {
   const grossForBar = totalAssets + totalDebt;
   const assetBarPct = grossForBar > 0 ? (totalAssets / grossForBar) * 100 : 0;
   const debtBarPct = 100 - assetBarPct;
-  const hysaAcc = accs.find(function (a) {
-    return String(a.id) === 'hysa';
-  });
-  const hysaApyDec =
-    hysaAcc && Number.isFinite((hysaAcc as any).apyPct) ? (hysaAcc as any).apyPct / 100 : numOr((plan as any).hysaApy, 0);
+  const jointApyPct = weightedJointHysaApyPct(accs);
+  const hysaApyDec = Number.isFinite(jointApyPct) ? jointApyPct / 100 : numOr((plan as any).hysaApy, 0);
   const hysaInterestYr = hysaBal * hysaApyDec;
   const efundRow = savingsGoalSummaries.find(function (x: any) {
     return x.id === ID_GOAL_EFUND;

@@ -4691,6 +4691,8 @@ body.financial-plan-demo-mode #checkin-form {
 .status-card.neutral .status-value { color: var(--blue); }
 .status-card.income .status-value { color: var(--gold); }
 .status-note { font-size: 12px; color: #888; }
+.status-card[hidden],
+.goal-card[hidden] { display: none !important; }
 
 /* NET WORTH BAR */
 .networth-wrap { background: var(--paper); border-radius: 14px; padding: 22px 24px; border: 1px solid rgba(60,68,82,0.07); margin-top: 14px; }

@@ -2,7 +2,7 @@
  * Monthly CC payoff + joint HYSA projection (pure). Used by timeline UI and end-of-plan liquid.
  */
 
-import { getSavingsAccounts } from './savings-accounts';
+import { getSavingsAccounts, weightedJointHysaApyPct } from './savings-accounts';
 
 function clamp0(n) {
   const x = typeof n === 'number' ? n : Number(n);
@@ -76,10 +76,8 @@ function parseYyyyMmDdUtc(s) {
 
 function hysaApyDecimalFromPlan(plan) {
   const accs = getSavingsAccounts(plan || {});
-  const hysa = accs.find(function (a) {
-    return String(a.id) === 'hysa';
-  });
-  if (hysa && Number.isFinite(hysa.apyPct)) return Math.max(0, hysa.apyPct / 100);
+  const apyPct = weightedJointHysaApyPct(accs);
+  if (Number.isFinite(apyPct)) return Math.max(0, apyPct / 100);
   return Number.isFinite(plan && plan.hysaApy) ? Math.max(0, plan.hysaApy) : 0;
 }
 
