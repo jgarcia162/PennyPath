@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+import { GithubRepoLink } from './components/GithubRepoLink';
+
 export default function HomePage() {
   return (
     <div style={{ background: 'var(--cream)' }}>
@@ -233,7 +235,10 @@ export default function HomePage() {
             PennyPath
           </span>
         </div>
-        <span className="landing-footer__copy">© {new Date().getFullYear()} PennyPath. Family finance, made tangible.</span>
+        <div className="landing-footer__meta">
+          <GithubRepoLink />
+          <span className="landing-footer__copy">© {new Date().getFullYear()} PennyPath. Family finance, made tangible.</span>
+        </div>
       </footer>
     </div>
   );

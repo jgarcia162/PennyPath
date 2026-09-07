@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
+import { GithubRepoLink } from '../components/GithubRepoLink';
 import { LogoutForm } from '../components/LogoutForm';
 import { TrialCountdown } from '../components/TrialCountdown';
 import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
@@ -642,6 +643,7 @@ export default function RealEstatePage() {
         <strong>Research. Plan. Execute. Repeat.</strong>
         <div className="re-footer-sub">First property by mid-2027 · Portfolio building from 2028.</div>
         <p className="re-disclaimer">This page is for planning purposes only and does not constitute financial or legal advice.</p>
+        <GithubRepoLink />
         <div className="footer-meta" id="footer-meta" title="App version">
           <button type="button" className="footer-version" id="footer-app-version" aria-label="Application version"></button>
         </div>
