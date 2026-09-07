@@ -1,73 +1,44 @@
 # PennyPath
 
-Family financial planner: debts, savings, payoff projections, monthly history, and optional real-estate scenarios. The **dashboard** is a **Next.js** app with **Supabase** auth and persistence; legacy **static HTML** pages remain for local-only workflows.
+A family financial planner for paying down debt, tracking savings, and seeing when the plan actually closes.
 
-**Stack:** Next.js 16, React, TypeScript, Tailwind, Supabase. Financial Plan UI logic lives in `assets/financial-plan/` (ES modules loaded by the dashboard).
+I built this so two people can share one picture of the household: balances, payoff dates, savings goals, and a lightweight monthly history — without a spreadsheet that only one of us understands.
 
----
+**[Live demo](https://penny-path-lake.vercel.app)** · **[Take a peek](https://penny-path-lake.vercel.app/login)** (time-boxed trial with sample data) · **[Source](https://github.com/jgarcia162/PennyPath)**
 
-## Quick start
+<!-- Drop a PNG at docs/screenshots/dashboard.png, then uncomment:
+![PennyPath dashboard](docs/screenshots/dashboard.png)
+-->
 
-```bash
-npm install
-cp .env.example .env   # add Supabase + Gemini keys
-npm run dev
-```
+## Why
 
-Open [http://localhost:3000](http://localhost:3000) and sign in (or use trial mode).
+Household money work is usually split across credit-card apps, a HYSA, and a private spreadsheet. I wanted one place to log payments and charges, watch debt pay down, fund savings targets, and wrap a month without losing the story of what changed.
 
-```bash
-npm run typecheck
-npm run build
-```
+## Features
 
----
+- **Debts** — balances, APR, promo/deferred amounts, payments and charges with optional notes, and a payoff projection
+- **Savings** — accounts, APY, deposits and withdrawals, and goals (including a joint HYSA target)
+- **Month wrap-up** — checkpoint the working month and look back at history
+- **Check-ins and milestones** — short notes plus progress badges
+- **Real estate** — optional scenarios alongside the financial plan
+- **Take a peek** — a trial session with sample data that does not persist
+- **AI helpers** — payoff-plan and bill-calendar prompts (Gemini)
+- **Agent access** — a scoped HTTP API plus a local MCP server so Claude Code or Cursor can read and update debts and savings in natural language
 
-## Repository layout
+## Architecture highlights
 
-| Path | Role |
-|------|------|
-| `app/` | Next.js routes (dashboard, login, API) |
-| `lib/` | Supabase clients, repositories, server helpers |
-| `assets/financial-plan/` | Planner domain logic + UI wiring |
-| `supabase/migrations/` | Postgres schema |
-| `packages/pennypath-mcp/` | Local MCP server for Claude Code / Cursor |
-| `docs/ARCHITECTURE.md` | Module boundaries (read before large planner changes) |
-| `docs/AGENT_MCP.md` | **Agent API + MCP setup** |
-| `financial-plan-v3-aggressive.html`, `history.html`, … | Legacy static entry points |
+- **Next.js app** with Supabase auth and persistence (`app/`, `lib/`)
+- **Shared planner modules** in `assets/financial-plan/` — the same ES module tree drives the dashboard and the legacy static HTML pages
+- **Repository layer** (`lib/repositories/`) so UI code does not talk to Supabase directly
+- **Ledger model** — debt `payment` / `charge` and savings `deposit` / `withdrawal`, with memos and inline card editors
+- **Vitest** coverage around money input, persistence policy, and ledger flows
 
----
+Deeper module map: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
-## AI agent access (MCP)
+## Tech
 
-Use **Claude Code** or **Cursor** to read and update your debts and savings in natural language (e.g. “list active debts”, “set Chase balance to 4200”).
+Next.js 16 · React 19 · TypeScript · Tailwind · Supabase · Vitest · Gemini
 
-1. Apply agent migrations in Supabase (`009`–`011`; see `supabase/migrations/`).
-2. `npm run agent:token -- --email you@example.com`
-3. `npm run mcp:install && npm run mcp:build`
-4. `cp .mcp.json.example .mcp.json` and add your token + absolute path to the MCP script.
+## Run locally
 
-Full steps: **[docs/AGENT_MCP.md](docs/AGENT_MCP.md)**
-
----
-
-## Legacy static server (optional)
-
-```bash
-python3 -m http.server 8080
-```
-
-Then open `financial-plan-v3-aggressive.html` and related pages. Use HTTP, not `file://`, so ES modules load. Demo/history share `DEMO_MODE_STORAGE_KEY` in `assets/financial-plan/plan-data.js`.
-
----
-
-## Configuration
-
-- **Environment:** `.env` — `NEXT_PUBLIC_SUPABASE_*`, `SUPABASE_SERVICE_ROLE_KEY` (server only), `GEMINI_API_KEY`. See `.env.example`.
-- **Planner defaults:** `assets/financial-plan/plan-data.js` (`PLAN`, storage keys).
-
----
-
-## Contributing
-
-See **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+Setup, scripts, env vars, and how to open a PR are in **[CONTRIBUTING.md](CONTRIBUTING.md)**.

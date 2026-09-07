@@ -172,18 +172,25 @@ export class SupabaseDebtRepository implements DebtRepository {
       if (delErr) throw delErr;
     }
 
+    const rows: PaymentInsert[] = [];
     for (const payment of payments) {
       const id = String(payment.id || '').trim();
       if (!id) continue;
       const amount = Number(payment.amount);
       if (!Number.isFinite(amount) || amount <= 0) continue;
-      await this.addPayment(debtKey, {
+      rows.push({
+        user_id: userId,
+        debt_id: debtKey,
         id,
         amount,
         at: String(payment.at),
         kind: payment.kind === 'charge' ? 'charge' : 'payment',
         memo: typeof payment.memo === 'string' ? payment.memo : '',
       });
+    }
+    if (rows.length) {
+      const { error } = await this.supabase.from('payment_history').upsert(rows, { onConflict: 'user_id,id' });
+      if (error) throw error;
     }
   }
 }

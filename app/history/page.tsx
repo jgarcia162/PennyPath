@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
+import { GithubRepoLink } from '../components/GithubRepoLink';
 import { LogoutForm } from '../components/LogoutForm';
 import { TrialCountdown } from '../components/TrialCountdown';
 import { clearDemoModeIfTrialEnded, maybeEnableTrialSessionFromUrl } from '../../lib/trial/trial-session';
@@ -199,6 +200,7 @@ export default function HistoryPage() {
 
       <div className="footer">
         <strong>Data stays in this browser</strong> — same saved plan and check-ins as the Financial Plan page.
+        <GithubRepoLink />
         <div className="footer-meta" id="footer-meta" title="App version">
           <button type="button" className="footer-version" id="footer-app-version" aria-label="Application version"></button>
         </div>
