@@ -51,6 +51,7 @@ function ensureBar(): PopoverEl | null {
   el.setAttribute('role', 'status');
   el.setAttribute('aria-live', 'polite');
   el.setAttribute('aria-busy', 'false');
+  el.setAttribute('inert', '');
   el.innerHTML =
     '<span class="app-busy-bar__spinner" aria-hidden="true"></span>' +
     '<p class="app-busy-bar__label" id="' +

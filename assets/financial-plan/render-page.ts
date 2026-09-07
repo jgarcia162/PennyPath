@@ -244,6 +244,8 @@ export type PlanPageRenderOptions = {
   refreshGoal2DebtsCards?: boolean;
   /** Rebuild `#goal3-savings` even when a card is in inline-edit mode (enter/leave edit, Save). */
   refreshGoal3SavingsCards?: boolean;
+  /** Skip AI payoff / bill-calendar side effects after persist (inline card edit). */
+  skipSecondaryRefresh?: boolean;
 };
 
 function shouldSkipDebtsEditorRender(opts?: PlanPageRenderOptions): boolean {

@@ -7,7 +7,7 @@ import { PLAN, PLAN_DEFAULTS } from './plan-data';
 import { applyPlanOverrides, getLastPlanSaveError, savePlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { wireMoneyMasks } from './money-input-mask';
-import { parseMoneyInput, createMoneyFormatters } from './utils';
+import { createMoneyFormatters } from './utils';
 import {
   getEditingDebtCardId,
   getEditingSavingsCardId,
@@ -60,6 +60,7 @@ import {
   savingsRowHasConflictingLedgerInputs,
   savingsRowHasDualLedgerAmounts,
 } from './editor-ledger-save-guard';
+import { captureEditorFieldBaseline, editorFieldChangedFromBaseline } from './editor-field-baseline';
 import {
   clearDebtLedgerActivityInputs,
   clearDebtLedgerDraftForId,
@@ -82,6 +83,21 @@ function refocusInlineCardField(card: HTMLElement, focusField: string, fallbackS
   const fallback = card.querySelector(fallbackSelector) as HTMLInputElement | null;
   const el = stay || fallback;
   if (el && typeof el.focus === 'function') el.focus();
+}
+
+/** Popover hide restores focus on a later tick; refocus after that. */
+function scheduleInlineCardRefocus(card: HTMLElement, focusField: string, fallbackSelector: string): void {
+  function go(): void {
+    if (!card.isConnected) return;
+    refocusInlineCardField(card, focusField, fallbackSelector);
+  }
+  go();
+  queueMicrotask(go);
+  if (typeof requestAnimationFrame === 'function') {
+    requestAnimationFrame(function () {
+      requestAnimationFrame(go);
+    });
+  }
 }
 
 function wasDebtIdLastSaved(id: string): boolean {
@@ -343,34 +359,6 @@ function startGoal3Persist(): void {
 function endGoal3Persist(): void {
   setEditorSaving('btn-save-goal3-savings', false);
   goal3PersistInFlight = false;
-}
-
-function captureEditorFieldBaseline(el: HTMLElement): void {
-  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
-    el.setAttribute('data-edit-baseline', String(el.value ?? ''));
-  }
-}
-
-/** True when the field value differs from what it was when focused (real edit). */
-function editorFieldChangedFromBaseline(el: HTMLElement): boolean {
-  if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) {
-    return true;
-  }
-  if (!el.hasAttribute('data-edit-baseline')) return true;
-  const baseline = String(el.getAttribute('data-edit-baseline') ?? '');
-  const current = String(el.value ?? '');
-  if (current === baseline) return false;
-  // Currency/rate masks may reformat display without changing the amount.
-  if (el instanceof HTMLInputElement) {
-    const moneyKind = el.getAttribute('data-money');
-    if (moneyKind === 'currency' || moneyKind === 'rate') {
-      const a = parseMoneyInput(baseline);
-      const b = parseMoneyInput(current);
-      if (a != null && b != null && a === b) return false;
-      if ((baseline === '' || a == null) && (current === '' || b == null)) return false;
-    }
-  }
-  return true;
 }
 
 function clearGoal2SavedTimeout(): void {
@@ -796,7 +784,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       void (async function () {
         startGoal2Persist();
         try {
-          const ok = await savePlanOverrides();
+          const ok = await savePlanOverrides({ debtId: String(id) });
           await finishGoal2Persist(ok);
         } finally {
           endGoal2Persist();
@@ -819,15 +807,13 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if (debtId) clearDebtLedgerDraftForId(String(debtId));
       refreshInlineDebtCardAfterLedgerAdd(card, PLAN, moneyExact);
       refreshOpenLedgerActivityDialog();
-      refocusInlineCardField(card, focusField, 'input[data-field="charge"], input[data-field="payment"]');
+      scheduleInlineCardRefocus(card, focusField, 'input[data-field="charge"], input[data-field="payment"]');
       void (async function () {
         startGoal2Persist();
         try {
-          const ok = await savePlanOverrides();
+          const ok = await savePlanOverrides(debtId ? { debtId: String(debtId) } : undefined);
           await finishGoal2Persist(ok);
-          refreshInlineDebtCardAfterLedgerAdd(card, PLAN, moneyExact);
-          refreshOpenLedgerActivityDialog();
-          refocusInlineCardField(card, focusField, 'input[data-field="charge"], input[data-field="payment"]');
+          scheduleInlineCardRefocus(card, focusField, 'input[data-field="charge"], input[data-field="payment"]');
         } finally {
           endGoal2Persist();
         }
@@ -855,7 +841,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       void (async function () {
         startGoal2Persist();
         try {
-          const saved = await savePlanOverrides();
+          const saved = await savePlanOverrides({ debtId: String(debtId) });
           await finishGoal2Persist(saved, { refreshGoal2DebtsCards: true });
           refreshOpenLedgerActivityDialog();
         } finally {
@@ -1272,7 +1258,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       void (async function () {
         startGoal3Persist();
         try {
-          const ok = await savePlanOverrides();
+          const ok = await savePlanOverrides({ savingsId: String(id) });
           await finishGoal3Persist(ok);
         } finally {
           endGoal3Persist();
@@ -1295,7 +1281,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if (savingsId) clearSavingsLedgerDraftForId(String(savingsId));
       refreshInlineSavingsCardAfterLedgerAdd(card, PLAN, moneyExact);
       refreshOpenLedgerActivityDialog();
-      refocusInlineCardField(
+      scheduleInlineCardRefocus(
         card,
         focusField,
         'input[data-field="deposit"], input[data-field="withdrawal"]'
@@ -1303,11 +1289,9 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       void (async function () {
         startGoal3Persist();
         try {
-          const ok = await savePlanOverrides();
+          const ok = await savePlanOverrides(savingsId ? { savingsId: String(savingsId) } : undefined);
           await finishGoal3Persist(ok);
-          refreshInlineSavingsCardAfterLedgerAdd(card, PLAN, moneyExact);
-          refreshOpenLedgerActivityDialog();
-          refocusInlineCardField(
+          scheduleInlineCardRefocus(
             card,
             focusField,
             'input[data-field="deposit"], input[data-field="withdrawal"]'
@@ -1339,7 +1323,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       void (async function () {
         startGoal3Persist();
         try {
-          const saved = await savePlanOverrides();
+          const saved = await savePlanOverrides({ savingsId: String(sid) });
           await finishGoal3Persist(saved, { refreshGoal3SavingsCards: true });
           refreshOpenLedgerActivityDialog();
         } finally {

@@ -37,7 +37,7 @@ import { withAppBusy } from './app-busy';
 /** Show the busy overlay if a persist takes longer than this. */
 const SAVE_BUSY_DELAY_MS = 160;
 
-async function persistPlanOverridesInner(): Promise<boolean> {
+async function persistPlanOverridesInner(opts?: SavePlanOverridesOpts): Promise<boolean> {
   // Trial sessions should not persist any edits beyond the current tab lifetime.
   if (isTrialSessionActive()) {
     return true;
@@ -52,9 +52,36 @@ async function persistPlanOverridesInner(): Promise<boolean> {
     return true;
   }
   clearPlanSaveError();
+  // Local first so a slow remote write cannot lose the edit on refresh.
+  safeWriteLocalPlanPayload(PLAN as any);
   try {
     const repos = getRepositories();
     let remoteOk = true;
+    const debtId = opts && opts.debtId ? String(opts.debtId) : '';
+    const savingsId = opts && opts.savingsId ? String(opts.savingsId) : '';
+
+    if (debtId) {
+      try {
+        await persistOneDebtToSupabase(repos, debtId);
+      } catch (e) {
+        remoteOk = false;
+        notePlanSaveError(e);
+        // eslint-disable-next-line no-console
+        console.warn('[PennyPath] persistOneDebtToSupabase failed', e);
+      }
+      return remoteOk;
+    }
+    if (savingsId) {
+      try {
+        await persistOneSavingsToSupabase(repos, savingsId);
+      } catch (e) {
+        remoteOk = false;
+        notePlanSaveError(e);
+        // eslint-disable-next-line no-console
+        console.warn('[PennyPath] persistOneSavingsToSupabase failed', e);
+      }
+      return remoteOk;
+    }
 
     // Debts + payment_history first (matches agent API; not blocked by plan config errors).
     try {
@@ -84,7 +111,6 @@ async function persistPlanOverridesInner(): Promise<boolean> {
       console.warn('[PennyPath] persistSavingsToSupabase failed', e);
     }
 
-    safeWriteLocalPlanPayload(PLAN as any);
     return remoteOk;
   } catch (e) {
     notePlanSaveError(e);
@@ -115,6 +141,66 @@ function clearPlanSaveError(): void {
   lastPlanSaveError = null;
 }
 
+function paymentHistoryPayload(debt: Debt): Array<{
+  id: string;
+  amount: number;
+  at: string;
+  kind: ReturnType<typeof debtLedgerKind>;
+  memo: string;
+}> {
+  const ph = Array.isArray(debt.paymentHistory) ? debt.paymentHistory : [];
+  return ph.map(function (p: PaymentHistoryItem) {
+    return {
+      id: String(p.id),
+      amount: Number(p.amount),
+      at: String(p.at),
+      kind: debtLedgerKind(p.kind),
+      memo: normalizeLedgerMemo(p.memo),
+    };
+  });
+}
+
+function depositHistoryPayload(acc: SavingsAccount): Array<{
+  id: string;
+  amount: number;
+  at: string;
+  kind: ReturnType<typeof savingsLedgerKind>;
+  memo: string;
+}> {
+  const dh = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
+  return dh.map(function (d: DepositHistoryItem) {
+    return {
+      id: String(d.id),
+      amount: Number(d.amount),
+      at: String(d.at),
+      kind: savingsLedgerKind(d.kind),
+      memo: normalizeLedgerMemo(d.memo),
+    };
+  });
+}
+
+async function persistOneDebtToSupabase(repos: Repositories, debtId: string): Promise<void> {
+  const debts = Array.isArray((PLAN as any).debts) ? ((PLAN as any).debts as Debt[]) : [];
+  const debt = debts.find(function (d) {
+    return String(d.id) === String(debtId);
+  });
+  if (!debt) return;
+  await repos.debtRepository.update(debt);
+  await repos.debtRepository.syncPayments(String(debt.id), paymentHistoryPayload(debt));
+}
+
+async function persistOneSavingsToSupabase(repos: Repositories, savingsId: string): Promise<void> {
+  const accounts = Array.isArray((PLAN as any).savingsAccounts)
+    ? ((PLAN as any).savingsAccounts as SavingsAccount[])
+    : [];
+  const acc = accounts.find(function (a) {
+    return String(a.id) === String(savingsId);
+  });
+  if (!acc) return;
+  await repos.savingsAccountRepository.update(acc);
+  await repos.savingsAccountRepository.syncDeposits(String(acc.id), depositHistoryPayload(acc));
+}
+
 async function persistDebtsToSupabase(repos: Repositories): Promise<void> {
   const existingDebts = await repos.debtRepository.list();
   const nextDebtIds = new Set((PLAN as any).debts ? (PLAN as any).debts.map((d: any) => String(d.id)) : []);
@@ -123,23 +209,12 @@ async function persistDebtsToSupabase(repos: Repositories): Promise<void> {
       .filter((d) => d && !nextDebtIds.has(String(d.id)))
       .map((d) => repos.debtRepository.remove(String(d.id)))
   );
-  const debts = Array.isArray((PLAN as any).debts) ? (PLAN as any).debts : [];
-  for (const debt of debts) {
-    await repos.debtRepository.update(debt);
-    const ph = Array.isArray(debt.paymentHistory) ? debt.paymentHistory : [];
-    await repos.debtRepository.syncPayments(
-      String(debt.id),
-      ph.map(function (p: PaymentHistoryItem) {
-        return {
-          id: String(p.id),
-          amount: Number(p.amount),
-          at: String(p.at),
-          kind: debtLedgerKind(p.kind),
-          memo: normalizeLedgerMemo(p.memo),
-        };
-      })
-    );
-  }
+  const debts = Array.isArray((PLAN as any).debts) ? ((PLAN as any).debts as Debt[]) : [];
+  await Promise.all(
+    debts.map(function (debt) {
+      return persistOneDebtToSupabase(repos, String(debt.id));
+    })
+  );
 }
 
 async function persistSavingsToSupabase(repos: Repositories): Promise<void> {
@@ -152,23 +227,14 @@ async function persistSavingsToSupabase(repos: Repositories): Promise<void> {
       .filter((a) => a && !nextAccIds.has(String(a.id)))
       .map((a) => repos.savingsAccountRepository.remove(String(a.id)))
   );
-  const accounts = Array.isArray((PLAN as any).savingsAccounts) ? (PLAN as any).savingsAccounts : [];
-  for (const acc of accounts) {
-    await repos.savingsAccountRepository.update(acc);
-    const dh = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
-    await repos.savingsAccountRepository.syncDeposits(
-      String(acc.id),
-      dh.map(function (d: DepositHistoryItem) {
-        return {
-          id: String(d.id),
-          amount: Number(d.amount),
-          at: String(d.at),
-          kind: savingsLedgerKind(d.kind),
-          memo: normalizeLedgerMemo(d.memo),
-        };
-      })
-    );
-  }
+  const accounts = Array.isArray((PLAN as any).savingsAccounts)
+    ? ((PLAN as any).savingsAccounts as SavingsAccount[])
+    : [];
+  await Promise.all(
+    accounts.map(function (acc) {
+      return persistOneSavingsToSupabase(repos, String(acc.id));
+    })
+  );
   await repos.savingsGoalRepository.save(Array.isArray((PLAN as any).savingsGoals) ? (PLAN as any).savingsGoals : []);
 }
 
@@ -570,7 +636,16 @@ export async function applyPlanOverrides(): Promise<void> {
   }
 }
 
-export async function savePlanOverrides(): Promise<boolean> {
-  return withAppBusy('Saving…', persistPlanOverridesInner, { delayMs: SAVE_BUSY_DELAY_MS });
+export type SavePlanOverridesOpts = {
+  /** Persist only this debt (row + ledger). Skip other debts, savings, and plan config. */
+  debtId?: string;
+  /** Persist only this savings account (row + ledger). Skip debts, other accounts, and plan config. */
+  savingsId?: string;
+};
+
+export async function savePlanOverrides(opts?: SavePlanOverridesOpts): Promise<boolean> {
+  return withAppBusy('Saving…', function () {
+    return persistPlanOverridesInner(opts);
+  }, { delayMs: SAVE_BUSY_DELAY_MS });
 }
 

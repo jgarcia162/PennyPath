@@ -43,5 +43,6 @@ export function persistRenderOptions(policy: PersistRenderPolicy = {}): PlanPage
     refreshGoal2DebtsCards: policy.refreshGoal2DebtsCards === true || getEditingDebtCardId() == null,
     refreshGoal3SavingsCards: policy.refreshGoal3SavingsCards === true || getEditingSavingsCardId() == null,
     preserveLedgerActivityDrafts: policy.preserveLedgerActivityDrafts !== false,
+    skipSecondaryRefresh: getEditingDebtCardId() != null || getEditingSavingsCardId() != null,
   };
 }

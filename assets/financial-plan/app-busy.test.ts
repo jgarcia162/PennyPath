@@ -45,6 +45,7 @@ describe('app-busy status bar', () => {
     expect(el?.tagName.toLowerCase()).toBe('div');
     expect(el?.getAttribute('popover')).toBe('manual');
     expect(el?.getAttribute('role')).toBe('status');
+    expect(el?.hasAttribute('inert')).toBe(true);
     expect(isAppBusy()).toBe(true);
     expect(barIsVisible()).toBe(true);
     expect(el?.textContent).toContain('Saving wrap-up…');
