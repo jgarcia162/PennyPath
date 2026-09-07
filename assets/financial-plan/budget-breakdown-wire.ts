@@ -11,8 +11,10 @@ import {
   syncBudgetRowsToLegacyFields,
   updateBufferRowAmount,
 } from './budget-categories';
+import { currencyDigitsOnly, wireMoneyMasks } from './money-input-mask';
 import { savePlanOverrides } from './persistence';
 import { setBudgetBreakdownEditMode } from './budget-breakdown-state';
+import { formatCurrencyInput, formatMoneyInput, parseMoneyInput } from './utils';
 
 type RenderFn = (opts?: { refreshBalanceEditors?: boolean }) => void;
 type BudgetRowLike = BudgetCategoryRow;
@@ -26,9 +28,14 @@ function findRow(plan: FinancialPlan, id: string): BudgetCategoryRow | undefined
 }
 
 function parsePercentFromInput(raw: string): number {
-  const n = Number(String(raw || '').replace(/[^\d.-]/g, ''));
-  if (!Number.isFinite(n)) return 0;
+  const n = parseMoneyInput(raw);
+  if (n == null) return 0;
   return Math.max(0, n);
+}
+
+function setCurrencyField(el: HTMLInputElement, amt: number): void {
+  el.value = formatCurrencyInput(amt);
+  el.dataset.moneyDigits = currencyDigitsOnly(el.value);
 }
 
 function budgetTotalForEditing(plan: FinancialPlan): number {
@@ -44,6 +51,7 @@ export function wireBudgetBreakdown(render: RenderFn): void {
   const wrap = document.getElementById('budget-breakdown-wrap');
   if (!wrap || (wrap as HTMLElement & { _budgetWired?: boolean })._budgetWired) return;
   (wrap as HTMLElement & { _budgetWired?: boolean })._budgetWired = true;
+  wireMoneyMasks(wrap);
 
   const rowsHost = document.getElementById('budget-breakdown-rows');
   const addBtn = document.getElementById('budget-add-row-btn');
@@ -107,6 +115,24 @@ export function wireBudgetBreakdown(render: RenderFn): void {
     updateBufferRowAmount(PLAN as FinancialPlan);
   }
 
+  function applyPairedField(rowEl: Element): void {
+    const amtIn = rowEl.querySelector('.budget-cat-amount') as HTMLInputElement | null;
+    const pctIn = rowEl.querySelector('.budget-cat-pct') as HTMLInputElement | null;
+    if (!amtIn || !pctIn || amtIn.readOnly) return;
+    const total = budgetTotalForEditing(PLAN as FinancialPlan);
+    const mode = (rowEl.getAttribute('data-last-edit') || '').toLowerCase();
+    if (mode === 'pct') {
+      const pct = parsePercentFromInput(pctIn.value);
+      const amt = parseAmountFromInput(String((total * pct) / 100));
+      setCurrencyField(amtIn, amt);
+      pctIn.value = formatMoneyInput(pct);
+    } else {
+      const amt = parseAmountFromInput(amtIn.value);
+      setCurrencyField(amtIn, amt);
+      pctIn.value = formatMoneyInput(total > 0 ? (amt / total) * 100 : 0);
+    }
+  }
+
   function onBlur(e: Event): void {
     const t = e.target as HTMLElement | null;
     if (!t || !t.classList) return;
@@ -121,6 +147,9 @@ export function wireBudgetBreakdown(render: RenderFn): void {
     if (rowEl && t.classList.contains('budget-cat-pct')) rowEl.setAttribute('data-last-edit', 'pct');
     if (rowEl && t.classList.contains('budget-cat-amount')) rowEl.setAttribute('data-last-edit', 'amount');
     commitFromDom();
+    if (rowEl && (t.classList.contains('budget-cat-amount') || t.classList.contains('budget-cat-pct'))) {
+      applyPairedField(rowEl);
+    }
   }
 
   if (rowsHost) {
@@ -129,20 +158,10 @@ export function wireBudgetBreakdown(render: RenderFn): void {
       if (!t || !t.classList) return;
       const rowEl = t.closest('.budget-row--editable');
       if (!rowEl) return;
-      const amtIn = rowEl.querySelector('.budget-cat-amount') as HTMLInputElement | null;
-      const pctIn = rowEl.querySelector('.budget-cat-pct') as HTMLInputElement | null;
-      const total = budgetTotalForEditing(PLAN as FinancialPlan);
       if (t.classList.contains('budget-cat-amount')) {
         rowEl.setAttribute('data-last-edit', 'amount');
-        if (!amtIn || !pctIn) return;
-        const amt = parseAmountFromInput(amtIn.value);
-        pctIn.value = total > 0 ? (((amt / total) * 100 * 10) / 10).toFixed(1).replace(/\.0$/, '') : '0';
       } else if (t.classList.contains('budget-cat-pct')) {
         rowEl.setAttribute('data-last-edit', 'pct');
-        if (!amtIn || !pctIn) return;
-        const pct = parsePercentFromInput(pctIn.value);
-        const amt = parseAmountFromInput(String((total * pct) / 100));
-        amtIn.value = String(amt % 1 === 0 ? Math.round(amt) : amt.toFixed(2));
       }
     });
 
