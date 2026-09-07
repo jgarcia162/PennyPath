@@ -68,6 +68,7 @@ export function wireMoneyMasks(rootEl: HTMLElement | null): void {
   rootEl.addEventListener('keydown', function (e) {
     const t = e.target as HTMLInputElement | null;
     if (!t || t.tagName !== 'INPUT') return;
+    if (t.readOnly || t.disabled) return;
     if (t.getAttribute('data-money') !== 'currency') return;
 
     if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -109,6 +110,7 @@ export function wireMoneyMasks(rootEl: HTMLElement | null): void {
   rootEl.addEventListener('paste', function (e) {
     const t = e.target as HTMLInputElement | null;
     if (!t || t.tagName !== 'INPUT') return;
+    if (t.readOnly || t.disabled) return;
     if (t.getAttribute('data-money') !== 'currency') return;
     e.preventDefault();
     const clip = e.clipboardData ? e.clipboardData.getData('text') : '';
@@ -122,6 +124,7 @@ export function wireMoneyMasks(rootEl: HTMLElement | null): void {
   rootEl.addEventListener('focusin', function (e) {
     const t = e.target as HTMLInputElement | null;
     if (!t || t.tagName !== 'INPUT') return;
+    if (t.readOnly || t.disabled) return;
     if (t.getAttribute('data-money') !== 'currency') return;
     t.dataset.moneyDigits = currencyDigitsOnly(t.value);
   });
@@ -131,6 +134,7 @@ export function wireMoneyMasks(rootEl: HTMLElement | null): void {
     function (e) {
       const t = e.target as HTMLInputElement | null;
       if (!t || t.tagName !== 'INPUT') return;
+      if (t.readOnly || t.disabled) return;
       if (t.getAttribute('data-money') !== 'rate') return;
       const n = parseMoneyInput(t.value);
       t.value = n == null ? '' : formatMoneyInput(n);

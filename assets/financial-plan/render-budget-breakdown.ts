@@ -4,7 +4,7 @@
  */
 
 import type { BudgetCategoryRow, DerivedPlanMetrics, FinancialPlan } from '../../types/index.js';
-import { escapeHtml } from './utils';
+import { escapeHtml, formatCurrencyInput, formatMoneyInput } from './utils';
 import { getBudgetBreakdownEditMode } from './budget-breakdown-state';
 import {
   ensureBudgetCategories,
@@ -55,9 +55,12 @@ export function renderBudgetBreakdown(
   const parts: string[] = [];
 
   if (editing) {
+    const budgetTotal = Number(d && d.budgetTotal);
+    const total = Number.isFinite(budgetTotal) && budgetTotal > 0 ? budgetTotal : 0;
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i];
-      const pct = pctOfBudget(rowAmt(row));
+      const amt = rowAmt(row);
+      const pct = total > 0 ? (amt / total) * 100 : 0;
       const readonlyAmt = row.role === 'buffer';
       const showRemove = true;
       parts.push(
@@ -73,13 +76,13 @@ export function renderBudgetBreakdown(
           '" />' +
           chipHtml(row) +
           '</div>' +
-          '<input type="text" class="budget-cat-amount" inputmode="decimal" autocomplete="off" aria-label="Amount" value="' +
+          '<input type="text" class="budget-cat-amount" data-money="currency" inputmode="decimal" autocomplete="off" placeholder="$0.00" aria-label="Amount" value="' +
           escapeAttr(formatAmtInput(row.amount)) +
           '"' +
           (readonlyAmt ? ' readonly' : '') +
           amountStyleAttr(row) +
           '/>' +
-          '<input type="text" class="budget-cat-pct" inputmode="decimal" autocomplete="off" aria-label="Percent" value="' +
+          '<input type="text" class="budget-cat-pct" data-money="rate" inputmode="decimal" autocomplete="off" placeholder="0.00" aria-label="Percent" value="' +
           escapeAttr(formatPctInput(pct)) +
           '"' +
           (readonlyAmt ? ' readonly' : '') +
@@ -149,11 +152,11 @@ function rowAmt(row: BudgetCategoryRow): number {
 function formatAmtInput(n: number): string {
   const x = Number(n);
   if (!Number.isFinite(x)) return '';
-  return x === Math.floor(x) ? String(Math.round(x)) : x.toFixed(2);
+  return formatCurrencyInput(x);
 }
 
 function formatPctInput(n: number): string {
   const x = Number(n);
-  if (!Number.isFinite(x)) return '0';
-  return x === Math.floor(x) ? String(Math.round(x)) : x.toFixed(1);
+  if (!Number.isFinite(x)) return '';
+  return formatMoneyInput(x);
 }
