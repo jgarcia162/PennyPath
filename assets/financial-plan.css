@@ -5016,7 +5016,7 @@ body.financial-plan-demo-mode #checkin-form {
 .budget-wrap--editing .budget-header--4,
 .budget-wrap--editing .budget-row--editable,
 .budget-wrap--editing .budget-row--total-static {
-  grid-template-columns: minmax(0, 1fr) minmax(108px, 132px) minmax(58px, 74px) 36px;
+  grid-template-columns: minmax(0, 1fr) minmax(124px, 160px) minmax(64px, 82px) 36px;
   gap: 20px;
 }
 .budget-header__action {
