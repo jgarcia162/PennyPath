@@ -3,7 +3,7 @@ import type { FinancialPlan } from '../../types/index.js';
 import { applyBlankFinancialBalances, applyPlanPayloadFromObject } from './persistence.js';
 import { createBlankFinancialPlan } from './plan-data.js';
 import { getSavingsAccounts } from './savings-accounts.js';
-import { ensureSavingsGoals } from './savings-goals.js';
+import { ensureSavingsGoals, hasJointHysaGoal } from './savings-goals.js';
 import { sampleDataLabel } from './dev-mock-storage.js';
 
 function filledPlan(): FinancialPlan {
@@ -49,6 +49,7 @@ describe('applyBlankFinancialBalances', () => {
     expect(plan.savingsGoals).toEqual([]);
     expect(plan.monthlyTakeHome).toBe(0);
     expect(plan.goalHysa).toBe(0);
+    expect(hasJointHysaGoal(plan)).toBe(false);
     expect(plan.budgetCategories).toBeUndefined();
     expect(getSavingsAccounts(plan)).toEqual([]);
   });
@@ -79,6 +80,7 @@ describe('ensureSavingsGoals', () => {
     ensureSavingsGoals(plan);
     expect(plan.savingsGoals).toEqual([]);
     expect(plan.goalHysa).toBe(0);
+    expect(hasJointHysaGoal(plan)).toBe(false);
   });
 });
 

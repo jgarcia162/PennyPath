@@ -484,7 +484,7 @@ export default function DashboardPage() {
               </div>
 
             <div className="status-grid">
-              <div className="status-card positive">
+              <div className="status-card positive" id="status-hysa-card">
                 <div className="status-label">Joint Account Balance</div>
                 <div className="status-value" id="status-hysa"></div>
                 <div className="status-note" id="status-hysa-note"></div>
@@ -578,7 +578,7 @@ export default function DashboardPage() {
             </details>
 
             <div className="goals-grid">
-              <div className="goal-card primary">
+              <div className="goal-card primary" id="goal-hysa-card">
                 <div className="goal-tag">Goal 1 — Primary 🏡</div>
                 <div className="goal-value" id="goal-hysa-amt"></div>
                 <div className="goal-desc">

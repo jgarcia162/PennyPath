@@ -36,6 +36,7 @@ import {
 } from './savings-editor';
 import { freezeEditorOrders, clearEditorOrderFreeze } from './render-sections';
 import type { PlanPageRenderOptions } from './render-page';
+import { persistRenderOptions, type PersistRenderPolicy } from './plan-render-policy';
 import { isLedgerPendingEditorField } from './ledger-utils';
 import {
   applyGoal2SaveButtonState,
@@ -273,6 +274,8 @@ let goal2IgnoreActivityUntil = 0;
 let goal3IgnoreActivityUntil = 0;
 let goal2PersistInFlight = false;
 let goal3PersistInFlight = false;
+let goal2DirtyDuringPersist = false;
+let goal3DirtyDuringPersist = false;
 
 function beginGoal2PersistGuard(ms?: number): void {
   goal2IgnoreActivityUntil = Date.now() + (typeof ms === 'number' ? ms : PERSIST_ACTIVITY_GUARD_MS);
@@ -300,26 +303,24 @@ function setEditorSaving(saveBtnId: string, saving: boolean): void {
 
 function startGoal2Persist(): void {
   goal2PersistInFlight = true;
-  beginGoal2PersistGuard(60_000);
+  goal2DirtyDuringPersist = false;
   setEditorSaving('btn-save-goal2-debts', true);
   showGoal2Saving();
 }
 
 function endGoal2Persist(): void {
-  beginGoal2PersistGuard();
   setEditorSaving('btn-save-goal2-debts', false);
   goal2PersistInFlight = false;
 }
 
 function startGoal3Persist(): void {
   goal3PersistInFlight = true;
-  beginGoal3PersistGuard(60_000);
+  goal3DirtyDuringPersist = false;
   setEditorSaving('btn-save-goal3-savings', true);
   showGoal3Saving();
 }
 
 function endGoal3Persist(): void {
-  beginGoal3PersistGuard();
   setEditorSaving('btn-save-goal3-savings', false);
   goal3PersistInFlight = false;
 }
@@ -411,7 +412,7 @@ function showGoal3SaveFailed() {
 }
 
 function showGoal2Unsaved(opts?: { force?: boolean }) {
-  if (goal2PersistInFlight) return;
+  if (!opts?.force && goal2PersistInFlight) return;
   if (!opts?.force && shouldIgnoreGoal2EditorActivity()) return;
   const st = document.getElementById('goal2-save-status');
   if (!st) return;
@@ -421,7 +422,7 @@ function showGoal2Unsaved(opts?: { force?: boolean }) {
 }
 
 function showGoal3Unsaved(opts?: { force?: boolean }) {
-  if (goal3PersistInFlight) return;
+  if (!opts?.force && goal3PersistInFlight) return;
   if (!opts?.force && shouldIgnoreGoal3EditorActivity()) return;
   const st = document.getElementById('goal3-save-status');
   if (!st) return;
@@ -447,8 +448,20 @@ function markUnsavedFromEditorField(
   el: HTMLElement,
   which: 'goal2' | 'goal3'
 ): boolean {
-  if (which === 'goal2' ? shouldIgnoreGoal2EditorActivity() : shouldIgnoreGoal3EditorActivity()) {
-    return false;
+  if (which === 'goal2') {
+    if (goal2PersistInFlight) {
+      if (!editorFieldChangedFromBaseline(el)) return false;
+      goal2DirtyDuringPersist = true;
+      return false;
+    }
+    if (shouldIgnoreGoal2EditorActivity()) return false;
+  } else {
+    if (goal3PersistInFlight) {
+      if (!editorFieldChangedFromBaseline(el)) return false;
+      goal3DirtyDuringPersist = true;
+      return false;
+    }
+    if (shouldIgnoreGoal3EditorActivity()) return false;
   }
   if (!editorFieldChangedFromBaseline(el)) return false;
   if (which === 'goal2') showGoal2Unsaved({ force: true });
@@ -476,32 +489,25 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
     return savePlanOverrides();
   }
 
-  async function finishGoal2Persist(
-    ok: boolean,
-    opts?: {
-      preserveLedgerActivityDrafts?: boolean;
-      refreshGoal2DebtsCards?: boolean;
-      refreshGoal3SavingsCards?: boolean;
+  async function finishGoal2Persist(ok: boolean, opts?: PersistRenderPolicy): Promise<void> {
+    if (opts?.rebuildOpenEditors === true) {
+      beginGoal2PersistGuard();
     }
-  ): Promise<void> {
-    beginGoal2PersistGuard();
     if (debtDraftRerenderTimer != null) {
       clearTimeout(debtDraftRerenderTimer);
       debtDraftRerenderTimer = null;
     }
-    render({
-      refreshBalanceEditors: true,
-      refreshGoal2DebtsCards:
-        opts?.refreshGoal2DebtsCards === true || getEditingDebtCardId() == null,
-      refreshGoal3SavingsCards:
-        opts?.refreshGoal3SavingsCards === true || getEditingSavingsCardId() == null,
-      preserveLedgerActivityDrafts: opts?.preserveLedgerActivityDrafts !== false,
-    });
+    render(persistRenderOptions(opts));
     applyGoal2SaveButtonState();
     if (ok) {
-      setSaveNeeds('btn-save-goal2-debts', false);
-      showGoal2Saved();
       lastSavedDebts = cloneDebtsSnapshot();
+      if (goal2DirtyDuringPersist) {
+        setSaveNeeds('btn-save-goal2-debts', true);
+        showGoal2Unsaved({ force: true });
+      } else {
+        setSaveNeeds('btn-save-goal2-debts', false);
+        showGoal2Saved();
+      }
     } else {
       showGoal2SaveFailed();
       setSaveNeeds('btn-save-goal2-debts', true);
@@ -548,6 +554,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
   const addBtn = document.getElementById('btn-add-debt') as HTMLButtonElement | null;
   if (addBtn) {
     addBtn.addEventListener('click', function () {
+      if (goal2PersistInFlight) goal2DirtyDuringPersist = true;
       // Always add debts to the Active ledger segment.
       // If the editor is currently showing Paid off, switch segments first so
       // readDebtsEditorIntoPlan() doesn't stamp ledgerStatus=completed onto drafts.
@@ -556,8 +563,9 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         render({ refreshBalanceEditors: true });
       }
       addDebtRowDraft(showGoal2Unsaved);
-      readDebtsEditorIntoPlan();
-      render({ refreshBalanceEditors: true });
+      if (!goal2PersistInFlight) {
+        readDebtsEditorIntoPlan();
+      }
     }, { signal });
   }
 
@@ -643,7 +651,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
             const ok = await savePlanOverrides();
             clearDebtLedgerDraftStore();
             clearDebtLedgerActivityInputs(debtsHostEl);
-            await finishGoal2Persist(ok, { preserveLedgerActivityDrafts: false });
+            await finishGoal2Persist(ok, { rebuildOpenEditors: true, preserveLedgerActivityDrafts: false });
           } finally {
             endGoal2Persist();
           }
@@ -1007,29 +1015,22 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
 
   setEditingSavingsCardId(null);
 
-  async function finishGoal3Persist(
-    ok: boolean,
-    opts?: {
-      preserveLedgerActivityDrafts?: boolean;
-      refreshGoal2DebtsCards?: boolean;
-      refreshGoal3SavingsCards?: boolean;
+  async function finishGoal3Persist(ok: boolean, opts?: PersistRenderPolicy): Promise<void> {
+    if (opts?.rebuildOpenEditors === true) {
+      beginGoal3PersistGuard();
     }
-  ): Promise<void> {
-    beginGoal3PersistGuard();
     cancelSavingsDraftSyncTimer();
-    render({
-      refreshBalanceEditors: true,
-      refreshGoal2DebtsCards:
-        opts?.refreshGoal2DebtsCards === true || getEditingDebtCardId() == null,
-      refreshGoal3SavingsCards:
-        opts?.refreshGoal3SavingsCards === true || getEditingSavingsCardId() == null,
-      preserveLedgerActivityDrafts: opts?.preserveLedgerActivityDrafts !== false,
-    });
+    render(persistRenderOptions(opts));
     applyGoal3SaveButtonState();
     if (ok) {
-      setSaveNeeds('btn-save-goal3-savings', false);
-      showGoal3Saved();
       lastSavedSavings = cloneSavingsSnapshot();
+      if (goal3DirtyDuringPersist) {
+        setSaveNeeds('btn-save-goal3-savings', true);
+        showGoal3Unsaved({ force: true });
+      } else {
+        setSaveNeeds('btn-save-goal3-savings', false);
+        showGoal3Saved();
+      }
     } else {
       showGoal3SaveFailed();
       setSaveNeeds('btn-save-goal3-savings', true);
@@ -1107,7 +1108,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
             const ok = await savePlanOverrides();
             clearSavingsLedgerDraftStore();
             clearSavingsLedgerActivityInputs(savingsHostEl);
-            await finishGoal3Persist(ok, { preserveLedgerActivityDrafts: false });
+            await finishGoal3Persist(ok, { rebuildOpenEditors: true, preserveLedgerActivityDrafts: false });
           } finally {
             endGoal3Persist();
           }
@@ -1160,6 +1161,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
   const addBtn = document.getElementById('btn-add-savings') as HTMLButtonElement | null;
   if (addBtn) {
     addBtn.addEventListener('click', function () {
+      if (goal3PersistInFlight) goal3DirtyDuringPersist = true;
       addSavingsRowDraft(showGoal3Unsaved);
     }, { signal });
   }

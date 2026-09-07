@@ -77,4 +77,20 @@ describe('wireMoneyMasks in debt/savings editor windows', () => {
     typeKey(input, '5');
     expect(input.value).toBe('$10.05');
   });
+
+  it('formats goal-target amount fields as currency while typing', () => {
+    document.body.innerHTML =
+      '<details id="plan-goals-editor">' +
+      '<div id="savings-goals-target-editor">' +
+      '<input type="text" data-field="goal-amount" data-money="currency" value="">' +
+      '</div>' +
+      '</details>';
+    const root = document.getElementById('plan-goals-editor') as HTMLElement;
+    wireMoneyMasks(root);
+    const input = root.querySelector('input[data-field="goal-amount"]') as HTMLInputElement;
+    input.focus();
+    input.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    for (const key of ['5', '0', '0', '0', '0']) typeKey(input, key);
+    expect(input.value).toBe('$500.00');
+  });
 });
