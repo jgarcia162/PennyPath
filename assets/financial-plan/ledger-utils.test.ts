@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment happy-dom
+ */
+
 import { describe, it, expect } from 'vitest';
 import type { DepositHistoryItem, PaymentHistoryItem } from '../../types/index.js';
 import {
@@ -8,6 +12,8 @@ import {
   formatSavingsLedgerSummary,
   isDebtChargeEntry,
   isDebtPaymentEntry,
+  isInlineCardLedgerAddTarget,
+  isLedgerPendingEditorField,
   isSavingsDepositEntry,
   isSavingsWithdrawalEntry,
   normalizeLedgerMemo,
@@ -152,5 +158,25 @@ describe('formatSavingsLedgerSummary', () => {
   it('renders withdrawal with memo', () => {
     const row: DepositHistoryItem = { id: 'dep_2', amount: 100, at: '2026-01-01T00:00:00Z', kind: 'withdrawal', memo: 'Emergency' };
     expect(formatSavingsLedgerSummary(row, moneyExact)).toBe('Withdrawal $100.00 · Emergency');
+  });
+});
+
+describe('isInlineCardLedgerAddTarget', () => {
+  it('treats charge/payment/memo fields as Add targets', () => {
+    const charge = document.createElement('input');
+    charge.setAttribute('data-field', 'charge');
+    expect(isLedgerPendingEditorField(charge)).toBe(true);
+    expect(isInlineCardLedgerAddTarget(charge)).toBe(true);
+
+    const name = document.createElement('input');
+    name.setAttribute('data-field', 'name');
+    expect(isInlineCardLedgerAddTarget(name)).toBe(false);
+  });
+
+  it('treats the card Add button as an Add target', () => {
+    const btn = document.createElement('button');
+    btn.setAttribute('data-action', 'quick-ledger-entry');
+    btn.className = 'btn-quick-ledger-entry';
+    expect(isInlineCardLedgerAddTarget(btn)).toBe(true);
   });
 });

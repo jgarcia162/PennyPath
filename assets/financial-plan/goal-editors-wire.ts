@@ -7,7 +7,7 @@ import { PLAN, PLAN_DEFAULTS } from './plan-data';
 import { applyPlanOverrides, getLastPlanSaveError, savePlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { wireMoneyMasks } from './money-input-mask';
-import { parseMoneyInput } from './utils';
+import { parseMoneyInput, createMoneyFormatters } from './utils';
 import {
   getEditingDebtCardId,
   getEditingSavingsCardId,
@@ -34,10 +34,20 @@ import {
   hardRemoveSavingsById,
   mergeSavingsFromCardElement,
 } from './savings-editor';
-import { freezeEditorOrders, clearEditorOrderFreeze } from './render-sections';
+import {
+  freezeEditorOrders,
+  clearEditorOrderFreeze,
+  freezeDebtCardOrder,
+  thawDebtCardOrderUnlessDialogOpen,
+  freezeSavingsCardOrder,
+  thawSavingsCardOrderUnlessDialogOpen,
+  refreshInlineDebtCardAfterLedgerAdd,
+  refreshInlineSavingsCardAfterLedgerAdd,
+} from './render-sections';
+import { refreshOpenLedgerActivityDialog } from './ledger-activity-dialog';
 import type { PlanPageRenderOptions } from './render-page';
 import { persistRenderOptions, type PersistRenderPolicy } from './plan-render-policy';
-import { isLedgerPendingEditorField } from './ledger-utils';
+import { isLedgerPendingEditorField, isInlineCardLedgerAddTarget } from './ledger-utils';
 import {
   applyGoal2SaveButtonState,
   applyGoal3SaveButtonState,
@@ -63,6 +73,16 @@ import {
 
 let lastSavedDebts: { debts: Debt[] } | null = null;
 let lastSavedSavings: { savingsAccounts: SavingsAccount[] } | null = null;
+const { moneyExact } = createMoneyFormatters();
+
+function refocusInlineCardField(card: HTMLElement, focusField: string, fallbackSelector: string): void {
+  const stay = focusField
+    ? (card.querySelector('input[data-field="' + focusField + '"]') as HTMLInputElement | null)
+    : null;
+  const fallback = card.querySelector(fallbackSelector) as HTMLInputElement | null;
+  const el = stay || fallback;
+  if (el && typeof el.focus === 'function') el.focus();
+}
 
 function wasDebtIdLastSaved(id: string): boolean {
   if (!lastSavedDebts || !lastSavedDebts.debts) return false;
@@ -730,6 +750,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         focusEditingDebtCard(String(debtId));
         return;
       }
+      freezeDebtCardOrder(PLAN);
       setEditingDebtCardId(String(debtId));
       render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
       focusEditingDebtCard(String(debtId));
@@ -739,6 +760,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
     function cancelDebtCardInlineEdit(): void {
       if (getEditingDebtCardId() == null) return;
       setEditingDebtCardId(null);
+      thawDebtCardOrderUnlessDialogOpen();
       render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
     }
 
@@ -755,6 +777,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         : null;
       if (!card) {
         setEditingDebtCardId(null);
+        thawDebtCardOrderUnlessDialogOpen();
         render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
         return;
       }
@@ -768,6 +791,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       mergeDebtFromCardElement(card, { applyPendingLedger: true });
       clearDebtLedgerDraftForId(String(id));
       setEditingDebtCardId(null);
+      thawDebtCardOrderUnlessDialogOpen();
       render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
       void (async function () {
         startGoal2Persist();
@@ -780,19 +804,6 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       })();
     }
 
-    function openDebtCardRecentActivity(debtId: string): void {
-      const host = document.getElementById('goal2-debts');
-      if (!host) return;
-      const idEsc =
-        typeof CSS !== 'undefined' && CSS.escape
-          ? CSS.escape(debtId)
-          : debtId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-      const det = host.querySelector(
-        '.goal2-debt[data-debt-id="' + idEsc + '"] .goal2-debt-payments'
-      ) as HTMLDetailsElement | null;
-      if (det) det.open = true;
-    }
-
     function applyDebtCardLedgerQuickAdd(card: HTMLElement): void {
       if (debtRowHasConflictingLedgerInputs(card) || debtRowHasDualLedgerAmounts(card)) {
         window.alert(
@@ -802,15 +813,21 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         return;
       }
       const debtId = card.getAttribute('data-debt-id');
+      const focusField = (document.activeElement as HTMLElement | null)?.getAttribute?.('data-field') || '';
       mergeDebtFromCardElement(card, { applyPendingLedger: true });
       clearDebtLedgerActivityInputs(card);
       if (debtId) clearDebtLedgerDraftForId(String(debtId));
+      refreshInlineDebtCardAfterLedgerAdd(card, PLAN, moneyExact);
+      refreshOpenLedgerActivityDialog();
+      refocusInlineCardField(card, focusField, 'input[data-field="charge"], input[data-field="payment"]');
       void (async function () {
         startGoal2Persist();
         try {
           const ok = await savePlanOverrides();
-          await finishGoal2Persist(ok, { refreshGoal2DebtsCards: true });
-          if (debtId) openDebtCardRecentActivity(String(debtId));
+          await finishGoal2Persist(ok);
+          refreshInlineDebtCardAfterLedgerAdd(card, PLAN, moneyExact);
+          refreshOpenLedgerActivityDialog();
+          refocusInlineCardField(card, focusField, 'input[data-field="charge"], input[data-field="payment"]');
         } finally {
           endGoal2Persist();
         }
@@ -831,6 +848,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
       if (!ok) return;
       const removed = removeDebtLedgerEntry(debtId, entryId, showGoal2Unsaved, function () {
         render({ refreshBalanceEditors: true, refreshGoal2DebtsCards: true });
+        refreshOpenLedgerActivityDialog();
       });
       if (!removed) return;
       // Persist PLAN as-is — do not re-read the debts editor (that can overwrite card edits).
@@ -839,6 +857,7 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         try {
           const saved = await savePlanOverrides();
           await finishGoal2Persist(saved, { refreshGoal2DebtsCards: true });
+          refreshOpenLedgerActivityDialog();
         } finally {
           endGoal2Persist();
         }
@@ -912,10 +931,15 @@ export function wireGoal2DebtEditor(render: RenderFn): void {
         return;
       }
       if (ke.key === 'Enter' && getEditingDebtCardId() != null) {
-        const card = t.closest('.goal2-debt--editing');
+        const card = t.closest('.goal2-debt--editing') as HTMLElement | null;
         const tag = (t.tagName || '').toLowerCase();
+        if (t.closest('[data-action="see-all-ledger"], .card-activity-see-all')) return;
         if (card && (tag === 'input' || tag === 'button')) {
           ke.preventDefault();
+          if (isInlineCardLedgerAddTarget(t)) {
+            applyDebtCardLedgerQuickAdd(card);
+            return;
+          }
           commitDebtCardInlineEdit();
         }
         return;
@@ -1200,6 +1224,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         focusEditingSavingsCard(String(sid));
         return;
       }
+      freezeSavingsCardOrder(PLAN);
       setEditingSavingsCardId(String(sid));
       render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
       focusEditingSavingsCard(String(sid));
@@ -1209,6 +1234,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
     function cancelSavingsCardInlineEdit(): void {
       if (getEditingSavingsCardId() == null) return;
       setEditingSavingsCardId(null);
+      thawSavingsCardOrderUnlessDialogOpen();
       render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
     }
 
@@ -1227,6 +1253,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         : null;
       if (!card) {
         setEditingSavingsCardId(null);
+        thawSavingsCardOrderUnlessDialogOpen();
         render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
         return;
       }
@@ -1240,6 +1267,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       mergeSavingsFromCardElement(card, { applyPendingLedger: true });
       clearSavingsLedgerDraftForId(String(id));
       setEditingSavingsCardId(null);
+      thawSavingsCardOrderUnlessDialogOpen();
       render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
       void (async function () {
         startGoal3Persist();
@@ -1252,19 +1280,6 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       })();
     }
 
-    function openSavingsCardRecentActivity(savingsId: string): void {
-      const host = document.getElementById('goal3-savings');
-      if (!host) return;
-      const idEsc =
-        typeof CSS !== 'undefined' && CSS.escape
-          ? CSS.escape(savingsId)
-          : savingsId.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-      const det = host.querySelector(
-        '.goal3-savings-account[data-savings-id="' + idEsc + '"] .goal3-savings-deposits'
-      ) as HTMLDetailsElement | null;
-      if (det) det.open = true;
-    }
-
     function applySavingsCardLedgerQuickAdd(card: HTMLElement): void {
       if (savingsRowHasConflictingLedgerInputs(card) || savingsRowHasDualLedgerAmounts(card)) {
         window.alert(
@@ -1274,15 +1289,29 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         return;
       }
       const savingsId = card.getAttribute('data-savings-id');
+      const focusField = (document.activeElement as HTMLElement | null)?.getAttribute?.('data-field') || '';
       mergeSavingsFromCardElement(card, { applyPendingLedger: true });
       clearSavingsLedgerActivityInputs(card);
       if (savingsId) clearSavingsLedgerDraftForId(String(savingsId));
+      refreshInlineSavingsCardAfterLedgerAdd(card, PLAN, moneyExact);
+      refreshOpenLedgerActivityDialog();
+      refocusInlineCardField(
+        card,
+        focusField,
+        'input[data-field="deposit"], input[data-field="withdrawal"]'
+      );
       void (async function () {
         startGoal3Persist();
         try {
           const ok = await savePlanOverrides();
-          await finishGoal3Persist(ok, { refreshGoal3SavingsCards: true });
-          if (savingsId) openSavingsCardRecentActivity(String(savingsId));
+          await finishGoal3Persist(ok);
+          refreshInlineSavingsCardAfterLedgerAdd(card, PLAN, moneyExact);
+          refreshOpenLedgerActivityDialog();
+          refocusInlineCardField(
+            card,
+            focusField,
+            'input[data-field="deposit"], input[data-field="withdrawal"]'
+          );
         } finally {
           endGoal3Persist();
         }
@@ -1303,6 +1332,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
       if (!ok) return;
       const removed = removeSavingsLedgerEntry(sid, entryId, showGoal3Unsaved, function () {
         render({ refreshBalanceEditors: true, refreshGoal3SavingsCards: true });
+        refreshOpenLedgerActivityDialog();
       });
       if (!removed) return;
       syncLegacySavingsFromAccounts(PLAN);
@@ -1311,6 +1341,7 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         try {
           const saved = await savePlanOverrides();
           await finishGoal3Persist(saved, { refreshGoal3SavingsCards: true });
+          refreshOpenLedgerActivityDialog();
         } finally {
           endGoal3Persist();
         }
@@ -1383,10 +1414,15 @@ export function wireGoal3SavingsEditor(render: RenderFn): void {
         return;
       }
       if (ke.key === 'Enter' && getEditingSavingsCardId() != null) {
-        const card = t.closest('.goal3-savings-account--editing');
+        const card = t.closest('.goal3-savings-account--editing') as HTMLElement | null;
         const tag = (t.tagName || '').toLowerCase();
+        if (t.closest('[data-action="see-all-ledger"], .card-activity-see-all')) return;
         if (card && (tag === 'input' || tag === 'button')) {
           ke.preventDefault();
+          if (isInlineCardLedgerAddTarget(t)) {
+            applySavingsCardLedgerQuickAdd(card);
+            return;
+          }
           commitSavingsCardInlineEdit();
         }
         return;

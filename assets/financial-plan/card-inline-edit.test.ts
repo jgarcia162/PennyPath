@@ -9,7 +9,8 @@ import { defaultLogAtIsoForDashboardCardEdits } from './default-log-at';
 import { mergeDebtFromCardElement, removeDebtLedgerEntry } from './debt-editor';
 import { mergeSavingsFromCardElement } from './savings-editor';
 import { yyyyMmFromDate } from './monthly-activity';
-import { RECENT_CARD_ACTIVITY_LIMIT, recentCardActivityEntries } from './render-sections';
+import { RECENT_CARD_ACTIVITY_LIMIT, recentCardActivityEntries, refreshInlineDebtCardAfterLedgerAdd } from './render-sections';
+import { createMoneyFormatters } from './utils';
 import { buildDebtLedgerUnifiedCellHtml } from './debt-ledger-editor-cells';
 import { buildSavingsLedgerUnifiedCellHtml } from './savings-ledger-editor-cells';
 import { debtLedgerKind, savingsLedgerKind } from './ledger-utils';
@@ -181,5 +182,29 @@ describe('mergeSavingsFromCardElement', () => {
     expect(acc.depositHistory).toHaveLength(1);
     expect(savingsLedgerKind(acc.depositHistory[0].kind)).toBe('deposit');
     expect(dep.value).toBe('');
+  });
+});
+
+describe('refreshInlineDebtCardAfterLedgerAdd', () => {
+  it('does not open Recent activity if it was closed', () => {
+    const { moneyExact } = createMoneyFormatters();
+    document.body.innerHTML = '';
+    (PLAN as any).debts = [
+      {
+        ...TEST_DEBT,
+        paymentHistory: [{ id: 'ch1', amount: 10, at: '2026-01-01T00:00:00Z', kind: 'charge' }],
+      },
+    ];
+    const card = mountDebtInlineCard();
+    const details = document.createElement('details');
+    details.className = 'goal2-debt-payments';
+    card.appendChild(details);
+    expect(details.open).toBe(false);
+
+    refreshInlineDebtCardAfterLedgerAdd(card, PLAN as any, moneyExact);
+
+    const next = card.querySelector('.goal2-debt-payments') as HTMLDetailsElement;
+    expect(next.open).toBe(false);
+    expect(next.textContent).toMatch(/Charge/);
   });
 });

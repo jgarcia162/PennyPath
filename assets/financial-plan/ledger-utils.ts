@@ -67,3 +67,14 @@ export function isLedgerPendingEditorField(el: Element | null): boolean {
     'input[data-field="payment"], input[data-field="charge"], input[data-field="deposit"], input[data-field="withdrawal"], input[data-field="charge-memo"], input[data-field="withdrawal-memo"]'
   );
 }
+
+/** Enter on a quick-edit card should Add (not Save) from activity fields or the Add button. */
+export function isInlineCardLedgerAddTarget(el: Element | null): boolean {
+  if (!el) return false;
+  if (isLedgerPendingEditorField(el)) return true;
+  const node = el as HTMLElement;
+  if (typeof node.closest !== 'function') return false;
+  return !!node.closest(
+    '[data-action="quick-ledger-entry"], [data-action="quick-savings-ledger-entry"], .btn-quick-ledger-entry, .btn-quick-savings-ledger-entry'
+  );
+}

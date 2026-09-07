@@ -21,6 +21,7 @@ import {
 import { wirePlanTabs } from './tabs-wire';
 import { wireGoalTargetsEditor } from './goal-targets-wire';
 import { wireCheckIns, renderCheckIns } from './checkin-log';
+import { wireLedgerActivityDialog } from './ledger-activity-dialog';
 import { wireBadges, renderBadges } from './features.js';
 import { applyDemoPlanSnapshot, buildMockCheckins } from './dev-mock-storage';
 import { wipeAllUserData } from './wipe-user-data';
@@ -165,6 +166,7 @@ async function init(): Promise<void> {
   wireGoal3SavingsEditor(render);
   wireDashboardTrashBin(render);
   wireGoalEditorDialogs();
+  wireLedgerActivityDialog();
   wirePlanTabs();
   wireGoalTargetsEditor(render);
   wireCheckIns();

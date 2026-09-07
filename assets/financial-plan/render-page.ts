@@ -240,9 +240,9 @@ export type PlanPageRenderOptions = {
    * Used after Add commits a ledger row so memo fields do not restore from the draft store.
    */
   preserveLedgerActivityDrafts?: boolean;
-  /** Rebuild `#goal2-debts` even when a card is in inline-edit mode (e.g. after Activity Add). */
+  /** Rebuild `#goal2-debts` even when a card is in inline-edit mode (enter/leave edit, Save). */
   refreshGoal2DebtsCards?: boolean;
-  /** Rebuild `#goal3-savings` even when a card is in inline-edit mode (e.g. after Activity Add). */
+  /** Rebuild `#goal3-savings` even when a card is in inline-edit mode (enter/leave edit, Save). */
   refreshGoal3SavingsCards?: boolean;
 };
 
@@ -279,7 +279,8 @@ function shouldSkipGoalsTargetEditorRender(opts?: PlanPageRenderOptions): boolea
 /**
  * While a Goal 2 debt card is open in inline-edit mode, skip generic rerenders
  * of `#goal2-debts` so typing isn't wiped. Pass `refreshGoal2DebtsCards` when the
- * dashboard card list must update (enter/leave edit, Activity Add, Save).
+ * dashboard card list must update (enter/leave edit, Save). Ledger Add on the
+ * card updates Recent activity in place instead of rebuilding the list.
  */
 function shouldSkipGoal2DebtsCardsRender(opts?: PlanPageRenderOptions): boolean {
   if (opts && opts.refreshGoal2DebtsCards === true) return false;

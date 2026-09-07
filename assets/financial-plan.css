@@ -4071,6 +4071,32 @@ body.financial-plan-demo-mode #checkin-form {
   flex-direction: column;
   gap: 6px;
 }
+.card-activity-block {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 6px;
+}
+.card-activity-block .goal2-debt-payments,
+.card-activity-block .goal3-savings-deposits {
+  margin-top: 0;
+}
+.card-activity-see-all {
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 0;
+  border: none;
+  background: transparent;
+  color: var(--gold);
+  cursor: pointer;
+  letter-spacing: 0.2px;
+}
+.card-activity-see-all:hover {
+  text-decoration: underline;
+}
 .goal2-debt-payment-row {
   display: flex;
   align-items: center;
@@ -4505,6 +4531,191 @@ body.financial-plan-demo-mode #checkin-form {
 }
 :root[data-theme="dark"] .checkin-log-dialog__header {
   border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+.ledger-activity-dialog {
+  position: fixed;
+  inset: 0;
+  width: min(560px, calc(100vw - 32px));
+  height: fit-content;
+  max-height: min(85vh, 720px);
+  margin: auto;
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  box-shadow: none;
+}
+.ledger-activity-dialog::backdrop {
+  background: rgba(10, 12, 20, 0.55);
+}
+.ledger-activity-dialog__chrome {
+  width: 100%;
+  background: var(--paper);
+  border: 1px solid rgba(60, 68, 82, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+  max-height: min(85vh, 720px);
+  display: flex;
+  flex-direction: column;
+}
+.ledger-activity-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 22px;
+  border-bottom: 1px solid rgba(60, 68, 82, 0.08);
+  background: var(--ink);
+  color: var(--cream);
+  flex-shrink: 0;
+}
+.ledger-activity-dialog__heading {
+  min-width: 0;
+}
+.ledger-activity-dialog__title {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--cream);
+}
+.ledger-activity-dialog__subtitle {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: rgba(250, 246, 244, 0.78);
+}
+.ledger-activity-dialog__close {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--cream);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ledger-activity-dialog__close:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.ledger-activity-dialog__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 22px;
+  border-bottom: 1px solid rgba(60, 68, 82, 0.08);
+  flex-shrink: 0;
+}
+.ledger-activity-dialog__toolbar[hidden] {
+  display: none;
+}
+.ledger-activity-dialog__body {
+  padding: 8px 22px 20px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  min-height: 0;
+}
+.ledger-activity-dialog__empty {
+  margin: 12px 0;
+  font-size: 14px;
+  color: #888;
+}
+.ledger-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ledger-activity-section__label {
+  margin: 12px 0 4px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #888;
+}
+.ledger-activity-section__label:first-child {
+  margin-top: 8px;
+}
+.ledger-activity-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.ledger-activity-row {
+  display: grid;
+  grid-template-columns: 6.25rem minmax(0, 1fr) auto;
+  gap: 8px 12px;
+  align-items: baseline;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(60, 68, 82, 0.08);
+}
+.ledger-activity-row:last-child {
+  border-bottom: none;
+}
+.ledger-activity-row__kind {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+.ledger-activity-row--payment .ledger-activity-row__kind,
+.ledger-activity-row--deposit .ledger-activity-row__kind {
+  color: #2d6a4f;
+}
+.ledger-activity-row--charge .ledger-activity-row__kind,
+.ledger-activity-row--withdrawal .ledger-activity-row__kind {
+  color: #b45309;
+}
+.ledger-activity-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.ledger-activity-row__amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.ledger-activity-row__memo {
+  font-size: 12px;
+  color: #666;
+  overflow-wrap: anywhere;
+}
+.ledger-activity-row__date {
+  font-size: 12px;
+  color: #888;
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .ledger-activity-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .ledger-activity-row__kind {
+    grid-column: 1 / -1;
+  }
+}
+
+:root[data-theme="dark"] .ledger-activity-dialog__chrome {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 56px rgba(0, 0, 0, 0.5);
+}
+:root[data-theme="dark"] .ledger-activity-dialog__header,
+:root[data-theme="dark"] .ledger-activity-dialog__toolbar {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+:root[data-theme="dark"] .ledger-activity-row {
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+:root[data-theme="dark"] .ledger-activity-row__memo,
+:root[data-theme="dark"] .ledger-activity-row__date,
+:root[data-theme="dark"] .ledger-activity-section__label {
+  color: rgba(255, 255, 255, 0.55);
 }
 
 /* Goal 2 / 3 editors — centered modal (`<dialog class="goal-editor-dialog">`) */
@@ -6116,8 +6327,8 @@ body.financial-plan-demo-mode #checkin-form {
 .goal3-savings-account--editing .card-inline-edit-apy {
   text-align: right;
 }
-.goal2-debt--editing .goal2-debt-payments,
-.goal3-savings-account--editing .goal3-savings-deposits {
+.goal2-debt--editing .card-activity-block,
+.goal3-savings-account--editing .card-activity-block {
   margin-bottom: 8px;
 }
 .goal2-debt--editing .card-inline-edit-ledger .btn-quick-ledger-entry,
