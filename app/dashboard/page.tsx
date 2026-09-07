@@ -484,7 +484,7 @@ export default function DashboardPage() {
               </div>
 
             <div className="status-grid">
-              <div className="status-card positive">
+              <div className="status-card positive" id="status-hysa-card">
                 <div className="status-label">Joint Account Balance</div>
                 <div className="status-value" id="status-hysa"></div>
                 <div className="status-note" id="status-hysa-note"></div>
@@ -578,7 +578,7 @@ export default function DashboardPage() {
             </details>
 
             <div className="goals-grid">
-              <div className="goal-card primary">
+              <div className="goal-card primary" id="goal-hysa-card">
                 <div className="goal-tag">Goal 1 — Primary 🏡</div>
                 <div className="goal-value" id="goal-hysa-amt"></div>
                 <div className="goal-desc">
@@ -1362,6 +1362,34 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+        </div>
+      </dialog>
+
+      <dialog
+        className="ledger-activity-dialog no-print"
+        id="ledger-activity-dialog"
+        aria-labelledby="ledger-activity-dialog-title"
+        aria-modal="true"
+      >
+        <div className="ledger-activity-dialog__chrome">
+          <div className="ledger-activity-dialog__header">
+            <div className="ledger-activity-dialog__heading">
+              <h2 className="ledger-activity-dialog__title" id="ledger-activity-dialog-title">
+                All transactions
+              </h2>
+              <p className="ledger-activity-dialog__subtitle" id="ledger-activity-dialog-subtitle"></p>
+            </div>
+            <button
+              type="button"
+              className="ledger-activity-dialog__close"
+              data-close-ledger-activity-dialog
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+          <div className="ledger-activity-dialog__toolbar" id="ledger-activity-dialog-toolbar" hidden></div>
+          <div className="ledger-activity-dialog__body" id="ledger-activity-dialog-body"></div>
         </div>
       </dialog>
 

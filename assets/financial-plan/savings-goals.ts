@@ -10,6 +10,15 @@ export const ID_GOAL_HYSA = 'goal-hysa';
 export const ID_GOAL_EFUND = 'goal-efund';
 export const ID_GOAL_PERSONAL = 'goal-personal';
 
+/** True when the plan still has the Joint HYSA savings-target row. */
+export function hasJointHysaGoal(plan: FinancialPlan | null | undefined): boolean {
+  if (!plan || typeof plan !== 'object') return false;
+  const goals = Array.isArray((plan as any).savingsGoals) ? ((plan as any).savingsGoals as SavingsGoal[]) : [];
+  return goals.some(function (g) {
+    return g && String(g.id) === ID_GOAL_HYSA;
+  });
+}
+
 /**
  * Ensure `plan.savingsGoals` exists and sync Goal 1 fields from the Joint HYSA row.
  * @param {object} plan

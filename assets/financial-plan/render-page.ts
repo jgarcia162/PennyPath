@@ -6,7 +6,7 @@ import type { CheckInServiceApi, DerivedPlanMetrics, SavingsGoal, YyyyMm } from 
 import { PLAN } from './plan-data';
 import { derived, getWorkingMonthYm } from './plan-derived';
 import { collectDashboardMonthOptions, monthLabel } from './monthly-activity';
-import { createMoneyFormatters, setText, setHtml, numOr } from './utils';
+import { createMoneyFormatters, setText, setHtml, numOr, formatCurrencyInput } from './utils';
 import {
   renderGoal2Debts,
   renderDebtsEditor,
@@ -19,7 +19,8 @@ import {
   renderDashboardDebtArchives,
   renderDashboardDeletedBin,
 } from './render-sections';
-import { ensureSavingsGoals } from './savings-goals';
+import { ensureSavingsGoals, hasJointHysaGoal } from './savings-goals';
+import { syncLegacySavingsFromAccounts, isJointHysaAccount } from './savings-accounts';
 import { renderPayoffTimeline, renderBadges } from './features.js';
 import { renderCheckIns } from './checkin-log';
 import { renderBudgetBreakdown } from './render-budget-breakdown';
@@ -154,9 +155,13 @@ function renderSavingsGoalsTargetEditor(): void {
     const amtIn = document.createElement('input');
     amtIn.type = 'text';
     amtIn.inputMode = 'decimal';
+    amtIn.autocomplete = 'off';
     amtIn.setAttribute('data-field', 'goal-amount');
+    amtIn.setAttribute('data-money', 'currency');
     amtIn.setAttribute('aria-label', 'Goal amount');
-    amtIn.value = String(Math.round(numOr(g.targetAmount, 0)));
+    amtIn.placeholder = '$0.00';
+    const amt = numOr(g.targetAmount, 0);
+    amtIn.value = amt > 0 ? formatCurrencyInput(amt) : '';
     tdAmt.appendChild(amtIn);
 
     const tdBy = document.createElement('td');
@@ -218,21 +223,26 @@ export type PlanPageRenderOptions = {
   skipDebtsEditor?: boolean;
   /** When true, keeps the Goal 3 savings table DOM and only refreshes derived totals elsewhere. */
   skipSavingsEditor?: boolean;
+  /** When true, keeps the savings-targets table DOM (Edit Goals). */
+  skipGoalsTargetEditor?: boolean;
   /**
    * When true, always rebuild the debt/savings balance editors from PLAN. Required after external
-   * plan changes (trash restore, month switch, wipe) and for editor actions (segment, sort, save),
+   * plan changes (trash restore, month switch, wipe) and for editor actions (segment, sort, add),
    * because a generic `render()` skips those tables while the matching goal dialog is open to avoid
-   * wiping DOM before focus lands on an input.
+   * wiping DOM before focus lands on an input. Do not pass this after Save — use
+   * persistRenderOptions() so in-progress Add/edit rows survive.
    */
   refreshBalanceEditors?: boolean;
+  /** Rebuild the savings-targets table even if a field is focused. */
+  refreshGoalsTargetEditor?: boolean;
   /**
    * When false, Activity column inputs (amounts + notes) are cleared after editor re-render.
    * Used after Add commits a ledger row so memo fields do not restore from the draft store.
    */
   preserveLedgerActivityDrafts?: boolean;
-  /** Rebuild `#goal2-debts` even when a card is in inline-edit mode (e.g. after Activity Add). */
+  /** Rebuild `#goal2-debts` even when a card is in inline-edit mode (enter/leave edit, Save). */
   refreshGoal2DebtsCards?: boolean;
-  /** Rebuild `#goal3-savings` even when a card is in inline-edit mode (e.g. after Activity Add). */
+  /** Rebuild `#goal3-savings` even when a card is in inline-edit mode (enter/leave edit, Save). */
   refreshGoal3SavingsCards?: boolean;
 };
 
@@ -256,10 +266,21 @@ function shouldSkipSavingsEditorRender(opts?: PlanPageRenderOptions): boolean {
   return true;
 }
 
+function shouldSkipGoalsTargetEditorRender(opts?: PlanPageRenderOptions): boolean {
+  if (opts && opts.skipGoalsTargetEditor === true) return true;
+  if (opts && opts.refreshGoalsTargetEditor === true) return false;
+  if (opts && opts.refreshBalanceEditors === true) return false;
+  const host = document.getElementById('savings-goals-target-editor');
+  if (!host) return false;
+  const ae = document.activeElement;
+  return !!(ae && host.contains(ae));
+}
+
 /**
  * While a Goal 2 debt card is open in inline-edit mode, skip generic rerenders
  * of `#goal2-debts` so typing isn't wiped. Pass `refreshGoal2DebtsCards` when the
- * dashboard card list must update (enter/leave edit, Activity Add, Save).
+ * dashboard card list must update (enter/leave edit, Save). Ledger Add on the
+ * card updates Recent activity in place instead of rebuilding the list.
  */
 function shouldSkipGoal2DebtsCardsRender(opts?: PlanPageRenderOptions): boolean {
   if (opts && opts.refreshGoal2DebtsCards === true) return false;
@@ -276,6 +297,7 @@ function shouldSkipGoal3SavingsCardsRender(opts?: PlanPageRenderOptions): boolea
  * drafts on a timer, or `refreshBalanceEditors` after plan changes that must replace editor tables.
  */
 export function render(opts?: PlanPageRenderOptions): void {
+  syncLegacySavingsFromAccounts(PLAN);
   const d = derived(PLAN) as DerivedPlanMetrics;
   syncDashboardMonthSelect();
   const noteWorking = document.getElementById('dashboard-view-working-note');
@@ -326,14 +348,23 @@ export function render(opts?: PlanPageRenderOptions): void {
     setText('cover-hysa-note', 'Add savings in Goal 3 to track progress toward your goal.');
   }
 
-  setText('status-hysa', money(PLAN.hysaBalance));
-  if (hasData) {
-    setText(
-      'status-hysa-note',
-      'Earning ' + (PLAN.hysaApy * 100).toFixed(2) + '% APY — ~' + money(Math.round(d.hysaInterestYr)) + '/yr in interest'
-    );
-  } else {
-    setText('status-hysa-note', 'No joint balance on file — add or edit accounts in Goal 3.');
+  setText('status-hysa', money(d.goalSavingsCurrent));
+  const showJointHysa = hasJointHysaGoal(PLAN);
+  const hysaCard = document.getElementById('status-hysa-card');
+  if (hysaCard) hysaCard.hidden = !showJointHysa;
+  const hysaGoalCard = document.getElementById('goal-hysa-card');
+  if (hysaGoalCard) hysaGoalCard.hidden = !showJointHysa;
+  if (showJointHysa) {
+    if (d.goalSavingsCurrent > 0) {
+      const apyPct =
+        d.goalSavingsCurrent > 0 ? (d.hysaInterestYr / d.goalSavingsCurrent) * 100 : PLAN.hysaApy * 100;
+      setText(
+        'status-hysa-note',
+        'Earning ' + apyPct.toFixed(2) + '% APY — ~' + money(Math.round(d.hysaInterestYr)) + '/yr in interest'
+      );
+    } else {
+      setText('status-hysa-note', 'No joint balance on file — add or edit accounts in Goal 3.');
+    }
   }
   setText('status-personal', moneyExact(d.personalSavings));
   if (hasData) {
@@ -341,7 +372,7 @@ export function render(opts?: PlanPageRenderOptions): void {
       'status-personal-note',
       (d.savingsAccounts || [])
         .filter(function (a) {
-          return String(a.id) !== 'hysa';
+          return !isJointHysaAccount(a);
         })
         .map(function (a) {
           return (a.name || 'Account') + ' ' + moneyExact(numOr(a.current, 0));
@@ -465,7 +496,9 @@ export function render(opts?: PlanPageRenderOptions): void {
     renderSavingsEditor(d, editorOpts);
   }
 
-  renderSavingsGoalsTargetEditor();
+  if (!shouldSkipGoalsTargetEditorRender(opts)) {
+    renderSavingsGoalsTargetEditor();
+  }
 
   const nGoals = (d.savingsGoalSummaries || []).length;
   setTextDash('goal-efund-amt', nGoals ? nGoals + ' savings targets' : 'Savings targets');

@@ -13,12 +13,9 @@ import {
   stripGoalIdFromAllAccounts,
   ID_GOAL_HYSA,
 } from './savings-goals';
-import { numOr } from './utils';
-
-function parseMoneyInput(val: unknown): number | null {
-  const n = Number(String(val || '').replace(/[^\d.-]/g, ''));
-  return Number.isFinite(n) ? n : null;
-}
+import { parseMoneyInput } from './utils';
+import { wireMoneyMasks } from './money-input-mask';
+import type { PlanPageRenderOptions } from './render-page';
 
 function flashStatus(msg: string): void {
   const st = document.getElementById('goal-targets-save-status') as HTMLElement | null;
@@ -63,6 +60,10 @@ function readSavingsGoalsFromDom(): void {
   if (next.length) PLAN.savingsGoals = next;
 }
 
+function renderGoalsEditor(render: (opts?: PlanPageRenderOptions) => void): void {
+  if (typeof render === 'function') render({ refreshGoalsTargetEditor: true });
+}
+
 /** Switch to Financial Plan tab, expand the goals editor, and scroll it into view. */
 export function openPlanGoalsEditor(): void {
   const tabPlan = document.getElementById('tab-plan') as HTMLElement | null;
@@ -95,12 +96,13 @@ export function openPlanGoalsEditor(): void {
   }
 }
 
-export function wireGoalTargetsEditor(render: (opts?: { refreshBalanceEditors?: boolean }) => void): void {
+export function wireGoalTargetsEditor(render: (opts?: PlanPageRenderOptions) => void): void {
   const saveBtn = document.getElementById('btn-save-goal-targets') as HTMLButtonElement | null;
   const host = document.getElementById('savings-goals-target-editor') as HTMLElement | null;
   if (!saveBtn || !host) return;
 
   const peg = document.getElementById('plan-goals-editor') as HTMLElement | null;
+  wireMoneyMasks(peg || host);
   if (peg && !(peg as any)._savingsGoalsUiWired) {
     (peg as any)._savingsGoalsUiWired = true;
     peg.addEventListener('click', function (e) {
@@ -118,7 +120,7 @@ export function wireGoalTargetsEditor(render: (opts?: { refreshBalanceEditors?: 
           goalByYm: '',
         });
         void savePlanOverrides();
-        if (typeof render === 'function') render({ refreshBalanceEditors: true });
+        renderGoalsEditor(render);
         return;
       }
       const rm =
@@ -140,7 +142,7 @@ export function wireGoalTargetsEditor(render: (opts?: { refreshBalanceEditors?: 
         ensureSavingsGoals(PLAN);
         syncJointHysaPlanFieldsFromGoals(PLAN);
         void savePlanOverrides();
-        if (typeof render === 'function') render({ refreshBalanceEditors: true });
+        renderGoalsEditor(render);
       }
     });
   }
@@ -157,21 +159,12 @@ export function wireGoalTargetsEditor(render: (opts?: { refreshBalanceEditors?: 
   saveBtn.addEventListener('click', function () {
     readSavingsGoalsFromDom();
     ensureSavingsGoals(PLAN);
-    const hysaG = (PLAN.savingsGoals || []).find(function (g) {
-      return g && g.id === ID_GOAL_HYSA;
-    });
-    const money = hysaG ? numOr(hysaG.targetAmount, 0) : 0;
-    if (money <= 0) {
-      flashStatus('Set a positive target amount for Joint HYSA in the table.');
-      return;
-    }
-
     syncJointHysaPlanFieldsFromGoals(PLAN);
 
     void (async function () {
       flashStatus('Saving…');
       const ok = await savePlanOverrides();
-      if (typeof render === 'function') render({ refreshBalanceEditors: true });
+      renderGoalsEditor(render);
       flashStatus(ok ? 'Saved' : 'Save failed — try again');
     })();
   });
