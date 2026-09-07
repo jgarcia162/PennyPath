@@ -36,6 +36,7 @@ const billCalUi = wireBillPaymentCalendar(PLAN);
 
 function render(opts?: PlanPageRenderOptions): void {
   renderPlanPage(opts);
+  if (opts && opts.skipSecondaryRefresh === true) return;
   if (aiPayoffUi && aiPayoffUi.refreshAfterPlanChange) {
     aiPayoffUi.refreshAfterPlanChange();
   }

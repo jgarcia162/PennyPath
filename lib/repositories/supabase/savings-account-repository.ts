@@ -171,18 +171,25 @@ export class SupabaseSavingsAccountRepository implements SavingsAccountRepositor
       if (delErr) throw delErr;
     }
 
+    const rows: DepositInsert[] = [];
     for (const deposit of deposits) {
       const id = String(deposit.id || '').trim();
       if (!id) continue;
       const amount = Number(deposit.amount);
       if (!Number.isFinite(amount) || amount <= 0) continue;
-      await this.addDeposit(accountKey, {
+      rows.push({
+        user_id: userId,
+        account_id: accountKey,
         id,
         amount,
         at: String(deposit.at),
         kind: deposit.kind === 'withdrawal' ? 'withdrawal' : 'deposit',
         memo: typeof deposit.memo === 'string' ? deposit.memo : '',
       });
+    }
+    if (rows.length) {
+      const { error } = await this.supabase.from('deposit_history').upsert(rows, { onConflict: 'user_id,id' });
+      if (error) throw error;
     }
   }
 }

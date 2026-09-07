@@ -56,5 +56,8 @@ describe('persistRenderOptions', () => {
     setEditingDebtCardId('d1');
     expect(persistRenderOptions().refreshGoal2DebtsCards).toBe(false);
     expect(persistRenderOptions({ refreshGoal2DebtsCards: true }).refreshGoal2DebtsCards).toBe(true);
+    expect(persistRenderOptions().skipSecondaryRefresh).toBe(true);
+    setEditingDebtCardId(null);
+    expect(persistRenderOptions().skipSecondaryRefresh).toBe(false);
   });
 });
