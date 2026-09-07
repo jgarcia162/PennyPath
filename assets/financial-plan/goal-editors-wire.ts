@@ -7,7 +7,7 @@ import { PLAN, PLAN_DEFAULTS } from './plan-data';
 import { applyPlanOverrides, getLastPlanSaveError, savePlanOverrides } from './persistence';
 import { syncLegacySavingsFromAccounts } from './savings-accounts';
 import { wireMoneyMasks } from './money-input-mask';
-import { parseMoneyInput, createMoneyFormatters } from './utils';
+import { createMoneyFormatters } from './utils';
 import {
   getEditingDebtCardId,
   getEditingSavingsCardId,
@@ -60,6 +60,7 @@ import {
   savingsRowHasConflictingLedgerInputs,
   savingsRowHasDualLedgerAmounts,
 } from './editor-ledger-save-guard';
+import { captureEditorFieldBaseline, editorFieldChangedFromBaseline } from './editor-field-baseline';
 import {
   clearDebtLedgerActivityInputs,
   clearDebtLedgerDraftForId,
@@ -343,34 +344,6 @@ function startGoal3Persist(): void {
 function endGoal3Persist(): void {
   setEditorSaving('btn-save-goal3-savings', false);
   goal3PersistInFlight = false;
-}
-
-function captureEditorFieldBaseline(el: HTMLElement): void {
-  if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement) {
-    el.setAttribute('data-edit-baseline', String(el.value ?? ''));
-  }
-}
-
-/** True when the field value differs from what it was when focused (real edit). */
-function editorFieldChangedFromBaseline(el: HTMLElement): boolean {
-  if (!(el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement)) {
-    return true;
-  }
-  if (!el.hasAttribute('data-edit-baseline')) return true;
-  const baseline = String(el.getAttribute('data-edit-baseline') ?? '');
-  const current = String(el.value ?? '');
-  if (current === baseline) return false;
-  // Currency/rate masks may reformat display without changing the amount.
-  if (el instanceof HTMLInputElement) {
-    const moneyKind = el.getAttribute('data-money');
-    if (moneyKind === 'currency' || moneyKind === 'rate') {
-      const a = parseMoneyInput(baseline);
-      const b = parseMoneyInput(current);
-      if (a != null && b != null && a === b) return false;
-      if ((baseline === '' || a == null) && (current === '' || b == null)) return false;
-    }
-  }
-  return true;
 }
 
 function clearGoal2SavedTimeout(): void {
