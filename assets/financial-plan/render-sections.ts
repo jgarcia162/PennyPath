@@ -97,6 +97,82 @@ function applyFrozenSavingsEditorRowOrder(accounts: SavingsAccount[]): SavingsAc
   return orderByIdList(accounts, savingsEditorRowOrderIds);
 }
 
+/** Keep dashboard debt cards from re-sorting while a card is in inline edit. */
+export function freezeDebtCardOrder(plan: FinancialPlan): void {
+  if (debtCardOrderIds) return;
+  debtCardOrderIds = getDebtsInProgressOrderUnfrozen(plan).map(function (d) {
+    return String(d.id);
+  });
+}
+
+export function thawDebtCardOrderUnlessDialogOpen(): void {
+  const dlg = document.getElementById('goal2-editor-dialog') as HTMLDialogElement | null;
+  if (dlg && typeof dlg.open === 'boolean' && dlg.open) return;
+  debtCardOrderIds = null;
+}
+
+/** Keep dashboard savings cards from re-sorting while a card is in inline edit. */
+export function freezeSavingsCardOrder(plan: FinancialPlan): void {
+  if (savingsCardOrderIds) return;
+  savingsCardOrderIds = getSavingsAccounts(plan).map(function (a) {
+    return String(a.id);
+  });
+}
+
+export function thawSavingsCardOrderUnlessDialogOpen(): void {
+  const dlg = document.getElementById('goal3-editor-dialog') as HTMLDialogElement | null;
+  if (dlg && typeof dlg.open === 'boolean' && dlg.open) return;
+  savingsCardOrderIds = null;
+}
+
+/**
+ * Replace Recent activity on an inline-edit card from PLAN without rebuilding the
+ * whole list (preserves focus and whether the details were open).
+ */
+export function refreshInlineDebtCardAfterLedgerAdd(card: HTMLElement, plan: FinancialPlan, moneyExact: MoneyFn): void {
+  const id = card.getAttribute('data-debt-id');
+  if (!id) return;
+  const debts = Array.isArray(plan.debts) ? plan.debts : [];
+  const debt = debts.find(function (d) {
+    return String(d.id) === String(id);
+  });
+  if (!debt) return;
+  const curEl = card.querySelector('input[data-field="current"]') as HTMLInputElement | null;
+  const cur = numOr(debt.current, 0);
+  if (curEl) curEl.value = cur > 0 ? formatCurrencyInput(cur) : '';
+  const details = card.querySelector('.goal2-debt-payments') as HTMLDetailsElement | null;
+  const wasOpen = !!(details && details.open);
+  const activityOpen = new Map<string, boolean>();
+  if (wasOpen) activityOpen.set(String(id), true);
+  replaceCardActivityBlock(card, '.goal2-debt-payments', buildDebtRecentActivityDetails(debt, moneyExact, activityOpen));
+}
+
+export function refreshInlineSavingsCardAfterLedgerAdd(
+  card: HTMLElement,
+  plan: FinancialPlan,
+  moneyExact: MoneyFn
+): void {
+  const id = card.getAttribute('data-savings-id');
+  if (!id) return;
+  const accs = getSavingsAccounts(plan);
+  const acc = accs.find(function (a) {
+    return String(a.id) === String(id);
+  });
+  if (!acc) return;
+  const curEl = card.querySelector('input[data-field="current"]') as HTMLInputElement | null;
+  const cur = numOr(acc.current, 0);
+  if (curEl) curEl.value = cur !== 0 ? formatCurrencyInput(cur) : '';
+  const details = card.querySelector('.goal3-savings-deposits') as HTMLDetailsElement | null;
+  const wasOpen = !!(details && details.open);
+  const activityOpen = new Map<string, boolean>();
+  if (wasOpen) activityOpen.set(String(id), true);
+  replaceCardActivityBlock(
+    card,
+    '.goal3-savings-deposits',
+    buildSavingsRecentActivityDetails(acc, moneyExact, activityOpen)
+  );
+}
+
 /** Freeze dashboard card + editor row order while a goal editor dialog is open. */
 export function freezeEditorOrders(plan: FinancialPlan): void {
   debtCardOrderIds = getDebtsInProgressOrderUnfrozen(plan).map(function (d) {
@@ -270,11 +346,55 @@ export function recentCardActivityEntries<T extends { at: string }>(items: T[]):
   return list.slice(0, RECENT_CARD_ACTIVITY_LIMIT);
 }
 
+function buildCardActivitySeeAllButton(
+  accountKind: 'debt' | 'savings',
+  accountId: string,
+  totalCount: number
+): HTMLButtonElement {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'card-activity-see-all no-print';
+  btn.setAttribute('data-action', 'see-all-ledger');
+  btn.setAttribute('data-account-kind', accountKind);
+  btn.setAttribute('data-account-id', String(accountId));
+  btn.setAttribute('aria-haspopup', 'dialog');
+  btn.setAttribute('aria-controls', 'ledger-activity-dialog');
+  btn.textContent =
+    totalCount > RECENT_CARD_ACTIVITY_LIMIT ? 'See all (' + String(totalCount) + ')' : 'See all';
+  return btn;
+}
+
+function wrapCardActivityBlock(
+  details: HTMLDetailsElement,
+  seeAll: HTMLButtonElement | null
+): HTMLDivElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'card-activity-block';
+  wrap.appendChild(details);
+  if (seeAll) wrap.appendChild(seeAll);
+  return wrap;
+}
+
+function replaceCardActivityBlock(
+  card: HTMLElement,
+  detailsSelector: string,
+  nextBlock: HTMLElement
+): void {
+  const existing = card.querySelector('.card-activity-block') as HTMLElement | null;
+  if (existing) {
+    existing.replaceWith(nextBlock);
+    return;
+  }
+  const details = card.querySelector(detailsSelector) as HTMLElement | null;
+  if (details) details.replaceWith(nextBlock);
+  else card.appendChild(nextBlock);
+}
+
 function buildDebtRecentActivityDetails(
   debt: Debt,
   moneyExact: MoneyFn,
   activityOpen: Map<string, boolean>
-): HTMLDetailsElement {
+): HTMLDivElement {
   const history = Array.isArray(debt.paymentHistory) ? debt.paymentHistory : [];
   const recent = recentCardActivityEntries(history);
 
@@ -324,14 +444,17 @@ function buildDebtRecentActivityDetails(
   }
 
   if (activityOpen.get(String(debt.id || ''))) details.open = true;
-  return details;
+  return wrapCardActivityBlock(
+    details,
+    history.length ? buildCardActivitySeeAllButton('debt', String(debt.id || ''), history.length) : null
+  );
 }
 
 function buildSavingsRecentActivityDetails(
   acc: SavingsAccount,
   moneyExact: MoneyFn,
   activityOpen: Map<string, boolean>
-): HTMLDetailsElement {
+): HTMLDivElement {
   const hist = Array.isArray(acc.depositHistory) ? acc.depositHistory : [];
   const recent = recentCardActivityEntries(hist);
 
@@ -380,7 +503,10 @@ function buildSavingsRecentActivityDetails(
   }
 
   if (activityOpen.get(String(acc.id || ''))) details.open = true;
-  return details;
+  return wrapCardActivityBlock(
+    details,
+    hist.length ? buildCardActivitySeeAllButton('savings', String(acc.id || ''), hist.length) : null
+  );
 }
 
 function buildInlineEditActions(kind: 'debt' | 'savings'): HTMLDivElement {
