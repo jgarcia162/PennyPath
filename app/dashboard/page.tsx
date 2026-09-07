@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, memo } from 'react';
 import { AppLoadingOverlay } from '../components/AppLoadingOverlay';
+import { GithubRepoLink } from '../components/GithubRepoLink';
 import { LogoutForm } from '../components/LogoutForm';
 import { TrialCountdown } from '../components/TrialCountdown';
 import { migrateLocalStorageToSupabase } from '../../lib/migrate-localstorage';
@@ -1276,6 +1277,7 @@ export default function DashboardPage() {
       <div className="footer">
         <strong>Phase 1: Destroy. Phase 2: Build. Phase 3: Protect.</strong>
         <span id="footer-line"></span>
+        <GithubRepoLink />
         <div className="footer-meta" id="footer-meta" title="App version">
           <button type="button" className="footer-version" id="footer-app-version" aria-label="Application version">
             Version

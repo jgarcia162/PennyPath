@@ -5165,6 +5165,29 @@ body.financial-plan-demo-mode #checkin-form {
   outline: 2px solid rgba(196, 176, 128, 0.55);
   outline-offset: 2px;
 }
+.footer-github {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0 0;
+  color: rgba(250, 246, 244, 0.55);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+.footer-github svg {
+  display: block;
+  flex-shrink: 0;
+}
+.footer-github:hover {
+  color: var(--gold);
+}
+.footer-github:focus-visible {
+  outline: 2px solid rgba(196, 176, 128, 0.55);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
 
 @media(max-width:580px) {
   .cover { padding: 40px 24px 44px; }
