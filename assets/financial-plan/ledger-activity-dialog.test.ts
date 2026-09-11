@@ -157,6 +157,40 @@ describe('ledger activity dialog remove', () => {
     expect(document.getElementById('ledger-activity-dialog-subtitle')?.textContent).toMatch(/1 transaction/);
     expect(persistence.savePlanOverrides).toHaveBeenCalled();
   });
+
+  it('removes a savings deposit from See all and restores the balance', () => {
+    confirmSpy.mockReturnValue(true);
+    (PLAN as any).savingsAccounts = [
+      {
+        id: 'rainy-1',
+        name: 'Rainy Day',
+        current: 1000,
+        apyPct: 4.5,
+        goalIds: [],
+        countTowardsGoal: false,
+        depositHistory: [
+          { id: 'dep-keep', amount: 100, at: '2026-01-02T12:00:00Z', kind: 'deposit' },
+          { id: 'dep-remove', amount: 200, at: '2026-01-03T12:00:00Z', kind: 'deposit' },
+        ],
+      },
+    ];
+    wireLedgerActivityDialog();
+    openLedgerActivityDialog({ accountKind: 'savings', accountId: 'rainy-1' });
+    const rm = document.querySelector(
+      '[data-action="remove-ledger-activity"][data-entry-id="dep-remove"]'
+    ) as HTMLButtonElement;
+    expect(rm).toBeTruthy();
+    expect(rm.getAttribute('data-account-kind')).toBe('savings');
+    rm.click();
+    const acc = (PLAN as any).savingsAccounts[0];
+    expect(acc.depositHistory.map((p: { id: string }) => p.id)).toEqual(['dep-keep']);
+    expect(acc.current).toBe(800);
+    expect(document.querySelectorAll('.ledger-activity-row').length).toBe(1);
+    expect(document.querySelector('[data-entry-id="dep-remove"]')).toBeNull();
+    expect(document.getElementById('ledger-activity-dialog-subtitle')?.textContent).toMatch(/Rainy Day/);
+    expect(document.getElementById('ledger-activity-dialog-subtitle')?.textContent).toMatch(/1 transaction/);
+    expect(persistence.savePlanOverrides).toHaveBeenCalled();
+  });
 });
 
 describe('refreshInlineDebtCardAfterLedgerAdd see-all', () => {
