@@ -167,7 +167,7 @@ async function init(): Promise<void> {
   wireGoal3SavingsEditor(render);
   wireDashboardTrashBin(render);
   wireGoalEditorDialogs();
-  wireLedgerActivityDialog();
+  wireLedgerActivityDialog(render);
   wirePlanTabs();
   wireGoalTargetsEditor(render);
   wireCheckIns();

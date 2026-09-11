@@ -2,7 +2,7 @@
  * @vitest-environment happy-dom
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { PLAN } from './plan-data';
 import type { PaymentHistoryItem } from '../../types/index.js';
 import {
@@ -10,10 +10,12 @@ import {
   openLedgerActivityDialog,
   renderLedgerActivityDialogList,
   setLedgerActivityDialogQuery,
+  wireLedgerActivityDialog,
 } from './ledger-activity-dialog';
 import { ledgerActivityQueryForAccount, queryLedgerActivity } from './ledger-activity-query';
 import { RECENT_CARD_ACTIVITY_LIMIT, refreshInlineDebtCardAfterLedgerAdd } from './render-sections';
 import { createMoneyFormatters } from './utils';
+import * as persistence from './persistence';
 
 const TEST_DEBT = {
   id: 'visa-1',
@@ -82,13 +84,112 @@ describe('renderLedgerActivityDialogList', () => {
     (PLAN as any).debts = [{ ...TEST_DEBT, paymentHistory: historyCount(3) }];
   });
 
-  it('renders kind, amount, and date on each row', () => {
+  it('renders kind, amount, date, and a Remove button on each row', () => {
     const sections = queryLedgerActivity(PLAN, ledgerActivityQueryForAccount('debt', 'visa-1'));
     renderLedgerActivityDialogList(sections);
     const row = document.querySelector('.ledger-activity-row') as HTMLElement | null;
     expect(row?.getAttribute('data-kind')).toMatch(/payment|charge/);
     expect(row?.querySelector('.ledger-activity-row__amount')?.textContent).toMatch(/\$/);
     expect(row?.querySelector('.ledger-activity-row__date')?.textContent).not.toBe('');
+    const rm = row?.querySelector('[data-action="remove-ledger-activity"]') as HTMLButtonElement | null;
+    expect(rm).toBeTruthy();
+    expect(rm?.textContent).toBe('Remove');
+    expect(rm?.getAttribute('data-account-id')).toBe('visa-1');
+    expect(rm?.getAttribute('data-entry-id')).toBeTruthy();
+  });
+});
+
+describe('ledger activity dialog remove', () => {
+  const confirmSpy = vi.fn();
+
+  beforeEach(() => {
+    document.body.innerHTML = '';
+    (PLAN as any).debts = [
+      {
+        ...TEST_DEBT,
+        current: 400,
+        paidOff: 100,
+        paymentHistory: [
+          { id: 'tx-keep', amount: 40, at: '2026-01-02T12:00:00Z', kind: 'payment' },
+          { id: 'tx-remove', amount: 60, at: '2026-01-03T12:00:00Z', kind: 'payment' },
+        ],
+      },
+    ];
+    confirmSpy.mockReset();
+    window.confirm = confirmSpy;
+    vi.spyOn(persistence, 'savePlanOverrides').mockResolvedValue(true);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('does not remove when the confirm is cancelled', () => {
+    confirmSpy.mockReturnValue(false);
+    wireLedgerActivityDialog();
+    openLedgerActivityDialog({ accountKind: 'debt', accountId: 'visa-1' });
+    const rm = document.querySelector(
+      '[data-action="remove-ledger-activity"][data-entry-id="tx-remove"]'
+    ) as HTMLButtonElement;
+    rm.click();
+    expect(((PLAN as any).debts[0].paymentHistory as PaymentHistoryItem[]).map((p) => p.id)).toEqual([
+      'tx-keep',
+      'tx-remove',
+    ]);
+    expect(document.querySelectorAll('.ledger-activity-row').length).toBe(2);
+    expect(persistence.savePlanOverrides).not.toHaveBeenCalled();
+  });
+
+  it('removes the row, restores the balance, and keeps the dialog open', () => {
+    confirmSpy.mockReturnValue(true);
+    wireLedgerActivityDialog();
+    openLedgerActivityDialog({ accountKind: 'debt', accountId: 'visa-1' });
+    const rm = document.querySelector(
+      '[data-action="remove-ledger-activity"][data-entry-id="tx-remove"]'
+    ) as HTMLButtonElement;
+    rm.click();
+    const debt = (PLAN as any).debts[0];
+    expect(debt.paymentHistory.map((p: PaymentHistoryItem) => p.id)).toEqual(['tx-keep']);
+    expect(debt.current).toBe(460);
+    expect(debt.paidOff).toBe(40);
+    expect(document.querySelectorAll('.ledger-activity-row').length).toBe(1);
+    expect(document.querySelector('[data-entry-id="tx-remove"]')).toBeNull();
+    expect(document.getElementById('ledger-activity-dialog-subtitle')?.textContent).toMatch(/1 transaction/);
+    expect(persistence.savePlanOverrides).toHaveBeenCalled();
+  });
+
+  it('removes a savings deposit from See all and restores the balance', () => {
+    confirmSpy.mockReturnValue(true);
+    (PLAN as any).savingsAccounts = [
+      {
+        id: 'rainy-1',
+        name: 'Rainy Day',
+        current: 1000,
+        apyPct: 4.5,
+        goalIds: [],
+        countTowardsGoal: false,
+        depositHistory: [
+          { id: 'dep-keep', amount: 100, at: '2026-01-02T12:00:00Z', kind: 'deposit' },
+          { id: 'dep-remove', amount: 200, at: '2026-01-03T12:00:00Z', kind: 'deposit' },
+        ],
+      },
+    ];
+    wireLedgerActivityDialog();
+    openLedgerActivityDialog({ accountKind: 'savings', accountId: 'rainy-1' });
+    const rm = document.querySelector(
+      '[data-action="remove-ledger-activity"][data-entry-id="dep-remove"]'
+    ) as HTMLButtonElement;
+    expect(rm).toBeTruthy();
+    expect(rm.getAttribute('data-account-kind')).toBe('savings');
+    rm.click();
+    const acc = (PLAN as any).savingsAccounts[0];
+    expect(acc.depositHistory.map((p: { id: string }) => p.id)).toEqual(['dep-keep']);
+    expect(acc.current).toBe(800);
+    expect(document.querySelectorAll('.ledger-activity-row').length).toBe(1);
+    expect(document.querySelector('[data-entry-id="dep-remove"]')).toBeNull();
+    expect(document.getElementById('ledger-activity-dialog-subtitle')?.textContent).toMatch(/Rainy Day/);
+    expect(document.getElementById('ledger-activity-dialog-subtitle')?.textContent).toMatch(/1 transaction/);
+    expect(persistence.savePlanOverrides).toHaveBeenCalled();
   });
 });
 
