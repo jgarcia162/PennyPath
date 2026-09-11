@@ -4651,7 +4651,7 @@ body.financial-plan-demo-mode #checkin-form {
   display: grid;
   grid-template-columns: 6.25rem minmax(0, 1fr) auto;
   gap: 8px 12px;
-  align-items: baseline;
+  align-items: center;
   padding: 10px 0;
   border-bottom: 1px solid rgba(60, 68, 82, 0.08);
 }
@@ -4687,10 +4687,36 @@ body.financial-plan-demo-mode #checkin-form {
   color: #666;
   overflow-wrap: anywhere;
 }
+.ledger-activity-row__aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  justify-self: end;
+}
 .ledger-activity-row__date {
   font-size: 12px;
   color: #888;
   white-space: nowrap;
+}
+.ledger-activity-row__remove {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(184, 92, 92, 0.35);
+  background: rgba(184, 92, 92, 0.12);
+  color: var(--red);
+  cursor: pointer;
+}
+.ledger-activity-row__remove:hover,
+.ledger-activity-row__remove:focus-visible {
+  background: rgba(184, 92, 92, 0.2);
+}
+.ledger-activity-row__remove[aria-busy='true'] {
+  opacity: 0.6;
+  pointer-events: none;
 }
 @media (max-width: 480px) {
   .ledger-activity-row {
@@ -4716,6 +4742,11 @@ body.financial-plan-demo-mode #checkin-form {
 :root[data-theme="dark"] .ledger-activity-row__date,
 :root[data-theme="dark"] .ledger-activity-section__label {
   color: rgba(255, 255, 255, 0.55);
+}
+:root[data-theme="dark"] .ledger-activity-row__remove {
+  border-color: rgba(232, 121, 113, 0.4);
+  background: rgba(232, 121, 113, 0.12);
+  color: #e87971;
 }
 
 /* Goal 2 / 3 editors — centered modal (`<dialog class="goal-editor-dialog">`) */

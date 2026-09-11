@@ -22,7 +22,14 @@ import {
   type LedgerActivityQuery,
   type LedgerActivitySection,
 } from './ledger-activity-query';
+import { removeDebtLedgerEntry } from './debt-editor';
+import { removeSavingsLedgerEntry } from './savings-editor';
+import { savePlanOverrides } from './persistence';
+import { syncLegacySavingsFromAccounts } from './savings-accounts';
+import type { PlanPageRenderOptions } from './render-page';
 import { createMoneyFormatters } from './utils';
+
+type RenderFn = (opts?: PlanPageRenderOptions) => void;
 
 export const LEDGER_ACTIVITY_DIALOG_ID = 'ledger-activity-dialog';
 
@@ -35,6 +42,7 @@ const { moneyExact } = createMoneyFormatters();
 
 let dialogScope: LedgerActivityDialogScope | null = null;
 let dialogQuery: LedgerActivityQuery = { ...DEFAULT_LEDGER_ACTIVITY_QUERY };
+let dialogRender: RenderFn | null = null;
 
 function accountTitle(scope: LedgerActivityDialogScope): string {
   if (scope.accountKind === 'savings') {
@@ -111,14 +119,27 @@ function buildActivityRow(item: LedgerActivityItem): HTMLLIElement {
     main.appendChild(memo);
   }
 
+  const aside = document.createElement('div');
+  aside.className = 'ledger-activity-row__aside';
   const date = document.createElement('time');
   date.className = 'ledger-activity-row__date';
   if (item.at) date.setAttribute('datetime', item.at);
   date.textContent = formatActivityDate(item.at);
+  const rm = document.createElement('button');
+  rm.type = 'button';
+  rm.className = 'ledger-activity-row__remove no-print';
+  rm.setAttribute('data-action', 'remove-ledger-activity');
+  rm.setAttribute('data-entry-id', item.id);
+  rm.setAttribute('data-account-id', item.accountId);
+  rm.setAttribute('data-account-kind', item.accountKind);
+  rm.setAttribute('aria-label', 'Remove ' + ledgerActivityKindLabel(item.kind).toLowerCase());
+  rm.textContent = 'Remove';
+  aside.appendChild(date);
+  aside.appendChild(rm);
 
   li.appendChild(kind);
   li.appendChild(main);
-  li.appendChild(date);
+  li.appendChild(aside);
   return li;
 }
 
@@ -234,7 +255,49 @@ function scopeFromSeeAllButton(btn: HTMLElement): LedgerActivityDialogScope | nu
   return { accountKind: 'debt', accountId: String(id) };
 }
 
-export function wireLedgerActivityDialog(): void {
+function refreshAfterLedgerRemove(accountKind: LedgerActivityAccountKind): void {
+  if (dialogRender) {
+    dialogRender({
+      refreshBalanceEditors: true,
+      refreshGoal2DebtsCards: accountKind === 'debt',
+      refreshGoal3SavingsCards: accountKind === 'savings',
+    });
+  }
+  refreshOpenLedgerActivityDialog();
+}
+
+function removeLedgerActivityFromDialog(btn: HTMLElement): void {
+  if (btn.getAttribute('aria-busy') === 'true') return;
+  const entryId = btn.getAttribute('data-entry-id');
+  const accountId = btn.getAttribute('data-account-id');
+  const accountKind = btn.getAttribute('data-account-kind');
+  if (!entryId || !accountId) return;
+  if (accountKind !== 'debt' && accountKind !== 'savings') return;
+  const ok = window.confirm('Remove this activity record?\n\nThe balance will be adjusted.');
+  if (!ok) return;
+  btn.setAttribute('aria-busy', 'true');
+  const removed =
+    accountKind === 'savings'
+      ? removeSavingsLedgerEntry(accountId, entryId, function () {}, function () {
+          refreshAfterLedgerRemove('savings');
+        })
+      : removeDebtLedgerEntry(accountId, entryId, function () {}, function () {
+          refreshAfterLedgerRemove('debt');
+        });
+  if (!removed) {
+    btn.removeAttribute('aria-busy');
+    return;
+  }
+  if (accountKind === 'savings') syncLegacySavingsFromAccounts(PLAN);
+  void savePlanOverrides(
+    accountKind === 'savings' ? { savingsId: accountId } : { debtId: accountId }
+  ).then(function () {
+    refreshOpenLedgerActivityDialog();
+  });
+}
+
+export function wireLedgerActivityDialog(render?: RenderFn): void {
+  if (render) dialogRender = render;
   const prevAc = (wireLedgerActivityDialog as any)._ac as AbortController | undefined;
   if (prevAc) prevAc.abort();
   const ac = new AbortController();
@@ -251,7 +314,15 @@ export function wireLedgerActivityDialog(): void {
           return;
         }
         const t = e.target as HTMLElement | null;
-        if (t && typeof t.closest === 'function' && t.closest('[data-close-ledger-activity-dialog]')) {
+        if (!t || typeof t.closest !== 'function') return;
+        const rm = t.closest('[data-action="remove-ledger-activity"]') as HTMLElement | null;
+        if (rm && dlg.contains(rm)) {
+          e.preventDefault();
+          e.stopPropagation();
+          removeLedgerActivityFromDialog(rm);
+          return;
+        }
+        if (t.closest('[data-close-ledger-activity-dialog]')) {
           closeLedgerActivityDialog();
         }
       },
