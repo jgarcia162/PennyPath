@@ -5,6 +5,7 @@ import {
   formatMoneyInput,
   escapeHtml,
   escapeAttr,
+  aprStoredToPercent,
 } from './utils.js';
 
 describe('parseMoneyInput', () => {
@@ -130,5 +131,22 @@ describe('escapeAttr', () => {
 
   it('escapes angle brackets', () => {
     expect(escapeAttr('<b>')).toBe('&lt;b&gt;');
+  });
+});
+
+describe('aprStoredToPercent', () => {
+  it('keeps typical card APRs that are already percents', () => {
+    expect(aprStoredToPercent(22.99)).toBeCloseTo(22.99);
+    expect(aprStoredToPercent(5.9)).toBeCloseTo(5.9);
+  });
+
+  it('converts legacy decimal fractions into percents', () => {
+    expect(aprStoredToPercent(0.2299)).toBeCloseTo(22.99);
+    expect(aprStoredToPercent(0.059)).toBeCloseTo(5.9);
+  });
+
+  it('treats 0 as 0%', () => {
+    expect(aprStoredToPercent(0)).toBe(0);
+    expect(aprStoredToPercent('')).toBe(0);
   });
 });

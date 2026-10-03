@@ -4,7 +4,8 @@
 
 import type { FinancialCalendarResponse, FinancialPlan } from '../../types/index.js';
 import { getRepositories } from '../../lib/repositories';
-import { numOr } from './utils';
+import { isDebtLedgerActive } from './debt-ledger';
+import { aprStoredToPercent, numOr } from './utils';
 
 const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
 /** Matches server GEMINI_SLOW_FETCH_MS (default 57000 ms) so the browser does not abort first. */
@@ -190,12 +191,12 @@ export function parseCsvBills(
 
 function planSnapshot(plan: FinancialPlan): any {
   const debts = Array.isArray(plan.debts)
-    ? plan.debts.map(function (d: any) {
+    ? plan.debts.filter(isDebtLedgerActive).map(function (d: any) {
         return {
           id: String(d.id || ''),
           name: String(d.name || ''),
           current: numOr(d.current, 0),
-          aprPct: numOr(d.aprPct, 0),
+          aprPct: aprStoredToPercent(d.aprPct),
         };
       })
     : [];

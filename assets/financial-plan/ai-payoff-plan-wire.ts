@@ -5,6 +5,8 @@
 
 import type { FinancialPlan } from '../../types/index.js';
 import { getRepositories } from '../../lib/repositories';
+import { isDebtLedgerActive } from './debt-ledger';
+import { aprStoredToPercent } from './utils';
 
 /** Optional override for API origin (shared with real-estate-plan.html). */
 const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
@@ -144,15 +146,22 @@ async function saveCache(fingerprint: string, text: string, truncated: boolean):
   }
 }
 
-function buildPrompt(plan: FinancialPlan): string {
+function formatAprPercentLabel(raw: unknown): string {
+  return aprStoredToPercent(raw).toFixed(2) + '%';
+}
+
+export function buildPrompt(plan: FinancialPlan): string {
   const fp = buildFingerprint(plan);
-  const debtsBlock = Array.isArray(plan.debts)
-    ? plan.debts
+  const activeDebts = (Array.isArray(plan.debts) ? plan.debts : []).filter(isDebtLedgerActive);
+  const debtsBlock = activeDebts.length
+    ? activeDebts
         .map(function (d: any, i: number) {
           const lines = [
             'Debt ' + (i + 1) + ': ' + String(d.name || 'Unnamed'),
             '  Balance (current): $' + Number(d.current || 0).toFixed(2),
-            '  APR: ' + Number(d.aprPct || 0) + '% (0 may mean blended or unknown)',
+            '  Purchase APR: ' +
+              formatAprPercentLabel(d.aprPct) +
+              ' per year (already a percent; 0.00% means zero interest, not unknown)',
             '  Deferred / promo balance (0% while active): $' +
               Number(d.deferredAmount || 0).toFixed(2),
             '  Deferred interest promo ends on (YYYY-MM-DD or empty): ' +
@@ -163,13 +172,14 @@ function buildPrompt(plan: FinancialPlan): string {
           return lines.join('\n');
         })
         .join('\n\n')
-    : '(no debts listed)';
+    : '(no active debts listed)';
 
   return (
     'You are helping with a personal debt payoff plan. The user wants the most affordable path ' +
     '(minimize total interest paid over time, while staying realistic about cash flow). ' +
     'Consider avalanche (highest APR first), snowball (smallest balance first), and any ' +
     'deferred-interest promotional balances that may charge retroactive interest after the promo ends.\n\n' +
+    'Use each debt\'s Purchase APR exactly as given. Do not convert percents to decimals or guess a typical card rate.\n\n' +
     'Financial snapshot (numbers only; not professional advice context):\n' +
     '- Monthly take-home: $' +
     Number(plan.monthlyTakeHome || 0).toFixed(2) +
@@ -188,11 +198,8 @@ function buildPrompt(plan: FinancialPlan): string {
     '\n' +
     '- Months to debt-free (app estimate): ' +
     String(plan.monthsDebtPayoff || '') +
-    '\n' +
-    '- Legacy blended CC APR field (if debts aggregated): ' +
-    Number(plan.ccApr || 0) * 100 +
-    '%\n\n' +
-    'Debts:\n' +
+    '\n\n' +
+    'Active debts:\n' +
     debtsBlock +
     '\n\n' +
     'Respond using Markdown: use ### for each section heading (e.g. ### 1) Summary). ' +

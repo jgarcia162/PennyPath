@@ -3,6 +3,7 @@
  */
 
 import { getSavingsAccounts, weightedJointHysaApyPct } from './savings-accounts';
+import { aprStoredToPercent } from './utils';
 
 function clamp0(n) {
   const x = typeof n === 'number' ? n : Number(n);
@@ -52,10 +53,8 @@ function monthlyRateFromApy(apy) {
 }
 
 function monthlyRateFromAprPct(aprPct) {
-  const p = typeof aprPct === 'number' ? aprPct : Number(aprPct);
-  if (!Number.isFinite(p) || p === 0) return 0;
-  const apr = p > 1 ? p / 100 : p;
-  return apr > 0 ? apr / 12 : 0;
+  const percent = aprStoredToPercent(aprPct);
+  return percent > 0 ? percent / 100 / 12 : 0;
 }
 
 function toInt(n, fallback) {
