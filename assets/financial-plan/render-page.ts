@@ -31,6 +31,7 @@ import {
 } from './plan-empty-state.js';
 import { hasMonthWrapRollback } from './month-wrap';
 import { getEditingDebtCardId, getEditingSavingsCardId } from './card-inline-edit-state';
+import { takeHomeStatusNote } from './takehome-pay';
 
 const { money, moneyExact } = createMoneyFormatters();
 
@@ -387,7 +388,7 @@ export function render(opts?: PlanPageRenderOptions): void {
   setText('status-debt-rounded', hasDebts ? moneyExact(d.totalDebt) : '—');
   setText('status-debt-note', hasDebts ? 'Total owed — edit in Goal 2' : 'No debts on file — add them in Goal 2.');
   setText('status-takehome', money(PLAN.monthlyTakeHome));
-  setText('status-takehome-note', moneyExact(PLAN.paycheckAmount) + ' × ' + PLAN.paychecksPerMonth + ' paychecks per month');
+  setText('status-takehome-note', takeHomeStatusNote(PLAN));
 
   setText('nw-legend-assets', 'Assets: ' + moneyExact(d.totalAssets));
   setText('nw-legend-debt', 'Debt: ' + moneyExact(d.totalDebt));
