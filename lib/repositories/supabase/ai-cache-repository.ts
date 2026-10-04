@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-import type { AiPayoffPlanCache, FinancialCalendarResponse } from '../../../types/index.js';
+import type { AiPayoffPlanCache } from '../../../types/index.js';
 import type { Database, TablesInsert, TablesUpdate } from '../../../types/supabase';
 import type { AiCacheRepository } from '../types';
 
@@ -52,7 +52,7 @@ export class SupabaseAiCacheRepository implements AiCacheRepository {
     if (error) throw error;
   }
 
-  async getBillCalendar(): Promise<FinancialCalendarResponse | null> {
+  async getBillCalendar(): Promise<unknown | null> {
     const { data: userData, error: userErr } = await this.supabase.auth.getUser();
     if (userErr) throw userErr;
     const userId = requireUserId(userData?.user?.id);
@@ -60,10 +60,10 @@ export class SupabaseAiCacheRepository implements AiCacheRepository {
     const { data, error } = await this.supabase.from('ai_cache').select('bill_calendar').eq('user_id', userId).maybeSingle();
     if (error) throw error;
     if (!data || !data.bill_calendar) return null;
-    return data.bill_calendar as unknown as FinancialCalendarResponse;
+    return data.bill_calendar as unknown;
   }
 
-  async setBillCalendar(data: FinancialCalendarResponse): Promise<void> {
+  async setBillCalendar(data: unknown): Promise<void> {
     const { data: userData, error: userErr } = await this.supabase.auth.getUser();
     if (userErr) throw userErr;
     const userId = requireUserId(userData?.user?.id);

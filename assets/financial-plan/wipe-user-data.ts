@@ -37,7 +37,7 @@ async function clearCloudCaches(): Promise<void> {
         truncated: false,
         at: new Date().toISOString(),
       }),
-      repos.aiCacheRepository.setBillCalendar({ notes: '', events: [] }),
+      repos.aiCacheRepository.setBillCalendar({ currentId: '', versions: [] }),
     ]);
   } catch (e) {
     // Local wipe already applied; cloud clear is best-effort.

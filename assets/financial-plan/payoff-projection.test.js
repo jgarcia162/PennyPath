@@ -103,6 +103,15 @@ describe('projectPayoffTimeline — interest accrual', () => {
     expect(rows[0].ccEnd).toBeCloseTo(1010, 1);
   });
 
+  it('treats legacy decimal APR 0.12 the same as 12%', () => {
+    const plan = makePlan({
+      debts: [makeDebt({ current: 1000, aprPct: 0.12 })],
+      phase1: { ccPayment: 0, hysaDeposit: 0 },
+    });
+    const rows = projectPayoffTimeline(plan, { maxMonths: 1, noEarlyBreak: true });
+    expect(rows[0].ccInterest).toBeCloseTo(10, 1);
+  });
+
   it('does not accrue interest on deferred balance', () => {
     const plan = makePlan({
       debts: [makeDebt({ current: 1000, aprPct: 12, deferredAmount: 1000, deferredExpiresOn: '2027-01-01' })],

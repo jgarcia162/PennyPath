@@ -13,6 +13,7 @@ import {
   AI_PAYOFF_PLAN_CACHE_LS_KEY,
 } from '../assets/financial-plan/storage-keys';
 import { applyPlanPayloadFromObject, savePlanOverrides } from '../assets/financial-plan/persistence';
+import { parseBillCalendarCache } from '../assets/financial-plan/ai-bill-calendar-cache';
 import { getRepositories } from './repositories';
 
 function safeReadJson(key: string): any | null {
@@ -63,9 +64,12 @@ export async function migrateLocalStorageToSupabase(): Promise<void> {
 
     const calCache = safeReadJson(AI_BILL_CALENDAR_CACHE_LS_KEY);
     if (calCache && typeof calCache === 'object') {
-      const maybeCalendar = (calCache as any).events ? calCache : (calCache as any).data;
-      if (maybeCalendar && typeof maybeCalendar === 'object' && Array.isArray((maybeCalendar as any).events)) {
-        await repos.aiCacheRepository.setBillCalendar(maybeCalendar as any);
+      const existingCal = parseBillCalendarCache(await repos.aiCacheRepository.getBillCalendar());
+      if (!existingCal.versions.length) {
+        const fromLocal = parseBillCalendarCache(calCache);
+        if (fromLocal.versions.length) {
+          await repos.aiCacheRepository.setBillCalendar(fromLocal);
+        }
       }
     }
 

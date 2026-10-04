@@ -21,6 +21,17 @@ export function numOr(raw: unknown, fallback: number): number {
   return Number.isFinite(v) ? v : fallback;
 }
 
+/**
+ * Debt `aprPct` is stored as a percent (22.99 → 22.99%). Some older rows used a
+ * decimal fraction (0.2299 → 22.99%). Return percent units for display and math.
+ * 0 stays 0%. Values in (0, 1] are treated as decimals (same rule as payoff projection).
+ */
+export function aprStoredToPercent(raw: unknown): number {
+  const p = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(p) || p === 0) return 0;
+  return p > 1 ? p : p * 100;
+}
+
 /** Round to nearest cent (or hundredth of a percent for rate fields). */
 export function roundMoney(n: unknown): number {
   const v = Number(n);
