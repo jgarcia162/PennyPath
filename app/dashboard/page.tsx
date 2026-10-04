@@ -847,6 +847,7 @@ export default function DashboardPage() {
                 <p className="ai-bill-cal__intro">
                   Upload a CSV with your monthly bills. The AI places each bill on its due day and suggests dates to
                   make debt payments using your plan budget and (when available) the generated payoff strategy above.
+                  Generated calendars stay on your account — open Saved calendars to view them without uploading again.
                 </p>
                 <p className="ai-bill-cal__format">
                   The first row must be headers. Enter the exact header names from your file for bill name, amount, and
@@ -903,6 +904,15 @@ export default function DashboardPage() {
                     title="Load a CSV with at least one valid bill first"
                   >
                     View prompt
+                  </button>
+                  <button
+                    type="button"
+                    className="ai-bill-cal-prompt-btn"
+                    id="btn-ai-bill-cal-saved"
+                    disabled
+                    title="Generate a calendar to save it here"
+                  >
+                    Saved calendars
                   </button>
                   <span className="ai-bill-cal__status" id="ai-bill-cal-status" role="status"></span>
                 </div>

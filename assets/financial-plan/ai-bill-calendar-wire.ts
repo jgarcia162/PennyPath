@@ -2,10 +2,25 @@
  * CSV bills + AI-generated payment calendar (bills + debt payment dates as JSON from Gemini).
  */
 
-import type { FinancialCalendarResponse, FinancialPlan } from '../../types/index.js';
+import type { FinancialPlan } from '../../types/index.js';
 import { getRepositories } from '../../lib/repositories';
 import { isDebtLedgerActive } from './debt-ledger';
+import {
+  appendBillCalendarVersion,
+  billCalendarVersionSubtitle,
+  billCalendarVersionTitle,
+  currentBillCalendar,
+  emptyBillCalendarCache,
+  isBillCalendarHistoryPayload,
+  parseBillCalendarCache,
+  removeBillCalendarVersion,
+  selectBillCalendarVersion,
+  type BillCalendarCache,
+  type BillCalendarVersion,
+} from './ai-bill-calendar-cache';
 import { aprStoredToPercent, numOr } from './utils';
+
+const SAVED_DIALOG_ID = 'ai-bill-cal-saved-dialog';
 
 const LS_API_BASE_KEY = 'real-estate-plan.apiBase';
 /** Matches server GEMINI_SLOW_FETCH_MS (default 57000 ms) so the browser does not abort first. */
@@ -571,18 +586,74 @@ function renderCalendar(host: HTMLElement, norm: any): void {
   });
 }
 
-async function saveCalendarCache(payload: any): Promise<void> {
+async function persistBillCalendarCache(cache: BillCalendarCache): Promise<void> {
   try {
-    await getRepositories().aiCacheRepository.setBillCalendar(payload as FinancialCalendarResponse);
-  } catch (e) {}
+    await getRepositories().aiCacheRepository.setBillCalendar(cache);
+  } catch (e) {
+    if (typeof console !== 'undefined' && console.warn) {
+      console.warn('[PennyPath] bill calendar cache: write failed', e);
+    }
+  }
 }
 
-async function loadCalendarCache(): Promise<any | null> {
+async function loadBillCalendarCache(): Promise<BillCalendarCache> {
   try {
-    return await getRepositories().aiCacheRepository.getBillCalendar();
+    const raw = await getRepositories().aiCacheRepository.getBillCalendar();
+    const parsed = parseBillCalendarCache(raw);
+    if (raw && !isBillCalendarHistoryPayload(raw) && parsed.versions.length) {
+      await persistBillCalendarCache(parsed);
+    }
+    return parsed;
   } catch (e) {
-    return null;
+    return emptyBillCalendarCache();
   }
+}
+
+function closeDialogEl(dlg: HTMLDialogElement): void {
+  if (typeof dlg.close === 'function') {
+    try {
+      dlg.close();
+      return;
+    } catch {
+      // fall through
+    }
+  }
+  dlg.removeAttribute('open');
+}
+
+function ensureSavedCalendarsDialog(): HTMLDialogElement | null {
+  if (typeof document === 'undefined') return null;
+  let dlg = document.getElementById(SAVED_DIALOG_ID) as HTMLDialogElement | null;
+  if (dlg) return dlg;
+  dlg = document.createElement('dialog');
+  dlg.id = SAVED_DIALOG_ID;
+  dlg.className = 'ai-bill-cal-prompt-dialog';
+  dlg.setAttribute('aria-labelledby', 'ai-bill-cal-saved-dialog-title');
+  dlg.innerHTML =
+    '<div class="ai-bill-cal-prompt-dialog__chrome">' +
+    '<header class="ai-bill-cal-prompt-dialog__header">' +
+    '<h3 id="ai-bill-cal-saved-dialog-title" class="ai-bill-cal-prompt-dialog__title">Saved calendars</h3>' +
+    '<button type="button" class="ai-bill-cal-prompt-dialog__close" data-close-saved-calendars aria-label="Close">&times;</button>' +
+    '</header>' +
+    '<div class="ai-bill-cal-prompt-dialog__body">' +
+    '<p class="ai-bill-cal-prompt-dialog__hint">Open a calendar you already generated. You do not need to upload a CSV again.</p>' +
+    '<ul class="ai-bill-cal-saved-list" id="ai-bill-cal-saved-list"></ul>' +
+    '</div></div>';
+  document.body.appendChild(dlg);
+  dlg.addEventListener('click', function (e) {
+    if (e.target === dlg) closeDialogEl(dlg);
+  });
+  const closeBtn = dlg.querySelector('[data-close-saved-calendars]');
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function () {
+      closeDialogEl(dlg);
+    });
+  }
+  return dlg;
+}
+
+function showingSavedStatus(version: BillCalendarVersion): string {
+  return 'Showing ' + billCalendarVersionTitle(version) + ' — open Saved calendars to switch.';
 }
 
 function copyTextToClipboard(text: string): Promise<boolean> {
@@ -657,6 +728,7 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
   const colAmount = document.getElementById('ai-bill-cal-col-amount') as HTMLInputElement | null;
   const colDue = document.getElementById('ai-bill-cal-col-due') as HTMLInputElement | null;
   if (!fileInput || !btn || !host || !colName || !colAmount || !colDue) return;
+  const calendarHost = host;
 
   type ParsedBill = { name: string; amount: number; due_day: number };
   let parsedRows: ParsedBill[] | null = null;
@@ -666,6 +738,8 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
   const colNameEl = colName;
   const colAmountEl = colAmount;
   const colDueEl = colDue;
+  const btnSaved = document.getElementById('btn-ai-bill-cal-saved') as HTMLButtonElement | null;
+  let calendarCache = emptyBillCalendarCache();
 
   function readColumnMap() {
     return {
@@ -727,6 +801,129 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
       btnOpenPrompt.title = ready
         ? 'Open the full calendar prompt to copy, share, or download'
         : 'Load a CSV with at least one valid bill first';
+    }
+  }
+
+  function syncSavedButton() {
+    if (!btnSaved) return;
+    const n = calendarCache.versions.length;
+    btnSaved.disabled = n === 0;
+    btnSaved.title = n
+      ? 'View calendars saved to your account'
+      : 'Generate a calendar to save it here';
+  }
+
+  function showCachedCalendar(version: BillCalendarVersion | null, status: string) {
+    if (!version) {
+      calendarHost.textContent = '';
+      setStatusText(status);
+      return;
+    }
+    renderCalendar(calendarHost, normalizeEvents({ notes: version.notes, events: version.events }));
+    setStatusText(status);
+  }
+
+  function fillSavedCalendarsList() {
+    const list = document.getElementById('ai-bill-cal-saved-list');
+    if (!list) return;
+    list.textContent = '';
+    if (!calendarCache.versions.length) {
+      const empty = document.createElement('li');
+      empty.className = 'ai-bill-cal-saved-empty';
+      empty.textContent = 'No saved calendars yet. Generate one from a CSV to keep it here.';
+      list.appendChild(empty);
+      return;
+    }
+    calendarCache.versions.forEach(function (version) {
+      const li = document.createElement('li');
+      li.className =
+        'ai-bill-cal-saved-row' + (version.id === calendarCache.currentId ? ' is-current' : '');
+
+      const main = document.createElement('div');
+      main.className = 'ai-bill-cal-saved-row__main';
+      const title = document.createElement('div');
+      title.className = 'ai-bill-cal-saved-row__title';
+      title.textContent = billCalendarVersionTitle(version);
+      const sub = document.createElement('div');
+      sub.className = 'ai-bill-cal-saved-row__sub';
+      sub.textContent = billCalendarVersionSubtitle(version);
+      if (version.id === calendarCache.currentId) {
+        const badge = document.createElement('span');
+        badge.className = 'ai-bill-cal-saved-row__badge';
+        badge.textContent = 'Showing';
+        sub.appendChild(document.createTextNode(' · '));
+        sub.appendChild(badge);
+      }
+      main.appendChild(title);
+      main.appendChild(sub);
+
+      const actions = document.createElement('div');
+      actions.className = 'ai-bill-cal-saved-row__actions';
+      const viewBtn = document.createElement('button');
+      viewBtn.type = 'button';
+      viewBtn.className = 'ai-bill-cal-saved-row__view';
+      viewBtn.textContent = version.id === calendarCache.currentId ? 'Showing' : 'View';
+      viewBtn.disabled = version.id === calendarCache.currentId;
+      viewBtn.addEventListener('click', function () {
+        void viewSavedCalendar(version.id);
+      });
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'ai-bill-cal-saved-row__remove';
+      removeBtn.textContent = 'Remove';
+      removeBtn.addEventListener('click', function () {
+        void removeSavedCalendar(version.id);
+      });
+      actions.appendChild(viewBtn);
+      actions.appendChild(removeBtn);
+
+      li.appendChild(main);
+      li.appendChild(actions);
+      list.appendChild(li);
+    });
+  }
+
+  async function viewSavedCalendar(id: string) {
+    calendarCache = selectBillCalendarVersion(calendarCache, id);
+    await persistBillCalendarCache(calendarCache);
+    syncSavedButton();
+    const version = currentBillCalendar(calendarCache);
+    showCachedCalendar(version, version ? showingSavedStatus(version) : '');
+    const dlg = document.getElementById(SAVED_DIALOG_ID) as HTMLDialogElement | null;
+    if (dlg) closeDialogEl(dlg);
+  }
+
+  async function removeSavedCalendar(id: string) {
+    const ok = window.confirm('Remove this saved calendar from your account?');
+    if (!ok) return;
+    const wasCurrent = calendarCache.currentId === id;
+    calendarCache = removeBillCalendarVersion(calendarCache, id);
+    await persistBillCalendarCache(calendarCache);
+    syncSavedButton();
+    fillSavedCalendarsList();
+    if (!calendarCache.versions.length) {
+      calendarHost.textContent = '';
+      setStatusText('Saved calendars cleared.');
+      const dlg = document.getElementById(SAVED_DIALOG_ID) as HTMLDialogElement | null;
+      if (dlg) closeDialogEl(dlg);
+      return;
+    }
+    if (wasCurrent) {
+      const version = currentBillCalendar(calendarCache);
+      showCachedCalendar(version, version ? showingSavedStatus(version) : '');
+    }
+  }
+
+  function openSavedCalendarsDialog() {
+    if (!calendarCache.versions.length) return;
+    const dlg = ensureSavedCalendarsDialog();
+    if (!dlg) return;
+    fillSavedCalendarsList();
+    try {
+      if (typeof dlg.showModal === 'function' && !dlg.open) dlg.showModal();
+      else dlg.setAttribute('open', '');
+    } catch {
+      dlg.setAttribute('open', '');
     }
   }
 
@@ -839,12 +1036,16 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
     });
   }
 
+  if (btnSaved) {
+    btnSaved.addEventListener('click', function () {
+      openSavedCalendarsDialog();
+    });
+  }
+
   fileInput.addEventListener('change', function () {
     parsedRows = null;
     lastCsvText = '';
     fileName = '';
-    setStatusText('');
-    host.textContent = '';
     const f = fileInput.files && fileInput.files[0];
     if (!f) {
       syncButton();
@@ -867,38 +1068,41 @@ export function wireBillPaymentCalendar(plan: FinancialPlan): { refreshAfterPlan
     if (!parsedRows || !parsedRows.length) return;
     btn.disabled = true;
     setStatusLoading('Generating calendar…');
-    host.textContent = '';
+    calendarHost.textContent = '';
     let calendarPrompt = '';
     try {
       calendarPrompt = await buildCalendarPrompt(plan, parsedRows, 3);
       const data = await callFinancialCalendarApi(calendarPrompt);
       const norm = normalizeEvents(data);
-      renderCalendar(host, norm);
-      await saveCalendarCache({ at: new Date().toISOString(), data: norm });
-      setStatusText('Calendar ready — ' + norm.events.length + ' event(s).');
+      renderCalendar(calendarHost, norm);
+      calendarCache = appendBillCalendarVersion(calendarCache, norm);
+      await persistBillCalendarCache(calendarCache);
+      syncSavedButton();
+      setStatusText('Calendar ready — ' + norm.events.length + ' event(s). Saved to your account.');
     } catch (err) {
   const msg = err && (err as any).message ? String((err as any).message) : 'Something went wrong.';
       setStatusText(msg);
       const p = document.createElement('p');
       p.className = 'ai-bill-cal__error';
       p.textContent = msg;
-      host.appendChild(p);
+      calendarHost.appendChild(p);
     } finally {
       syncButton();
     }
   });
 
   void (async function () {
-    const cached = await loadCalendarCache();
-    if (cached && Array.isArray(cached.events)) {
-      renderCalendar(host, cached);
-      setStatusText('Showing saved calendar — generate again to refresh.');
+    calendarCache = await loadBillCalendarCache();
+    syncSavedButton();
+    const current = currentBillCalendar(calendarCache);
+    if (current) {
+      showCachedCalendar(current, showingSavedStatus(current));
     }
   })();
 
   return {
     refreshAfterPlanChange: function () {
-      if (host.querySelector('.ai-bill-cal-month') && statusEl) {
+      if (calendarHost.querySelector('.ai-bill-cal-month') && statusEl) {
         statusEl.textContent =
           'Plan changed — generate the calendar again to align with new numbers.';
       }
