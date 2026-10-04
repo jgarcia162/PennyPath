@@ -411,6 +411,16 @@ export default function DashboardPage() {
             <div className="cover-stat-label">Take-Home Pay</div>
             <div className="cover-stat-val" id="cover-takehome"></div>
             <div className="cover-stat-note">per month</div>
+            <button
+              type="button"
+              className="cover-action-btn no-print"
+              id="btn-edit-takehome-cover"
+              aria-haspopup="dialog"
+              aria-controls="takehome-editor-dialog"
+              aria-expanded="false"
+            >
+              Edit
+            </button>
           </div>
           <div className="cover-stat">
             <div className="cover-stat-label">Debt-Free By</div>
@@ -501,7 +511,19 @@ export default function DashboardPage() {
                 <div className="status-note" id="status-debt-note"></div>
               </div>
               <div className="status-card income">
-                <div className="status-label">Monthly Take-Home</div>
+                <div className="status-card-head">
+                  <div className="status-label">Monthly Take-Home</div>
+                  <button
+                    type="button"
+                    className="status-card-edit no-print"
+                    id="btn-edit-takehome"
+                    aria-haspopup="dialog"
+                    aria-controls="takehome-editor-dialog"
+                    aria-expanded="false"
+                  >
+                    Edit
+                  </button>
+                </div>
                 <div className="status-value" id="status-takehome"></div>
                 <div className="status-note" id="status-takehome-note"></div>
               </div>
@@ -1403,6 +1425,81 @@ export default function DashboardPage() {
           <div className="ledger-activity-dialog__toolbar" id="ledger-activity-dialog-toolbar" hidden></div>
           <div className="ledger-activity-dialog__body" id="ledger-activity-dialog-body"></div>
         </div>
+      </dialog>
+
+      <dialog
+        className="takehome-editor-dialog no-print"
+        id="takehome-editor-dialog"
+        aria-labelledby="takehome-editor-dialog-title"
+        aria-modal="true"
+      >
+        <form className="takehome-editor-dialog__chrome" id="takehome-editor-form">
+          <div className="takehome-editor-dialog__header">
+            <h2 className="takehome-editor-dialog__title" id="takehome-editor-dialog-title">
+              Take-home pay
+            </h2>
+            <button
+              type="button"
+              className="takehome-editor-dialog__close"
+              data-close-takehome-dialog
+              aria-label="Close"
+            >
+              ×
+            </button>
+          </div>
+          <div className="takehome-editor-dialog__body">
+            <p className="takehome-editor-dialog__hint" id="takehome-editor-hint">
+              Monthly take-home is each paycheck times how many you receive in a month. Change any field and the others
+              stay in sync. Twice a month is 2. Every other week is about 2.17.
+            </p>
+            <div className="takehome-editor-dialog__fields">
+              <div className="balance-field">
+                <label htmlFor="takehome-paycheck">Amount per paycheck</label>
+                <input
+                  id="takehome-paycheck"
+                  name="paycheck"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  data-money="currency"
+                  aria-describedby="takehome-editor-hint"
+                />
+              </div>
+              <div className="balance-field">
+                <label htmlFor="takehome-count">Paychecks per month</label>
+                <input
+                  id="takehome-count"
+                  name="count"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  placeholder="2"
+                />
+                <div className="balance-field-hint">Use 1 for monthly, 2 for twice a month, or about 4.33 for weekly.</div>
+              </div>
+              <div className="balance-field">
+                <label htmlFor="takehome-monthly">Monthly take-home</label>
+                <input
+                  id="takehome-monthly"
+                  name="monthly"
+                  type="text"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  data-money="currency"
+                />
+              </div>
+            </div>
+            <p className="takehome-editor-status" id="takehome-editor-status" aria-live="polite"></p>
+            <div className="takehome-editor-dialog__actions">
+              <button type="submit" className="btn-save" id="btn-save-takehome">
+                Save
+              </button>
+              <button type="button" className="btn-undo" data-close-takehome-dialog>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </form>
       </dialog>
 
       <dialog

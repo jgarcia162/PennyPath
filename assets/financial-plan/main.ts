@@ -28,6 +28,7 @@ import { wipeAllUserData } from './wipe-user-data';
 import { withAppBusy } from './app-busy';
 import { wireMonthWrap, wireDashboardMonthSelector } from './month-wrap';
 import { wireBudgetBreakdown } from './budget-breakdown-wire';
+import { wireTakeHomeEditor } from './takehome-editor-wire';
 import { resetBudgetBreakdownEditMode } from './budget-breakdown-state';
 import { getTrialSeed, isTrialSessionActive } from '../../lib/trial/trial-session';
 
@@ -178,6 +179,7 @@ async function init(): Promise<void> {
   wireDashboardMonthSelector(render);
   wireDashboardGoalsAtGlance();
   wireBudgetBreakdown(render);
+  wireTakeHomeEditor(render);
 }
 
 /**
