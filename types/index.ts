@@ -277,6 +277,20 @@ export interface FinancialCalendarResponse {
   events: FinancialCalendarEvent[];
 }
 
+/** One generated payment/bill calendar snapshot persisted on the account. */
+export interface BillCalendarVersion {
+  id: string;
+  at: string;
+  notes: string;
+  events: FinancialCalendarEvent[];
+}
+
+/** History of generated calendars stored in `ai_cache.bill_calendar`. */
+export interface BillCalendarCache {
+  currentId: string;
+  versions: BillCalendarVersion[];
+}
+
 // --------- Savings goals helpers / derived summaries ----------
 
 /** IDs used throughout the Financial Plan savings-goals module. */

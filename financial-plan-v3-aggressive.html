@@ -414,7 +414,7 @@
       <div class="ai-bill-cal no-print">
         <h3 class="ai-bill-cal__heading">Payment &amp; bill calendar</h3>
         <p class="ai-bill-cal__intro">
-          Upload a CSV with your monthly bills. The AI places each bill on its due day and suggests dates to make debt payments using your plan budget and (when available) the generated payoff strategy above.
+          Upload a CSV with your monthly bills. The AI places each bill on its due day and suggests dates to make debt payments using your plan budget and (when available) the generated payoff strategy above. Generated calendars stay on your account — open Saved calendars to view them without uploading again.
         </p>
         <p class="ai-bill-cal__format">
           The first row must be headers. Enter the exact header names from your file for bill name, amount, and due day (day of month 1–31, recurring each month). Matching is not case-sensitive.
@@ -470,6 +470,15 @@
             title="Load a CSV with at least one valid bill first"
           >
             View prompt
+          </button>
+          <button
+            type="button"
+            class="ai-bill-cal-prompt-btn"
+            id="btn-ai-bill-cal-saved"
+            disabled
+            title="Generate a calendar to save it here"
+          >
+            Saved calendars
           </button>
           <span class="ai-bill-cal__status" id="ai-bill-cal-status" role="status"></span>
         </div>

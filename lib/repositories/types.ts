@@ -3,7 +3,6 @@ import type {
   CheckInEntry,
   CheckInServiceEntry,
   Debt,
-  FinancialCalendarResponse,
   FinancialPlan,
   SavingsAccount,
   SavingsGoal,
@@ -57,8 +56,8 @@ export interface SavingsGoalRepository {
 export interface AiCacheRepository {
   getPayoffPlan(): Promise<AiPayoffPlanCache | null>;
   setPayoffPlan(cache: AiPayoffPlanCache): Promise<void>;
-  getBillCalendar(): Promise<FinancialCalendarResponse | null>;
-  setBillCalendar(data: FinancialCalendarResponse): Promise<void>;
+  getBillCalendar(): Promise<unknown | null>;
+  setBillCalendar(data: unknown): Promise<void>;
   getBillCalendarColumns(columns: unknown): Promise<void>;
   getColumns(): Promise<unknown | null>;
 }
